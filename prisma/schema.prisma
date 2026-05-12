@@ -1,0 +1,186 @@
+// Simple Roster Plus — data model (v1 foundation)
+// Calendar semantics use PostgreSQL DATE; interpret "business day" with Organization.timeZone (IANA).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  /// IANA timezone, e.g. America/Toronto or UTC. Roster/holiday YMD boundaries use this zone.
+  timeZone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          AppUser[]
+  staff          Staff[]
+  staffRoles     StaffRole[]
+  shiftTemplates ShiftTemplate[]
+  rosterWeeks    RosterWeek[]
+  publicHolidays PublicHoliday[]
+  appSettings    AppSetting[]
+}
+
+model AppUser {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  passwordHash   String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+}
+
+model StaffRole {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  sortOrder      Int          @default(0)
+  staff          Staff[]
+
+  @@index([organizationId])
+}
+
+model Staff {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  email          String?
+  role           String?
+  roleId         String?
+  staffRole      StaffRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  deviceUserId   String?
+  punchExempt    Boolean   @default(false)
+  vacationStart  DateTime? @db.Date
+  vacationEnd    DateTime? @db.Date
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  dayOffs       StaffDayOff[]
+  sickLeaves    StaffSickLeave[]
+  rosterEntries RosterEntry[]
+
+  @@index([organizationId])
+  @@index([organizationId, sortOrder])
+}
+
+model StaffDayOff {
+  id      String   @id @default(cuid())
+  staffId String
+  staff   Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date    DateTime @db.Date
+
+  @@unique([staffId, date])
+  @@index([staffId])
+}
+
+enum SickLeaveStatus {
+  requested
+  approved
+  denied
+}
+
+model StaffSickLeave {
+  id        String          @id @default(cuid())
+  staffId   String
+  staff     Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  startDate DateTime        @db.Date
+  endDate   DateTime        @db.Date
+  status    SickLeaveStatus @default(requested)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([staffId])
+}
+
+model ShiftTemplate {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  startTime      String
+  endTime        String
+  color          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  rosterEntries RosterEntry[]
+
+  @@index([organizationId])
+}
+
+enum RosterWeekStatus {
+  draft
+  published
+}
+
+model RosterWeek {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  weekStart      DateTime         @db.Date
+  status         RosterWeekStatus @default(draft)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  entries RosterEntry[]
+
+  @@unique([organizationId, weekStart])
+  @@index([organizationId])
+}
+
+model RosterEntry {
+  id              String         @id @default(cuid())
+  rosterWeekId    String
+  rosterWeek      RosterWeek     @relation(fields: [rosterWeekId], references: [id], onDelete: Cascade)
+  staffId         String
+  staff           Staff          @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date            DateTime       @db.Date
+  shiftTemplateId String?
+  shiftTemplate   ShiftTemplate? @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
+  position        String?
+  notes           String?
+
+  @@unique([rosterWeekId, staffId, date])
+  @@index([rosterWeekId])
+  @@index([staffId])
+}
+
+model PublicHoliday {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  date           DateTime     @db.Date
+  name           String
+  stationClosed  Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+}
+
+model AppSetting {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String
+  value          String       @db.Text
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
