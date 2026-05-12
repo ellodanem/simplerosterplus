@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Roster Plus | ZKTeco Attendance & Staff Roster for Small Business</title>
+  <meta name="description" content="Practical staff roster software and small business attendance tracking with ZKTeco devices. Biometric attendance setup, employee clock-in system, and roster and attendance system built for real workflows.">
+  <meta name="keywords" content="ZKTeco attendance system, staff roster software, small business attendance tracking, biometric attendance setup, employee clock-in system, roster and attendance system">
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --text: #1a2332;
+      --text-muted: #4a5a6e;
+      --accent-blue: #1e6bb8;
+      --accent-blue-soft: #e8f2fb;
+      --accent-green: #1a8f6a;
+      --accent-green-soft: #e6f5ef;
+      --border: #dce3eb;
+      --shadow: 0 4px 24px rgba(26, 35, 50, 0.08);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --max: 1100px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    img { max-width: 100%; height: auto; }
+
+    a { color: var(--accent-blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: #155a99; }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    .skip-link:focus {
+      left: 1rem;
+      top: 1rem;
+      width: auto;
+      height: auto;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: 2px solid var(--accent-blue);
+      border-radius: var(--radius-sm);
+      z-index: 1000;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo span { color: var(--accent-green); }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+      align-items: center;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    nav a:hover { color: var(--accent-blue); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.35rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent-blue);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(30, 107, 184, 0.25);
+    }
+    .btn-primary:hover { background: #185a9e; color: #fff; }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--accent-blue);
+      border: 2px solid var(--accent-blue);
+    }
+    .btn-secondary:hover { background: var(--accent-blue-soft); }
+
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 1.25rem; }
+
+    /* Hero */
+    .hero {
+      padding: 3rem 0 3.5rem;
+      background: linear-gradient(165deg, var(--surface) 0%, var(--accent-blue-soft) 45%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+    @media (min-width: 900px) {
+      .hero-grid { grid-template-columns: 1.05fr 0.95fr; gap: 2.5rem; }
+    }
+    .hero h1 {
+      font-size: clamp(1.85rem, 4vw, 2.45rem);
+      line-height: 1.2;
+      margin: 0 0 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .hero .sub {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin: 0 0 1.75rem;
+      max-width: 32em;
+    }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .hero-visual {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .placeholder-box {
+      background: var(--surface);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+    }
+    .placeholder-box strong { color: var(--text); font-weight: 600; }
+
+    /* Sections */
+    section { padding: 3rem 0; }
+    #solution,
+    #for-you,
+    #process,
+    #contact {
+      background: var(--surface);
+    }
+    .section-title {
+      font-size: clamp(1.45rem, 3vw, 1.75rem);
+      margin: 0 0 0.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .section-lead {
+      color: var(--text-muted);
+      margin: 0 0 1.75rem;
+      max-width: 42em;
+      font-size: 1.05rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+    .card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+
+    .icon-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 0.85rem;
+    }
+    .icon-blue { background: var(--accent-blue-soft); color: var(--accent-blue); }
+    .icon-green { background: var(--accent-green-soft); color: var(--accent-green); }
+
+    .grid-2 {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 700px) {
+      .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    }
+    .grid-3 {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 640px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 960px) {
+      .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .pill-list li {
+      background: var(--accent-green-soft);
+      color: var(--text);
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      border: 1px solid rgba(26, 143, 106, 0.2);
+    }
+
+    .honest {
+      background: linear-gradient(135deg, var(--accent-blue-soft) 0%, var(--surface) 50%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.35rem;
+    }
+    .honest h2 { margin-top: 0; }
+    .honest ul { margin: 0; padding-left: 1.2rem; color: var(--text-muted); }
+    .honest li { margin-bottom: 0.5rem; }
+
+    .steps {
+      display: grid;
+      gap: 1rem;
+      counter-reset: step;
+    }
+    @media (min-width: 800px) {
+      .steps { grid-template-columns: repeat(4, 1fr); }
+    }
+    .step {
+      position: relative;
+      padding: 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      background: var(--accent-blue);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+    .step h3 { margin: 0 0 0.35rem; font-size: 1rem; }
+    .step p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+
+    /* Pricing / setup options */
+    .setup-cards {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 900px) {
+      .setup-cards { grid-template-columns: repeat(3, 1fr); }
+    }
+    .setup-card {
+      border-radius: var(--radius);
+      padding: 1.35rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+    .setup-card h3 { margin: 0 0 0.5rem; font-size: 1.05rem; color: var(--accent-blue); }
+    .setup-card p { margin: 0; flex: 1; color: var(--text-muted); font-size: 0.95rem; }
+
+    /* Form */
+    .contact-form {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .form-row { margin-bottom: 1rem; }
+    .form-row label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.88rem;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      font-family: inherit;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .form-row textarea { min-height: 120px; resize: vertical; }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 1px;
+      border-color: var(--accent-blue);
+    }
+    .form-note {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    footer {
+      background: var(--text);
+      color: #c5ced9;
+      padding: 2rem 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    footer a { color: #8ec5ff; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="#">Simple Roster <span>Plus</span></a>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="#problem">Why it matters</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#for-you">Who it’s for</a></li>
+          <li><a href="#setup-options">Setup options</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="wrap hero-grid">
+        <div>
+          <h1 id="hero-heading">Simple Staff Rosters. Clean Attendance Tracking.</h1>
+          <p class="sub">A practical roster and attendance setup for small businesses using ZKTeco devices. Connect schedules with who actually clocked in—without a heavy HR system.</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#contact">Request a Setup</a>
+            <a class="btn btn-secondary" href="#contact">Ask About ZKTeco Integration</a>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="placeholder-box"><strong>[Roster Screenshot Placeholder]</strong></div>
+          <div class="placeholder-box"><strong>[Attendance Dashboard Placeholder]</strong></div>
+          <div class="placeholder-box"><strong>[ZKTeco Device Placeholder]</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="problem" aria-labelledby="problem-heading">
+      <div class="wrap">
+        <h2 id="problem-heading" class="section-title">When schedules and attendance live in different places</h2>
+        <p class="section-lead">Many small businesses still track staff schedules, late arrivals, absences, and attendance reports by hand. Common tools include WhatsApp groups, paper sheets, spreadsheets, or memory. That works until someone asks: “Who was supposed to be here Tuesday night?” or “Can we show attendance for payroll?”</p>
+        <div class="grid-2">
+          <div class="card">
+            <h3>The day-to-day cost</h3>
+            <p>Mixed messages, missed shifts, and unclear records take time to fix. Owners and managers end up chasing details instead of running the floor.</p>
+          </div>
+          <div class="card">
+            <h3>What you actually need</h3>
+            <p>A simple way to plan shifts, record clock-in and clock-out with a <strong>ZKTeco attendance system</strong>, and pull reports you can use—built around how your team really works.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="solution" aria-labelledby="solution-heading">
+      <div class="wrap">
+        <h2 id="solution-heading" class="section-title">Roster planning and attendance in one practical flow</h2>
+        <p class="section-lead"><strong>Simple Roster Plus</strong> links your staff roster with attendance from ZKTeco devices. You can see who was scheduled, who clocked in on time, who was late or absent, and which reports matter for your business—without promising full HR or accounting.</p>
+        <div class="placeholder-box" style="margin-top: 1rem;">
+          <strong>[Attendance Dashboard Placeholder]</strong> — preview of scheduled vs. actual attendance
+        </div>
+      </div>
+    </section>
+
+    <section id="features" aria-labelledby="features-heading">
+      <div class="wrap">
+        <h2 id="features-heading" class="section-title">What you get</h2>
+        <p class="section-lead">Lightweight workforce operations: <strong>small business attendance tracking</strong>, clear rosters, and exports that fit your routine—not an enterprise platform.</p>
+        <div class="grid-3">
+          <article class="card">
+            <div class="icon-dot icon-blue" aria-hidden="true">📟</div>
+            <h3>ZKTeco Device Setup</h3>
+            <p>Hands-on help with <strong>biometric attendance setup</strong> so your <strong>employee clock-in system</strong> matches your site, staff list, and basic rules.</p>
+          </article>
+          <article class="card">
+            <div class="icon-dot icon-green" aria-hidden="true">📅</div>
+            <h3>Staff Roster Management</h3>
+            <p>Straightforward <strong>staff roster software</strong> patterns for shifts and coverage—so schedules are easy to read and update.</p>
+          </article>
+          <article class="card">
+            <div class="icon-dot icon-blue" aria-hidden="true">⏱</div>
+            <h3>Clock-In / Clock-Out Tracking</h3>
+            <p>Reliable in/out records from your devices, aligned with how your shifts run.</p>
+          </article>
+          <article class="card">
+            <div class="icon-dot icon-green" aria-hidden="true">📊</div>
+            <h3>Attendance Reports</h3>
+            <p>Reports for lateness, absences, hours, and periods you care about—export when you need them.</p>
+          </article>
+          <article class="card">
+            <div class="icon-dot icon-blue" aria-hidden="true">📤</div>
+            <h3>Payroll-Friendly Exports</h3>
+            <p>Data formatted to hand off to whoever runs payroll—without claiming we process payroll for you.</p>
+          </article>
+          <article class="card">
+            <div class="icon-dot icon-green" aria-hidden="true">🔔</div>
+            <h3>Optional Notifications</h3>
+            <p>WhatsApp or email alerts can be added where they help—missed punch, summary digests, or simple reminders.</p>
+          </article>
+        </div>
+        <p style="margin-top: 1.5rem; color: var(--text-muted); max-width: 42em;">Optional add-ons can include a <strong>cloud dashboard</strong>, notification channels, and export layouts tuned to your workflow. Everything stays practical and scoped to what small teams use every day.</p>
+      </div>
+    </section>
+
+    <section id="for-you" aria-labelledby="for-you-heading">
+      <div class="wrap">
+        <h2 id="for-you-heading" class="section-title">Who it is for</h2>
+        <p class="section-lead">Small businesses with people on shifts—where a clear <strong>roster and attendance system</strong> saves time and arguments.</p>
+        <ul class="pill-list" aria-label="Business types">
+          <li>Retail stores</li>
+          <li>Gas stations</li>
+          <li>Restaurants</li>
+          <li>Clinics</li>
+          <li>Cleaning teams</li>
+          <li>Security teams</li>
+          <li>Small offices</li>
+          <li>Multi-shift businesses</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="addons" aria-labelledby="addons-heading">
+      <div class="wrap">
+        <h2 id="addons-heading" class="section-title">Optional add-ons</h2>
+        <p class="section-lead">Pick what helps your operation. Nothing is sold as “one size fits all.”</p>
+        <div class="grid-2">
+          <ul class="card" style="margin: 0;">
+            <li>WhatsApp or email alerts</li>
+            <li>Cloud dashboard for managers</li>
+            <li>Leave tracking (simple)</li>
+          </ul>
+          <ul class="card" style="margin: 0;">
+            <li>Multi-location tracking</li>
+            <li>Payroll export formatting</li>
+            <li>Custom report layouts</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="honest" aria-labelledby="honest-heading">
+      <div class="wrap">
+        <div class="honest">
+          <h2 id="honest-heading" class="section-title">What we do not do</h2>
+          <p class="section-lead" style="margin-bottom: 1rem;">We are upfront so you know what you are buying. That usually builds more trust than big promises.</p>
+          <ul>
+            <li><strong>Not a full HR platform</strong> — no end-to-end hiring, benefits, or performance modules.</li>
+            <li><strong>Not an accounting system</strong> — we do not replace your books or tax filings.</li>
+            <li><strong>Not complex enterprise payroll</strong> — we help with attendance data and exports, not running payroll for every rule in every country.</li>
+            <li><strong>Not open-ended build-everything work</strong> — we scope practical setup and customization around your roster and attendance needs.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="process" aria-labelledby="process-heading">
+      <div class="wrap">
+        <h2 id="process-heading" class="section-title">How setup works</h2>
+        <p class="section-lead">A simple four-step path from first conversation to your team using the system.</p>
+        <div class="steps">
+          <div class="step">
+            <h3>Understand your workflow</h3>
+            <p>We learn your shifts, roles, locations, and how you want reports to read.</p>
+          </div>
+          <div class="step">
+            <h3>Set up staff and device</h3>
+            <p>Staff profiles and your ZKTeco device are configured for clean clock-in and clock-out.</p>
+          </div>
+          <div class="step">
+            <h3>Configure roster and reports</h3>
+            <p>Roster views and attendance reports match what you will actually open each week.</p>
+          </div>
+          <div class="step">
+            <h3>Train your manager and hand over</h3>
+            <p>Your lead gets a short walkthrough so day-to-day use stays simple.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup-options" aria-labelledby="setup-options-heading">
+      <div class="wrap">
+        <h2 id="setup-options-heading" class="section-title">Setup options</h2>
+        <p class="section-lead">Every business works differently, so pricing depends on your staff size, number of locations, ZKTeco device setup, and reporting needs. We will recommend a path after a short conversation—no fixed monthly tiers on this page.</p>
+        <div class="setup-cards">
+          <div class="setup-card">
+            <h3>Basic Attendance Setup</h3>
+            <p>For small teams that need simple clock-in and clock-out tracking and straightforward attendance reports.</p>
+          </div>
+          <div class="setup-card">
+            <h3>Roster + Attendance Setup</h3>
+            <p>For businesses that want staff schedules connected with attendance so you can compare planned vs. actual.</p>
+          </div>
+          <div class="setup-card">
+            <h3>Multi-Location / Custom Reporting Setup</h3>
+            <p>For businesses that need location-based tracking, custom reports, or payroll-friendly export layouts.</p>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 1.75rem;">
+          <a class="btn btn-primary" href="#contact">Request a quick quote</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-heading">
+      <div class="wrap">
+        <h2 id="contact-heading" class="section-title">Get in touch</h2>
+        <p class="section-lead">Tell us about your team and devices. We will reply with practical next steps—no pressure.</p>
+        <form class="contact-form card" action="#" method="post" onsubmit="event.preventDefault(); alert('This is a demo form. Connect it to your email or form handler when you go live.');">
+          <div class="form-row">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required>
+          </div>
+          <div class="form-row">
+            <label for="business">Business name</label>
+            <input id="business" name="business" type="text" autocomplete="organization" required>
+          </div>
+          <div class="form-row">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="form-row">
+            <label for="phone">Phone / WhatsApp</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel">
+          </div>
+          <div class="form-row">
+            <label for="staff-count">Number of staff</label>
+            <input id="staff-count" name="staff_count" type="text" inputmode="numeric" placeholder="e.g. 12">
+          </div>
+          <div class="form-row">
+            <label for="zkteco">Do you already have a ZKTeco device?</label>
+            <select id="zkteco" name="has_zkteco" required>
+              <option value="">Select…</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="Shifts, locations, and what you want to see on reports…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Send message</button>
+          <p class="form-note">Demo: wire this form to your backend or a form service before collecting real leads.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p><strong>Simple Roster Plus</strong> — practical roster and attendance for small businesses with ZKTeco.</p>
+      <p style="margin-top: 0.5rem;"><a href="#contact">Request a Setup</a></p>
+    </div>
+  </footer>
+</body>
+</html>
