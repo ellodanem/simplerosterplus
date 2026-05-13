@@ -18,7 +18,15 @@ type Staff = {
 
 type Holiday = { name: string; stationClosed: boolean };
 
-type Anchor = { staffId: string; ymd: string; top: number; left: number; width: number };
+type CellAnchor = {
+  type: "cell";
+  staffId: string;
+  ymd: string;
+  top: number;
+  left: number;
+};
+type RowAnchor = { type: "row"; staffId: string; top: number; left: number };
+type Anchor = CellAnchor | RowAnchor;
 
 const FALLBACK_COLOR = "#475569";
 
@@ -63,6 +71,12 @@ export function RosterGrid({
     return m;
   }, [templates]);
 
+  const staffById = useMemo(() => {
+    const m = new Map<string, Staff>();
+    for (const s of staff) m.set(s.id, s);
+    return m;
+  }, [staff]);
+
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
   }
@@ -79,16 +93,42 @@ export function RosterGrid({
     return null;
   }
 
-  function openPopover(e: React.MouseEvent<HTMLButtonElement>, s: Staff, ymd: string) {
+  function openCellPopover(
+    e: React.MouseEvent<HTMLButtonElement>,
+    s: Staff,
+    ymd: string,
+  ) {
     if (blockedReason(s, ymd)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchor({
+      type: "cell",
       staffId: s.id,
       ymd,
       top: rect.bottom + window.scrollY + 4,
       left: rect.left + window.scrollX,
-      width: rect.width,
     });
+  }
+
+  function openRowPopover(e: React.MouseEvent<HTMLButtonElement>, s: Staff) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setAnchor({
+      type: "row",
+      staffId: s.id,
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+    });
+  }
+
+  async function putEntry(staffId: string, ymd: string, templateId: string | null) {
+    const res = await fetch(`/api/roster/weeks/${encodeURIComponent(weekId)}/entries`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staffId, date: ymd, shiftTemplateId: templateId }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      throw new Error(data.error || "Could not save");
+    }
   }
 
   async function setCell(staffId: string, ymd: string, templateId: string | null) {
@@ -103,15 +143,7 @@ export function RosterGrid({
     setPending((s) => ({ ...s, [key]: true }));
     setError(null);
     try {
-      const res = await fetch(`/api/roster/weeks/${encodeURIComponent(weekId)}/entries`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staffId, date: ymd, shiftTemplateId: templateId }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error || "Could not save");
-      }
+      await putEntry(staffId, ymd, templateId);
     } catch (e) {
       setEntries((s) => {
         const next = { ...s };
@@ -127,6 +159,69 @@ export function RosterGrid({
         return next;
       });
     }
+  }
+
+  async function applyToRow(staffId: string, templateId: string | null) {
+    const s = staffById.get(staffId);
+    if (!s) return;
+
+    const targets: string[] = [];
+    const previousByKey: Record<string, string | undefined> = {};
+    for (const ymd of days) {
+      if (blockedReason(s, ymd)) continue;
+      targets.push(ymd);
+      previousByKey[cellKey(staffId, ymd)] = entries[cellKey(staffId, ymd)];
+    }
+    if (targets.length === 0) return;
+
+    setEntries((curr) => {
+      const next = { ...curr };
+      for (const ymd of targets) {
+        const k = cellKey(staffId, ymd);
+        if (templateId) next[k] = templateId;
+        else delete next[k];
+      }
+      return next;
+    });
+    setPending((curr) => {
+      const next = { ...curr };
+      for (const ymd of targets) next[cellKey(staffId, ymd)] = true;
+      return next;
+    });
+    setError(null);
+
+    const results = await Promise.allSettled(
+      targets.map((ymd) => putEntry(staffId, ymd, templateId)),
+    );
+
+    const failures: { ymd: string; message: string }[] = [];
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === "rejected") {
+        failures.push({ ymd: targets[i], message: (r.reason as Error).message });
+      }
+    }
+
+    if (failures.length > 0) {
+      setEntries((curr) => {
+        const next = { ...curr };
+        for (const f of failures) {
+          const k = cellKey(staffId, f.ymd);
+          const prev = previousByKey[k];
+          if (prev) next[k] = prev;
+          else delete next[k];
+        }
+        return next;
+      });
+      const word = failures.length === 1 ? "day" : "days";
+      setError(`${failures.length} ${word} couldn't be updated: ${failures[0].message}`);
+    }
+
+    setPending((curr) => {
+      const next = { ...curr };
+      for (const ymd of targets) delete next[cellKey(staffId, ymd)];
+      return next;
+    });
   }
 
   function goToWeek(ymd: string) {
@@ -276,14 +371,43 @@ export function RosterGrid({
               staff.map((s) => (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
-                    <div className="truncate font-medium text-zinc-900" title={`${s.firstName} ${s.lastName}`}>
-                      {s.firstName} {s.lastName}
-                    </div>
-                    {s.role ? (
-                      <div className="truncate text-xs text-zinc-500" title={s.role}>
-                        {s.role}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div
+                          className="truncate font-medium text-zinc-900"
+                          title={`${s.firstName} ${s.lastName}`}
+                        >
+                          {s.firstName} {s.lastName}
+                        </div>
+                        {s.role ? (
+                          <div className="truncate text-xs text-zinc-500" title={s.role}>
+                            {s.role}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
+                      <button
+                        type="button"
+                        onClick={(e) => openRowPopover(e, s)}
+                        title="Apply shift to all days this week"
+                        aria-label={`Apply shift to all days for ${s.firstName} ${s.lastName}`}
+                        className="shrink-0 rounded-md border border-zinc-300 bg-white p-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 12h14" />
+                          <path d="M14 6l6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                   {days.map((d) => {
                     const key = cellKey(s.id, d);
@@ -297,7 +421,7 @@ export function RosterGrid({
                           tpl={tpl}
                           blocked={blocked}
                           pending={isPending}
-                          onClick={(e) => openPopover(e, s, d)}
+                          onClick={(e) => openCellPopover(e, s, d)}
                         />
                       </td>
                     );
@@ -312,12 +436,22 @@ export function RosterGrid({
       {anchor ? (
         <ShiftPopover
           anchor={anchor}
+          title={anchor.type === "row" ? "Apply to whole week" : "Assign shift"}
+          clearLabel={anchor.type === "row" ? "Clear all (Off)" : "Clear (Off)"}
           templates={templates}
-          currentTemplateId={entries[cellKey(anchor.staffId, anchor.ymd)] ?? null}
+          currentTemplateId={
+            anchor.type === "cell"
+              ? (entries[cellKey(anchor.staffId, anchor.ymd)] ?? null)
+              : null
+          }
           onPick={async (templateId) => {
             const a = anchor;
             setAnchor(null);
-            await setCell(a.staffId, a.ymd, templateId);
+            if (a.type === "cell") {
+              await setCell(a.staffId, a.ymd, templateId);
+            } else {
+              await applyToRow(a.staffId, templateId);
+            }
           }}
           onManagePresets={() => {
             setAnchor(null);
@@ -396,6 +530,8 @@ function CellButton({
 
 function ShiftPopover({
   anchor,
+  title,
+  clearLabel,
   templates,
   currentTemplateId,
   onPick,
@@ -403,6 +539,8 @@ function ShiftPopover({
   onClose,
 }: {
   anchor: Anchor;
+  title: string;
+  clearLabel: string;
   templates: Template[];
   currentTemplateId: string | null;
   onPick: (templateId: string | null) => void;
@@ -436,7 +574,7 @@ function ShiftPopover({
         aria-label="Choose shift"
       >
         <div className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-          Assign shift
+          {title}
         </div>
         <div className="max-h-64 overflow-y-auto">
           {templates.length === 0 ? (
@@ -488,7 +626,7 @@ function ShiftPopover({
             onClick={() => onPick(null)}
             className="rounded-md px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
           >
-            Clear (Off)
+            {clearLabel}
           </button>
           <button
             type="button"
