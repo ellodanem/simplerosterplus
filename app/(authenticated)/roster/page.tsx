@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { utcDateFromYmd } from "@/lib/datetime-policy";
+import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import {
   currentWeekStartYmd,
   daysOfWeek,
@@ -114,6 +114,7 @@ export default async function RosterPage({
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);
   const thisWeek = currentWeekStartYmd(org.timeZone);
+  const todayYmd = formatYmdInZone(new Date(), org.timeZone);
 
   return (
     <div>
@@ -139,6 +140,7 @@ export default async function RosterPage({
         prevWeek={prevWeek}
         nextWeek={nextWeek}
         thisWeek={thisWeek}
+        todayYmd={todayYmd}
         staff={staffForClient}
         templates={templates}
         initialEntries={initialEntries}

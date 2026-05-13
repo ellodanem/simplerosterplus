@@ -30,6 +30,7 @@ export function RosterGrid({
   prevWeek,
   nextWeek,
   thisWeek,
+  todayYmd,
   staff,
   templates: initialTemplates,
   initialEntries,
@@ -42,6 +43,7 @@ export function RosterGrid({
   prevWeek: string;
   nextWeek: string;
   thisWeek: string;
+  todayYmd: string;
   staff: Staff[];
   templates: Template[];
   initialEntries: Record<string, string>;
@@ -217,23 +219,31 @@ export function RosterGrid({
               </th>
               {days.map((d) => {
                 const h = dayHeaderLabel(d, timeZone);
-                const isToday = d === thisWeek;
+                const isToday = d === todayYmd;
                 const closed = holidays[d]?.stationClosed;
                 return (
                   <th
                     key={d}
-                    className={`min-w-[7rem] px-2 py-2 text-left ${closed ? "bg-zinc-100" : ""}`}
+                    aria-current={isToday ? "date" : undefined}
+                    className={`min-w-[7rem] px-2 py-2 text-left ${
+                      isToday
+                        ? "bg-emerald-50"
+                        : closed
+                          ? "bg-zinc-100"
+                          : ""
+                    }`}
                   >
                     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className="text-xs font-semibold text-zinc-500">{h.weekday}</span>
-                      <span className="text-sm font-medium normal-case text-zinc-800">
+                      <span
+                        className={`text-xs font-semibold ${isToday ? "text-emerald-700" : "text-zinc-500"}`}
+                      >
+                        {h.weekday}
+                      </span>
+                      <span
+                        className={`text-sm font-medium normal-case ${isToday ? "text-emerald-900" : "text-zinc-800"}`}
+                      >
                         {h.date}
                       </span>
-                      {isToday ? (
-                        <span className="rounded bg-emerald-100 px-1 text-[10px] font-semibold text-emerald-800">
-                          Today
-                        </span>
-                      ) : null}
                     </div>
                     {holidays[d] ? (
                       <div
