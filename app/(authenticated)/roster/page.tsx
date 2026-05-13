@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -118,25 +117,17 @@ export default async function RosterPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
-          <p className="mt-0.5 text-sm text-zinc-600">
-            {org.name} · <span className="font-mono">{org.timeZone}</span> · Week of{" "}
-            <span className="font-medium">{weekStartYmd}</span>
-            {week.status === "published" ? (
-              <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
-                Published
-              </span>
-            ) : null}
-          </p>
-        </div>
-        <Link
-          href="/roster/templates"
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-        >
-          Shift presets
-        </Link>
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
+        <p className="mt-0.5 text-sm text-zinc-600">
+          {org.name} · <span className="font-mono">{org.timeZone}</span> · Week of{" "}
+          <span className="font-medium">{weekStartYmd}</span>
+          {week.status === "published" ? (
+            <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
+              Published
+            </span>
+          ) : null}
+        </p>
       </div>
 
       <RosterGrid

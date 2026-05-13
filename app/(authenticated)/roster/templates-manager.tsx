@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   DEFAULT_SHIFT_COLOR,
@@ -8,7 +7,7 @@ import {
   SECONDARY_SWATCHES,
 } from "@/lib/shift-colors";
 
-type Template = {
+export type Template = {
   id: string;
   name: string;
   startTime: string;
@@ -16,12 +15,23 @@ type Template = {
   color: string | null;
 };
 
-export function TemplatesManager({ initial }: { initial: Template[] }) {
-  const router = useRouter();
+function sortByName(items: Template[]): Template[] {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function TemplatesManager({
+  initial,
+  onChange,
+}: {
+  initial: Template[];
+  onChange?: (templates: Template[]) => void;
+}) {
   const [items, setItems] = useState<Template[]>(initial);
 
-  function refresh() {
-    router.refresh();
+  function applyUpdate(next: Template[]) {
+    const sorted = sortByName(next);
+    setItems(sorted);
+    onChange?.(sorted);
   }
 
   async function onCreate(values: Omit<Template, "id">) {
@@ -34,8 +44,7 @@ export function TemplatesManager({ initial }: { initial: Template[] }) {
     if (!res.ok || !data.template) {
       throw new Error(data.error || "Could not create");
     }
-    setItems((s) => [...s, data.template!].sort((a, b) => a.name.localeCompare(b.name)));
-    refresh();
+    applyUpdate([...items, data.template]);
   }
 
   async function onUpdate(id: string, values: Partial<Omit<Template, "id">>) {
@@ -48,14 +57,13 @@ export function TemplatesManager({ initial }: { initial: Template[] }) {
     if (!res.ok || !data.template) {
       throw new Error(data.error || "Could not save");
     }
-    setItems((s) =>
-      s.map((t) => (t.id === id ? data.template! : t)).sort((a, b) => a.name.localeCompare(b.name)),
-    );
-    refresh();
+    applyUpdate(items.map((t) => (t.id === id ? data.template! : t)));
   }
 
   async function onDelete(id: string) {
-    if (!confirm("Delete this shift preset? Existing roster entries that used it will be cleared.")) {
+    if (
+      !confirm("Delete this shift preset? Existing roster entries that used it will be cleared.")
+    ) {
       return;
     }
     const res = await fetch(`/api/roster/templates/${encodeURIComponent(id)}`, {
@@ -66,29 +74,28 @@ export function TemplatesManager({ initial }: { initial: Template[] }) {
       alert(data.error || "Could not delete");
       return;
     }
-    setItems((s) => s.filter((t) => t.id !== id));
-    refresh();
+    applyUpdate(items.filter((t) => t.id !== id));
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <NewTemplateForm onCreate={onCreate} />
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="px-4 py-3">Color</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Start</th>
-              <th className="px-4 py-3">End</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="w-12 px-3 py-2">Color</th>
+              <th className="px-3 py-2">Name</th>
+              <th className="w-20 px-3 py-2">Start</th>
+              <th className="w-20 px-3 py-2">End</th>
+              <th className="w-28 px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-zinc-500">
                   No shift presets yet. Create one above.
                 </td>
               </tr>
@@ -143,8 +150,8 @@ function NewTemplateForm({
       onSubmit={onSubmit}
       className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4"
     >
-      <h2 className="text-sm font-semibold text-zinc-800">New shift preset</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <h3 className="text-sm font-semibold text-zinc-800">New shift preset</h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <div>
           <label className="text-xs font-medium text-zinc-600" htmlFor="tn">
             Name <span className="text-red-600">*</span>
@@ -157,37 +164,35 @@ function NewTemplateForm({
             className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium text-zinc-600" htmlFor="ts">
-              Start <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="ts"
-              type="time"
-              required
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-zinc-600" htmlFor="te">
-              End <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="te"
-              type="time"
-              required
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
-            />
-          </div>
+        <div>
+          <label className="text-xs font-medium text-zinc-600" htmlFor="ts">
+            Start <span className="text-red-600">*</span>
+          </label>
+          <input
+            id="ts"
+            type="time"
+            required
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="mt-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+          />
         </div>
-        <div className="sm:col-span-2">
-          <SwatchPicker value={color} onChange={setColor} />
+        <div>
+          <label className="text-xs font-medium text-zinc-600" htmlFor="te">
+            End <span className="text-red-600">*</span>
+          </label>
+          <input
+            id="te"
+            type="time"
+            required
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="mt-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+          />
         </div>
+      </div>
+      <div className="mt-3">
+        <SwatchPicker value={color} onChange={setColor} />
       </div>
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       <button
@@ -232,8 +237,8 @@ function TemplateRow({
   if (editing) {
     return (
       <tr className="bg-zinc-50">
-        <td className="px-4 py-3" colSpan={4}>
-          <div className="grid gap-3 sm:grid-cols-4">
+        <td className="px-3 py-3" colSpan={5}>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -252,34 +257,33 @@ function TemplateRow({
               onChange={(e) => setEndTime(e.target.value)}
               className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
             />
-            <div className="text-xs text-zinc-500">Color below</div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={save}
+                disabled={pending}
+                className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                {pending ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setName(template.name);
+                  setStartTime(template.startTime);
+                  setEndTime(template.endTime);
+                  setColor(template.color ?? DEFAULT_SHIFT_COLOR);
+                }}
+                className="text-xs text-zinc-600 hover:text-zinc-900"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div className="mt-2">
+          <div className="mt-3">
             <SwatchPicker value={color} onChange={setColor} />
           </div>
-        </td>
-        <td className="px-4 py-3 text-right whitespace-nowrap">
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending}
-            className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-          >
-            {pending ? "Saving…" : "Save"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEditing(false);
-              setName(template.name);
-              setStartTime(template.startTime);
-              setEndTime(template.endTime);
-              setColor(template.color ?? DEFAULT_SHIFT_COLOR);
-            }}
-            className="ml-2 text-xs text-zinc-600 hover:text-zinc-900"
-          >
-            Cancel
-          </button>
         </td>
       </tr>
     );
@@ -287,17 +291,17 @@ function TemplateRow({
 
   return (
     <tr className="hover:bg-zinc-50/80">
-      <td className="px-4 py-3">
+      <td className="px-3 py-3">
         <span
           className="inline-block size-5 rounded"
           style={{ background: template.color ?? DEFAULT_SHIFT_COLOR }}
           aria-label={`Color ${template.color ?? DEFAULT_SHIFT_COLOR}`}
         />
       </td>
-      <td className="px-4 py-3 font-medium text-zinc-900">{template.name}</td>
-      <td className="px-4 py-3 text-zinc-600">{template.startTime}</td>
-      <td className="px-4 py-3 text-zinc-600">{template.endTime}</td>
-      <td className="px-4 py-3 text-right whitespace-nowrap">
+      <td className="px-3 py-3 font-medium text-zinc-900">{template.name}</td>
+      <td className="px-3 py-3 text-zinc-600">{template.startTime}</td>
+      <td className="px-3 py-3 text-zinc-600">{template.endTime}</td>
+      <td className="px-3 py-3 text-right whitespace-nowrap">
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -328,7 +332,7 @@ export function SwatchPicker({
   return (
     <div>
       <label className="text-xs font-medium text-zinc-600">Color</label>
-      <div className="mt-1 flex flex-wrap gap-1.5">
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
         {PRIMARY_SWATCHES.map((c) => (
           <Swatch key={c} color={c} active={value === c} onClick={() => onChange(c)} />
         ))}

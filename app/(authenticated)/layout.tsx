@@ -16,7 +16,7 @@ export default async function AuthenticatedLayout({
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/" className="font-medium text-zinc-700 hover:text-zinc-950">
               Home
@@ -36,7 +36,7 @@ export default async function AuthenticatedLayout({
           </div>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</div>
+      <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</div>
     </div>
   );
 }

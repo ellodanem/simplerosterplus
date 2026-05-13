@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Modal } from "@/app/components/modal";
 import { dayHeaderLabel } from "@/lib/roster-week";
+import { TemplatesManager, type Template } from "./templates-manager";
 
 type Staff = {
   id: string;
@@ -12,14 +14,6 @@ type Staff = {
   role: string | null;
   vacationStart: string | null;
   vacationEnd: string | null;
-};
-
-type Template = {
-  id: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  color: string | null;
 };
 
 type Holiday = { name: string; stationClosed: boolean };
@@ -37,7 +31,7 @@ export function RosterGrid({
   nextWeek,
   thisWeek,
   staff,
-  templates,
+  templates: initialTemplates,
   initialEntries,
   holidays,
 }: {
@@ -58,6 +52,8 @@ export function RosterGrid({
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const [showPresets, setShowPresets] = useState(false);
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -162,25 +158,38 @@ export function RosterGrid({
             Next →
           </button>
         </div>
-        <label className="flex items-center gap-2 text-sm text-zinc-600">
-          Jump to:
-          <input
-            type="date"
-            value={weekStartYmd}
-            onChange={(e) => {
-              if (e.target.value) goToWeek(e.target.value);
-            }}
-            className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
-          />
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-zinc-600">
+            Jump to:
+            <input
+              type="date"
+              value={weekStartYmd}
+              onChange={(e) => {
+                if (e.target.value) goToWeek(e.target.value);
+              }}
+              className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowPresets(true)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Shift presets
+          </button>
+        </div>
       </div>
 
       {templates.length === 0 ? (
-        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          You haven&apos;t created any shift presets yet.{" "}
-          <Link href="/roster/templates" className="font-semibold underline">
-            Create one to start scheduling.
-          </Link>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <span>You haven&apos;t created any shift presets yet.</span>
+          <button
+            type="button"
+            onClick={() => setShowPresets(true)}
+            className="rounded-md border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-50"
+          >
+            Create one to start scheduling
+          </button>
         </div>
       ) : null}
 
@@ -194,10 +203,16 @@ export function RosterGrid({
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="min-w-full border-collapse text-sm">
+        <table className="w-full min-w-[58rem] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col style={{ width: "10rem" }} />
+            {days.map((d) => (
+              <col key={d} />
+            ))}
+          </colgroup>
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              <th className="sticky left-0 z-10 w-48 min-w-[12rem] border-r border-zinc-200 bg-zinc-50 px-4 py-3 text-left">
+              <th className="sticky left-0 z-10 min-w-[10rem] border-r border-zinc-200 bg-zinc-50 px-3 py-3 text-left">
                 Staff
               </th>
               {days.map((d) => {
@@ -207,9 +222,9 @@ export function RosterGrid({
                 return (
                   <th
                     key={d}
-                    className={`min-w-[8rem] px-3 py-2 text-left ${closed ? "bg-zinc-100" : ""}`}
+                    className={`min-w-[7rem] px-2 py-2 text-left ${closed ? "bg-zinc-100" : ""}`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className="text-xs font-semibold text-zinc-500">{h.weekday}</span>
                       <span className="text-sm font-medium normal-case text-zinc-800">
                         {h.date}
@@ -221,7 +236,10 @@ export function RosterGrid({
                       ) : null}
                     </div>
                     {holidays[d] ? (
-                      <div className="mt-0.5 text-[11px] font-normal normal-case text-zinc-500">
+                      <div
+                        className="mt-0.5 truncate text-[11px] font-normal normal-case text-zinc-500"
+                        title={holidays[d].name}
+                      >
                         {holidays[d].name}
                       </div>
                     ) : null}
@@ -247,12 +265,14 @@ export function RosterGrid({
             ) : (
               staff.map((s) => (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
-                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-4 py-2">
-                    <div className="font-medium text-zinc-900">
+                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
+                    <div className="truncate font-medium text-zinc-900" title={`${s.firstName} ${s.lastName}`}>
                       {s.firstName} {s.lastName}
                     </div>
                     {s.role ? (
-                      <div className="text-xs text-zinc-500">{s.role}</div>
+                      <div className="truncate text-xs text-zinc-500" title={s.role}>
+                        {s.role}
+                      </div>
                     ) : null}
                   </td>
                   {days.map((d) => {
@@ -289,9 +309,22 @@ export function RosterGrid({
             setAnchor(null);
             await setCell(a.staffId, a.ymd, templateId);
           }}
+          onManagePresets={() => {
+            setAnchor(null);
+            setShowPresets(true);
+          }}
           onClose={() => setAnchor(null)}
         />
       ) : null}
+
+      <Modal
+        open={showPresets}
+        onClose={() => setShowPresets(false)}
+        title="Shift presets"
+        size="xl"
+      >
+        <TemplatesManager initial={templates} onChange={setTemplates} />
+      </Modal>
     </div>
   );
 }
@@ -356,12 +389,14 @@ function ShiftPopover({
   templates,
   currentTemplateId,
   onPick,
+  onManagePresets,
   onClose,
 }: {
   anchor: Anchor;
   templates: Template[];
   currentTemplateId: string | null;
   onPick: (templateId: string | null) => void;
+  onManagePresets: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -397,9 +432,13 @@ function ShiftPopover({
           {templates.length === 0 ? (
             <div className="px-2 py-2 text-xs text-zinc-600">
               No shift presets yet.{" "}
-              <Link href="/roster/templates" className="font-semibold underline">
+              <button
+                type="button"
+                onClick={onManagePresets}
+                className="font-semibold underline"
+              >
                 Create one
-              </Link>
+              </button>
               .
             </div>
           ) : (
