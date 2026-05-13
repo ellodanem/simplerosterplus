@@ -65,6 +65,9 @@ model Staff {
   punchExempt    Boolean   @default(false)
   vacationStart  DateTime? @db.Date
   vacationEnd    DateTime? @db.Date
+  dateOfBirth    DateTime? @db.Date
+  startDate      DateTime? @db.Date
+  contactNumber  String?
   sortOrder      Int       @default(0)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -73,6 +76,7 @@ model Staff {
   sickLeaves    StaffSickLeave[]
   rosterEntries RosterEntry[]
 
+  @@unique([organizationId, deviceUserId])
   @@index([organizationId])
   @@index([organizationId, sortOrder])
 }
