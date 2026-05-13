@@ -61,9 +61,11 @@ export function RosterGrid({
   const [entries, setEntries] = useState<Record<string, string>>(initialEntries);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -228,6 +230,52 @@ export function RosterGrid({
     router.push(`/roster?week=${ymd}`);
   }
 
+  async function copyPreviousWeek() {
+    if (Object.keys(entries).length > 0) {
+      const ok = window.confirm(
+        "Replace this week's roster with the previous week's shifts? Existing entries will be overwritten.",
+      );
+      if (!ok) return;
+    }
+    setCopying(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(
+        `/api/roster/weeks/${encodeURIComponent(weekId)}/copy-previous`,
+        { method: "POST" },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        copied?: number;
+        skipped?: number;
+        entries?: { staffId: string; date: string; shiftTemplateId: string | null }[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "Could not copy previous week");
+
+      const next: Record<string, string> = {};
+      for (const e of data.entries ?? []) {
+        if (e.shiftTemplateId) next[cellKey(e.staffId, e.date)] = e.shiftTemplateId;
+      }
+      setEntries(next);
+
+      const copied = data.copied ?? 0;
+      const skipped = data.skipped ?? 0;
+      if (copied === 0 && skipped === 0) {
+        setNotice("Previous week has no shifts to copy.");
+      } else {
+        const word = copied === 1 ? "shift" : "shifts";
+        setNotice(
+          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to holidays or vacation)` : ""}.`,
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCopying(false);
+    }
+  }
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
@@ -255,7 +303,7 @@ export function RosterGrid({
             Next →
           </button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             Jump to:
             <input
@@ -267,6 +315,14 @@ export function RosterGrid({
               className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
             />
           </label>
+          <button
+            type="button"
+            onClick={copyPreviousWeek}
+            disabled={copying}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {copying ? "Copying…" : "Copy previous week"}
+          </button>
           <button
             type="button"
             onClick={() => setShowPresets(true)}
@@ -290,12 +346,37 @@ export function RosterGrid({
         </div>
       ) : null}
 
-      {error ? (
+      {notice ? (
         <div
-          className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
           role="status"
         >
-          {error}
+          <span>{notice}</span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="text-emerald-700 hover:text-emerald-900"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div
+          className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          role="status"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-red-700 hover:text-red-900"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       ) : null}
 
