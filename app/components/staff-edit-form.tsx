@@ -17,7 +17,20 @@ export type StaffEditValues = {
   sortOrder: number;
 };
 
-export function StaffEditForm({ initial }: { initial: StaffEditValues }) {
+export function StaffEditForm({
+  initial,
+  onSaved,
+  onDeleted,
+  onCancel,
+}: {
+  initial: StaffEditValues;
+  /** Called after a successful save. If provided, the form will not call router.refresh itself. */
+  onSaved?: () => void;
+  /** Called after a successful delete. If omitted, the form falls back to navigating to /staff. */
+  onDeleted?: () => void;
+  /** Called when the user clicks Cancel. If omitted, the form falls back to navigating to /staff. */
+  onCancel?: () => void;
+}) {
   const router = useRouter();
   const [v, setV] = useState<StaffEditValues>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +67,11 @@ export function StaffEditForm({ initial }: { initial: StaffEditValues }) {
         setError(data.error || "Could not save changes");
         return;
       }
-      router.refresh();
+      if (onSaved) {
+        onSaved();
+      } else {
+        router.refresh();
+      }
     } finally {
       setSaving(false);
     }
@@ -71,15 +88,32 @@ export function StaffEditForm({ initial }: { initial: StaffEditValues }) {
         setError(data.error || "Could not delete");
         return;
       }
-      router.push("/staff");
-      router.refresh();
+      if (onDeleted) {
+        onDeleted();
+      } else {
+        router.push("/staff");
+        router.refresh();
+      }
     } finally {
       setDeleting(false);
     }
   }
 
+  function handleCancel() {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.push("/staff");
+    }
+  }
+
+  const inModal = Boolean(onSaved || onDeleted || onCancel);
+
   return (
-    <form onSubmit={onSubmit} className="rounded-xl border border-zinc-200 bg-white p-5">
+    <form
+      onSubmit={onSubmit}
+      className={inModal ? "" : "rounded-xl border border-zinc-200 bg-white p-5"}
+    >
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
           id="ef"
@@ -177,7 +211,7 @@ export function StaffEditForm({ initial }: { initial: StaffEditValues }) {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/staff")}
+          onClick={handleCancel}
           disabled={saving || deleting}
           className="text-sm text-zinc-600 hover:text-zinc-900"
         >
