@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getDefaultLocation } from "@/lib/location";
+import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import {
   currentWeekStartYmd,
@@ -64,7 +65,7 @@ export default async function RosterPage({
     select: { id: true, weekStart: true, status: true, notes: true },
   });
 
-  const [staff, templates, entries, holidays] = await Promise.all([
+  const [staff, templates, entries, holidays, pendingCounts] = await Promise.all([
     prisma.staff.findMany({
       where: { organizationId: org.id, locationId: location.id },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -73,8 +74,6 @@ export default async function RosterPage({
         firstName: true,
         lastName: true,
         role: true,
-        vacationStart: true,
-        vacationEnd: true,
       },
     }),
     prisma.shiftTemplate.findMany({
@@ -93,6 +92,20 @@ export default async function RosterPage({
       },
       select: { date: true, name: true, stationClosed: true },
     }),
+    Promise.all([
+      prisma.staffVacation.count({
+        where: {
+          status: "requested",
+          staff: { organizationId: org.id, locationId: location.id },
+        },
+      }),
+      prisma.staffDayOff.count({
+        where: {
+          status: "requested",
+          staff: { organizationId: org.id, locationId: location.id },
+        },
+      }),
+    ]),
   ]);
 
   const initialEntries: Record<string, string> = {};
@@ -112,9 +125,15 @@ export default async function RosterPage({
     firstName: s.firstName,
     lastName: s.lastName,
     role: s.role,
-    vacationStart: s.vacationStart ? ymdForDbDate(s.vacationStart) : null,
-    vacationEnd: s.vacationEnd ? ymdForDbDate(s.vacationEnd) : null,
   }));
+
+  const blockMap = await getApprovedBlockMap({
+    staffIds: staff.map((s) => s.id),
+    rangeStartDate: weekStartDate,
+    rangeEndDate: weekEndDate,
+  });
+
+  const pendingRequestsCount = pendingCounts[0] + pendingCounts[1];
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);
@@ -150,6 +169,8 @@ export default async function RosterPage({
         templates={templates}
         initialEntries={initialEntries}
         holidays={holidayMap}
+        blockMap={blockMap}
+        initialPendingCount={pendingRequestsCount}
       />
     </div>
   );

@@ -130,6 +130,9 @@ model AppUser {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  decidedDayOffs   StaffDayOff[]   @relation("DayOffDecidedBy")
+  decidedVacations StaffVacation[] @relation("VacationDecidedBy")
+
   @@unique([organizationId, email])
   @@index([organizationId])
 }
@@ -163,8 +166,6 @@ model Staff {
   /// so two locations with separate devices can each have a "5".
   deviceUserId   String?
   punchExempt    Boolean   @default(false)
-  vacationStart  DateTime? @db.Date
-  vacationEnd    DateTime? @db.Date
   dateOfBirth    DateTime? @db.Date
   startDate      DateTime? @db.Date
   contactNumber  String?
@@ -173,6 +174,7 @@ model Staff {
   updatedAt      DateTime  @updatedAt
 
   dayOffs       StaffDayOff[]
+  vacations     StaffVacation[]
   sickLeaves    StaffSickLeave[]
   rosterEntries RosterEntry[]
 
@@ -182,14 +184,52 @@ model Staff {
   @@index([locationId])
 }
 
+/// Status shared by leave requests (vacation + day off). `requested` rows sit in the Requests
+/// inbox waiting on a supervisor; `approved` rows actively block roster cells; `denied` rows
+/// stay around as audit trail and never block.
+enum LeaveRequestStatus {
+  requested
+  approved
+  denied
+}
+
 model StaffDayOff {
-  id      String   @id @default(cuid())
-  staffId String
-  staff   Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  date    DateTime @db.Date
+  id              String             @id @default(cuid())
+  staffId         String
+  staff           Staff              @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date            DateTime           @db.Date
+  status          LeaveRequestStatus @default(approved)
+  reason          String?
+  decidedByUserId String?
+  decidedBy       AppUser?           @relation("DayOffDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@unique([staffId, date])
   @@index([staffId])
+  @@index([staffId, status])
+}
+
+/// Approved-or-pending vacation block for a staff member. Replaces the old
+/// `Staff.vacationStart/End` columns so an organization can record multiple ranges and have a
+/// real approval audit trail. Roster blocking honors `approved` rows only.
+model StaffVacation {
+  id              String             @id @default(cuid())
+  staffId         String
+  staff           Staff              @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  startDate       DateTime           @db.Date
+  endDate         DateTime           @db.Date
+  status          LeaveRequestStatus @default(requested)
+  reason          String?
+  decidedByUserId String?
+  decidedBy       AppUser?           @relation("VacationDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([staffId])
+  @@index([staffId, status])
 }
 
 enum SickLeaveStatus {

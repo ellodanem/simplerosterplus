@@ -62,6 +62,8 @@ export const config = {
     "/api/staff/:path*",
     "/api/staff",
     "/api/roster/:path*",
+    "/api/requests/:path*",
+    "/api/requests",
     "/api/auth/me",
     "/api/auth/logout",
   ],

@@ -1,0 +1,92 @@
+import { prisma } from "./prisma";
+import { ymdForDbDate } from "./roster-week";
+
+export type BlockReason = "vacation" | "dayOff";
+
+/**
+ * Map of `${staffId}__${ymd}` -> reason for any approved leave that should block roster cells
+ * in `[rangeStartDate, rangeEndDate]` (inclusive, both `@db.Date` UTC midnights). Vacation wins
+ * over day-off when both happen to land on the same day, since the user-visible label is the
+ * same blocked treatment either way and vacation is the broader signal.
+ *
+ * Pass `staffIds` to limit the query to the staff actually on screen — usually the location's
+ * roster — so we don't load leave for unrelated staff.
+ */
+export async function getApprovedBlockMap(args: {
+  staffIds: string[];
+  rangeStartDate: Date;
+  rangeEndDate: Date;
+}): Promise<Record<string, BlockReason>> {
+  const { staffIds, rangeStartDate, rangeEndDate } = args;
+  if (staffIds.length === 0) return {};
+
+  const [vacations, daysOff] = await Promise.all([
+    prisma.staffVacation.findMany({
+      where: {
+        staffId: { in: staffIds },
+        status: "approved",
+        startDate: { lte: rangeEndDate },
+        endDate: { gte: rangeStartDate },
+      },
+      select: { staffId: true, startDate: true, endDate: true },
+    }),
+    prisma.staffDayOff.findMany({
+      where: {
+        staffId: { in: staffIds },
+        status: "approved",
+        date: { gte: rangeStartDate, lte: rangeEndDate },
+      },
+      select: { staffId: true, date: true },
+    }),
+  ]);
+
+  const result: Record<string, BlockReason> = {};
+
+  for (const d of daysOff) {
+    result[`${d.staffId}__${ymdForDbDate(d.date)}`] = "dayOff";
+  }
+
+  for (const v of vacations) {
+    const start = v.startDate < rangeStartDate ? rangeStartDate : v.startDate;
+    const end = v.endDate > rangeEndDate ? rangeEndDate : v.endDate;
+    for (
+      let t = start.getTime();
+      t <= end.getTime();
+      t += 24 * 60 * 60 * 1000
+    ) {
+      const ymd = ymdForDbDate(new Date(t));
+      result[`${v.staffId}__${ymd}`] = "vacation";
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Returns true when a single `(staffId, dateUtc)` is inside any approved vacation or
+ * day-off block. Used by per-cell write APIs (PUT /entries, copy-previous) where building a
+ * full map would be wasteful.
+ */
+export async function isApprovedBlocked(
+  staffId: string,
+  dateUtc: Date,
+): Promise<BlockReason | null> {
+  const [vac, off] = await Promise.all([
+    prisma.staffVacation.findFirst({
+      where: {
+        staffId,
+        status: "approved",
+        startDate: { lte: dateUtc },
+        endDate: { gte: dateUtc },
+      },
+      select: { id: true },
+    }),
+    prisma.staffDayOff.findFirst({
+      where: { staffId, status: "approved", date: dateUtc },
+      select: { id: true },
+    }),
+  ]);
+  if (vac) return "vacation";
+  if (off) return "dayOff";
+  return null;
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { isApprovedBlocked } from "@/lib/leave-blocks";
 import { utcDateFromYmd } from "@/lib/datetime-policy";
 import { daysOfWeek, ymdForDbDate } from "@/lib/roster-week";
 
@@ -67,8 +68,6 @@ export async function PUT(request: Request, { params }: Ctx) {
     select: {
       id: true,
       locationId: true,
-      vacationStart: true,
-      vacationEnd: true,
       firstName: true,
       lastName: true,
     },
@@ -101,15 +100,18 @@ export async function PUT(request: Request, { params }: Ctx) {
       );
     }
 
-    if (staff.vacationStart && staff.vacationEnd) {
-      if (dateUtc >= staff.vacationStart && dateUtc <= staff.vacationEnd) {
-        return NextResponse.json(
-          {
-            error: `${staff.firstName} ${staff.lastName} is on vacation on this date.`,
-          },
-          { status: 409 },
-        );
-      }
+    const block = await isApprovedBlocked(staff.id, dateUtc);
+    if (block === "vacation") {
+      return NextResponse.json(
+        { error: `${staff.firstName} ${staff.lastName} is on vacation on this date.` },
+        { status: 409 },
+      );
+    }
+    if (block === "dayOff") {
+      return NextResponse.json(
+        { error: `${staff.firstName} ${staff.lastName} has an approved day off on this date.` },
+        { status: 409 },
+      );
     }
   }
 

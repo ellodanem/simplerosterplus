@@ -6,17 +6,18 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/app/components/modal";
 import { dayHeaderLabel } from "@/lib/roster-week";
 import { TemplatesManager, type Template } from "./templates-manager";
+import { RequestsModal, type RequestStaff } from "./requests-modal";
 
 type Staff = {
   id: string;
   firstName: string;
   lastName: string;
   role: string | null;
-  vacationStart: string | null;
-  vacationEnd: string | null;
 };
 
 type Holiday = { name: string; stationClosed: boolean };
+
+type BlockReason = "holiday" | "vacation" | "dayOff";
 
 type CellAnchor = {
   type: "cell";
@@ -43,6 +44,8 @@ export function RosterGrid({
   templates: initialTemplates,
   initialEntries,
   holidays,
+  blockMap: initialBlockMap,
+  initialPendingCount,
 }: {
   weekId: string;
   weekStartYmd: string;
@@ -56,6 +59,8 @@ export function RosterGrid({
   templates: Template[];
   initialEntries: Record<string, string>;
   holidays: Record<string, Holiday>;
+  blockMap: Record<string, "vacation" | "dayOff">;
+  initialPendingCount: number;
 }) {
   const router = useRouter();
   const [entries, setEntries] = useState<Record<string, string>>(initialEntries);
@@ -65,7 +70,10 @@ export function RosterGrid({
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
+  const [showRequests, setShowRequests] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
+  const blockMap = initialBlockMap;
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -92,16 +100,11 @@ export function RosterGrid({
       const isClosed = !!holidays[ymd]?.stationClosed;
       const templateCounts = new Map<string, number>();
       let assigned = 0;
-      let onVacation = 0;
+      let unavailable = 0;
       if (!isClosed) {
         for (const s of staff) {
-          const onVac =
-            !!s.vacationStart &&
-            !!s.vacationEnd &&
-            ymd >= s.vacationStart &&
-            ymd <= s.vacationEnd;
-          if (onVac) {
-            onVacation++;
+          if (blockMap[`${s.id}__${ymd}`]) {
+            unavailable++;
             continue;
           }
           const tplId = entries[`${s.id}__${ymd}`];
@@ -111,26 +114,22 @@ export function RosterGrid({
           }
         }
       }
-      const active = isClosed ? 0 : staff.length - onVacation;
+      const active = isClosed ? 0 : staff.length - unavailable;
       const offCount = Math.max(0, active - assigned);
       result[ymd] = { templateCounts, offCount, isClosed };
     }
     return result;
-  }, [days, entries, holidays, staff]);
+  }, [days, entries, holidays, staff, blockMap]);
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
   }
 
-  function isVacationDay(s: Staff, ymd: string): boolean {
-    if (!s.vacationStart || !s.vacationEnd) return false;
-    return ymd >= s.vacationStart && ymd <= s.vacationEnd;
-  }
-
-  function blockedReason(s: Staff, ymd: string): "holiday" | "vacation" | null {
+  function blockedReason(s: Staff, ymd: string): BlockReason | null {
     const h = holidays[ymd];
     if (h && h.stationClosed) return "holiday";
-    if (isVacationDay(s, ymd)) return "vacation";
+    const leave = blockMap[`${s.id}__${ymd}`];
+    if (leave) return leave;
     return null;
   }
 
@@ -305,7 +304,7 @@ export function RosterGrid({
       } else {
         const word = copied === 1 ? "shift" : "shifts";
         setNotice(
-          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to holidays or vacation)` : ""}.`,
+          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to holidays, vacation, or approved days off)` : ""}.`,
         );
       }
     } catch (e) {
@@ -361,6 +360,18 @@ export function RosterGrid({
             className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-sm font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {copying ? "Copying…" : "Copy previous week"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRequests(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800 hover:bg-rose-100"
+          >
+            Requests
+            {pendingRequests > 0 ? (
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
+                {pendingRequests}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
@@ -644,6 +655,14 @@ export function RosterGrid({
       >
         <TemplatesManager initial={templates} onChange={setTemplates} />
       </Modal>
+
+      <RequestsModal
+        open={showRequests}
+        onClose={() => setShowRequests(false)}
+        staff={staff as RequestStaff[]}
+        onPendingCountChange={setPendingRequests}
+        onApproved={() => router.refresh()}
+      />
     </div>
   );
 }
@@ -655,17 +674,29 @@ function CellButton({
   onClick,
 }: {
   tpl: Template | undefined;
-  blocked: "holiday" | "vacation" | null;
+  blocked: BlockReason | null;
   pending: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   if (blocked) {
+    const label =
+      blocked === "holiday"
+        ? "Closed"
+        : blocked === "vacation"
+          ? "Vacation"
+          : "Day off";
+    const ariaLabel =
+      blocked === "holiday"
+        ? "Closed (holiday)"
+        : blocked === "vacation"
+          ? "On vacation"
+          : "Approved day off";
     return (
       <div
         className="flex h-14 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] text-xs font-medium text-zinc-500"
-        aria-label={blocked === "holiday" ? "Closed (holiday)" : "On vacation"}
+        aria-label={ariaLabel}
       >
-        {blocked === "holiday" ? "Closed" : "Vacation"}
+        {label}
       </div>
     );
   }

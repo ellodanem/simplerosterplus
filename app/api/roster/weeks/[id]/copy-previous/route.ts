@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { ymdForDbDate } from "@/lib/roster-week";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -84,12 +85,18 @@ export async function POST(_request: Request, { params }: Ctx) {
     }),
     prisma.staff.findMany({
       where: { organizationId: target.organizationId, locationId: target.locationId },
-      select: { id: true, vacationStart: true, vacationEnd: true },
+      select: { id: true },
     }),
   ]);
 
   const closedDateMs = new Set(holidays.map((h) => h.date.getTime()));
   const staffById = new Map(allStaff.map((s) => [s.id, s]));
+
+  const blockMap = await getApprovedBlockMap({
+    staffIds: allStaff.map((s) => s.id),
+    rangeStartDate: weekStartDate,
+    rangeEndDate: weekEndDate,
+  });
 
   const toInsert: {
     staffId: string;
@@ -117,12 +124,8 @@ export async function POST(_request: Request, { params }: Ctx) {
       skipped++;
       continue;
     }
-    if (
-      staff.vacationStart &&
-      staff.vacationEnd &&
-      targetDate.getTime() >= staff.vacationStart.getTime() &&
-      targetDate.getTime() <= staff.vacationEnd.getTime()
-    ) {
+
+    if (blockMap[`${e.staffId}__${ymdForDbDate(targetDate)}`]) {
       skipped++;
       continue;
     }

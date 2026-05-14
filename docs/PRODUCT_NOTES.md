@@ -15,21 +15,42 @@
 
 - Next.js app: **repository root** (`app/`, `package.json`, `prisma/`).
 
-## Requests & leave management (planned, not implemented yet)
+## Requests & leave management (v1 shipped)
 
-Inbox-style "Requests" experience on the roster page (rose-tinted button, badge with pending count). Modal opens grouped sections per type, each row Approve / Deny.
+Inbox-style "Requests" experience on the roster page (rose-tinted button, badge with pending count). Modal opens grouped sections per type, each row Approve / Deny / Delete.
 
-- **In scope (v1):** vacation, day off.
-- **Sick leave:** deferred. Sick leave is treated very differently in our primary market (Caribbean) — typically not multi-day or pre-requested, and often handled outside the roster. Will get its own dedicated workflow later instead of being lumped into the requests inbox. The existing `StaffSickLeave` table can stay where it is until then.
-- **Shift swap:** deferred until the basic request flow ships.
+- **In scope (v1, shipped):** vacation, day off.
+- **Sick leave:** deferred. Sick leave is treated very differently in our primary market (Caribbean) — typically not multi-day or pre-requested, and often handled outside the roster. Will get its own dedicated workflow later instead of being lumped into the requests inbox. The existing `StaffSickLeave` table stays where it is, untouched, until then.
+- **Shift swap:** deferred until v1 has been live for a bit.
 
-Schema gaps to resolve before building:
+Schema (now in `prisma/schema.prisma`, migration `20260513230000_requests_workflow`):
 
-- Promote vacation off the `Staff` row into its own `StaffVacation` table with `status` (`requested | approved | denied`), so an organization can have multiple ranges per staff member and a real approval audit trail. Migration should backfill any existing `Staff.vacationStart/End` into a single `approved` row, then drop those columns.
-- Add `status` to `StaffDayOff` so day-off requests can sit in `requested` without already blocking the roster grid.
-- Roster blocking switches to "is there an `approved` row covering this YMD" instead of inline range checks.
+- New `LeaveRequestStatus` enum (`requested | approved | denied`) shared by vacation and day-off rows. `StaffSickLeave` keeps its existing `SickLeaveStatus` enum until the sick-leave workflow lands.
+- New `StaffVacation` table replacing inline `Staff.vacationStart/End` (those columns were dropped). Each row has a `status`, `reason`, and `decidedBy/decidedAt` audit fields. The migration backfills any existing inline vacation range into a single `approved` row tagged `<staffId>_v0` so nothing currently blocking the roster silently disappears.
+- `StaffDayOff` gained `status` (default `approved` so existing rows keep blocking), `reason`, `decidedBy/decidedAt`, plus `createdAt/updatedAt`. `(staffId, date)` is still unique, so creating a new request for a date that already has a row upserts in place.
 
-Approval flow: server returns a conflict preview before the final approve (e.g. *"Approving will clear 4 shifts already assigned to Alex Rivera between Aug 4–8."*), then a confirm step actually applies it. Same skip semantics we already use for Copy previous week.
+Roster blocking switched from inline range checks to "is there an `approved` `StaffVacation` or `StaffDayOff` row covering this `(staffId, ymd)`?". Helper lives in `lib/leave-blocks.ts` (`getApprovedBlockMap` for the grid's per-week lookup, `isApprovedBlocked` for single-cell write APIs).
+
+### Approval flow
+
+API endpoints (all under `/api/requests`, scoped to the org's default location):
+
+- `GET /api/requests?status=requested|approved|denied|all` — returns `{ vacation, dayOff, pendingCount }`. Each `requested` row includes `conflictCount` + `conflictDates` so the UI can surface "approving will clear N shifts" inline.
+- `POST /api/requests/vacation` — `{ staffId, startDate, endDate, reason? }` → creates a `requested` vacation row.
+- `POST /api/requests/day-off` — `{ staffId, date, reason? }` → upserts a `requested` day-off row (a fresh request for an already-decided date resets the row).
+- `PATCH /api/requests/<type>/[id]` — `{ action: "approve" | "deny", force?: boolean }`.
+  - Deny is unconditional and never touches the roster.
+  - Approve runs a conflict preview when `force` isn't passed: if any roster shifts overlap the leave range, it returns 409 with `{ conflictCount, conflictDates, requiresConfirm: true }`. The UI surfaces a confirm modal; resending with `force: true` clears those shifts (matching the manual cell-clear semantics: rows are deleted, not nulled) and flips the row to `approved` in a single transaction.
+- `DELETE /api/requests/<type>/[id]` — hard delete in any status. Approved rows therefore stop blocking immediately on delete.
+
+UI state: the roster page passes the initial pending count + per-cell `blockMap` in. The Requests modal owns its own list state, calls the API on open / after each action, and drives the badge count via `onPendingCountChange`. On approve, the grid does `router.refresh()` so the new block (and any cleared shifts) appear without a manual reload.
+
+### Outstanding follow-ups (out of v1)
+
+- **Cell dot for pending requests.** Show a small indicator on roster cells when a staff member has a pending vacation/day-off touching that date, so supervisors notice the inbox without opening the modal.
+- **Calendar/preview before submission.** Right now an admin creating a vacation can't see the staff member's existing roster from inside the modal — they only learn about conflicts at approve time. A small inline "what does their week look like" preview would tighten the loop.
+- **Auto-approve on admin create.** Two-click (create → approve in inbox) is fine, but a "Submit and approve" toggle on the create form would shave a step for the common admin-self-serve case.
+- **Per-location admin scoping.** Today a session that authenticates is allowed to act on every request in the org's default location. RBAC will need to slot in here once roles exist.
 
 ### Future: employee-facing self-service
 
@@ -39,3 +60,25 @@ This same model is the foundation for an employee-facing surface where staff sub
 - Each submission writes a `requested` row exactly the same shape as an admin-created one.
 - The supervisor's Requests modal is the single approval queue regardless of who created the row.
 - A `Staff.appUserId` link (nullable) joins the two — not in the schema today, easy to add when needed.
+
+## Roster count row — scaling beyond ~5 templates per day (deferred)
+
+The per-day count row above the staff grid (`app/(authenticated)/roster/roster-grid.tsx`, ~line 492) renders one colored badge per distinct shift template used that day, plus an `Off: N` text chip. It looks great up to ~5 badges per cell. With 6+ distinct templates in a single day it still works (the container is `flex flex-wrap`), but the row grows a second/third line and pushes every staff row down. Not broken, just visually heavy. Defer until a real station hits this in practice.
+
+**Geometry recap (for whoever picks this up):**
+
+- Day columns: `min-w-[7rem]` (112px).
+- Badges: `size-5` (20px) with `gap-1` (4px) → ~5 badges fill the cell, 6+ wraps.
+- `Off: N` lives in the same flex row, so once badges wrap it can end up dangling alone on its own line.
+- Items are currently sorted **alphabetically by template name**, not by count.
+
+**Options to consider (in rough order of preference):**
+
+1. **Segmented bar instead of badges.** One horizontal stacked bar per cell, segments sized proportionally to count, color = template, number inside. Single fixed-height row, scales to 10+ templates, also conveys proportions (not just presence). Best long-term answer if 6+ templates/day is genuinely common.
+2. **Overflow chip + sort by count desc.** Show first 4–5 badges sorted by count descending, then a `+N` chip with a tooltip/popover listing the rest. Keeps the current aesthetic for the common case, degrades cleanly. Best if 6+ is a rare edge case.
+3. **Move `Off: N` out of the badge wrap.** Pin it to its own small second line under the badges so it never competes with badges for layout. Worth doing regardless of which scaling option is chosen — it's a small free win.
+4. **Shrink at scale.** Drop badges to `size-4` and tighter gap once there are 5+. Cheap, but only buys ~2 more badges before wrapping resumes.
+5. **Hide singletons / fold into "+N other".** Highlights the dominant templates ("mostly 6-1 + Day shift") at the cost of detail. Useful as a complement to options 1 or 2.
+6. **Constrain row height with `max-h` + click-to-expand.** Protects layout but hides info, which fights the whole purpose of the count row. Last resort.
+
+**Suggested combo when the time comes:** start with **3** (move `Off:` to its own line) since it's low-risk and independently useful, then pick between **1** (segmented bar) and **2** (overflow chip + sort) based on whether real-world data actually has many distinct templates per day or whether 6+ is rare.
