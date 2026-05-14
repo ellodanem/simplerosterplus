@@ -79,6 +79,45 @@ export function RosterGrid({
     return m;
   }, [staff]);
 
+  const dayCounts = useMemo(() => {
+    const result: Record<
+      string,
+      {
+        templateCounts: Map<string, number>;
+        offCount: number;
+        isClosed: boolean;
+      }
+    > = {};
+    for (const ymd of days) {
+      const isClosed = !!holidays[ymd]?.stationClosed;
+      const templateCounts = new Map<string, number>();
+      let assigned = 0;
+      let onVacation = 0;
+      if (!isClosed) {
+        for (const s of staff) {
+          const onVac =
+            !!s.vacationStart &&
+            !!s.vacationEnd &&
+            ymd >= s.vacationStart &&
+            ymd <= s.vacationEnd;
+          if (onVac) {
+            onVacation++;
+            continue;
+          }
+          const tplId = entries[`${s.id}__${ymd}`];
+          if (tplId) {
+            templateCounts.set(tplId, (templateCounts.get(tplId) ?? 0) + 1);
+            assigned++;
+          }
+        }
+      }
+      const active = isClosed ? 0 : staff.length - onVacation;
+      const offCount = Math.max(0, active - assigned);
+      result[ymd] = { templateCounts, offCount, isClosed };
+    }
+    return result;
+  }, [days, entries, holidays, staff]);
+
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
   }
@@ -449,7 +488,61 @@ export function RosterGrid({
                 </td>
               </tr>
             ) : (
-              staff.map((s) => (
+              <>
+                <tr className="bg-zinc-50">
+                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                    Count
+                  </td>
+                  {days.map((d) => {
+                    const c = dayCounts[d];
+                    if (c.isClosed) {
+                      return (
+                        <td
+                          key={d}
+                          className="bg-zinc-100 px-2 py-2 text-center text-xs text-zinc-400"
+                        >
+                          —
+                        </td>
+                      );
+                    }
+                    const items = Array.from(c.templateCounts.entries())
+                      .map(([tplId, count]) => ({
+                        template: templateById.get(tplId),
+                        count,
+                      }))
+                      .filter((x): x is { template: Template; count: number } => !!x.template)
+                      .sort((a, b) => a.template.name.localeCompare(b.template.name));
+                    const isToday = d === todayYmd;
+                    return (
+                      <td
+                        key={d}
+                        className={`px-2 py-2 align-middle ${isToday ? "bg-emerald-50" : ""}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-1">
+                          {items.map(({ template, count }) => (
+                            <span
+                              key={template.id}
+                              title={`${template.name}: ${count}`}
+                              className="inline-flex size-5 items-center justify-center rounded text-[10px] font-bold text-white shadow-sm"
+                              style={{ background: template.color || FALLBACK_COLOR }}
+                            >
+                              {count}
+                            </span>
+                          ))}
+                          {c.offCount > 0 ? (
+                            <span className="text-[11px] font-medium text-zinc-500">
+                              Off: {c.offCount}
+                            </span>
+                          ) : null}
+                          {items.length === 0 && c.offCount === 0 ? (
+                            <span className="text-[11px] text-zinc-400">—</span>
+                          ) : null}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+                {staff.map((s) => (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
                     <div className="flex items-start justify-between gap-2">
@@ -508,7 +601,8 @@ export function RosterGrid({
                     );
                   })}
                 </tr>
-              ))
+              ))}
+              </>
             )}
           </tbody>
         </table>
