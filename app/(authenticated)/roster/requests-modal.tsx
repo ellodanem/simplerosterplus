@@ -66,6 +66,9 @@ export function RequestsModal({
     conflictCount: number;
     conflictDates: string[];
   } | null>(null);
+  const [query, setQuery] = useState("");
+  const [staffFilter, setStaffFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("");
 
   const onPendingCountChangeRef = useRef(onPendingCountChange);
   useEffect(() => {
@@ -174,15 +177,48 @@ export function RequestsModal({
     }
   }
 
+  const filtersActive = query.trim() !== "" || staffFilter !== "all" || dateFilter !== "";
+
   const grouped = useMemo(() => {
     if (!data) return null;
     const all = [...data.vacation, ...data.dayOff];
-    const pending = all.filter((r) => r.status === "requested");
-    const decided = all.filter((r) => r.status !== "requested");
-    pending.sort(sortByCreatedDesc);
-    decided.sort(sortByDecidedThenCreatedDesc);
-    return { pending, decided };
-  }, [data]);
+    const pendingAll = all.filter((r) => r.status === "requested");
+    const decidedAll = all.filter((r) => r.status !== "requested");
+    pendingAll.sort(sortByCreatedDesc);
+    decidedAll.sort(sortByDecidedThenCreatedDesc);
+
+    const q = query.trim().toLowerCase();
+    const matches = (r: LeaveRequest): boolean => {
+      if (staffFilter !== "all" && r.staff.id !== staffFilter) return false;
+      if (dateFilter && !coversDate(r, dateFilter)) return false;
+      if (q) {
+        const haystack = `${r.staff.firstName} ${r.staff.lastName} ${r.reason ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    };
+
+    return {
+      pending: pendingAll.filter(matches),
+      decided: decidedAll.filter(matches),
+      pendingTotal: pendingAll.length,
+      decidedTotal: decidedAll.length,
+    };
+  }, [data, query, staffFilter, dateFilter]);
+
+  function clearFilters() {
+    setQuery("");
+    setStaffFilter("all");
+    setDateFilter("");
+  }
+
+  const sortedStaff = useMemo(
+    () =>
+      [...staff].sort((a, b) =>
+        (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName),
+      ),
+    [staff],
+  );
 
   return (
     <>
@@ -217,9 +253,21 @@ export function RequestsModal({
             </button>
           </div>
 
+          <FilterRow
+            query={query}
+            onQueryChange={setQuery}
+            staffFilter={staffFilter}
+            onStaffFilterChange={setStaffFilter}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            staff={sortedStaff}
+            active={filtersActive}
+            onClear={clearFilters}
+          />
+
           {showCreate ? (
             <CreateRequestForm
-              staff={staff}
+              staff={sortedStaff}
               onCreated={() => {
                 setShowCreate(false);
                 load(filter, { silent: true });
@@ -252,7 +300,13 @@ export function RequestsModal({
               <Section
                 title="Pending"
                 items={grouped.pending}
-                empty="No pending requests."
+                total={grouped.pendingTotal}
+                filtersActive={filtersActive}
+                empty={
+                  filtersActive
+                    ? "No pending requests match these filters."
+                    : "No pending requests."
+                }
                 renderRow={(req) => (
                   <RequestRow
                     key={req.id}
@@ -268,7 +322,13 @@ export function RequestsModal({
                 <Section
                   title="Decided"
                   items={grouped.decided}
-                  empty="No decided requests yet."
+                  total={grouped.decidedTotal}
+                  filtersActive={filtersActive}
+                  empty={
+                    filtersActive
+                      ? "No decided requests match these filters."
+                      : "No decided requests yet."
+                  }
                   renderRow={(req) => (
                     <RequestRow
                       key={req.id}
@@ -316,22 +376,46 @@ function sortByDecidedThenCreatedDesc(a: LeaveRequest, b: LeaveRequest): number 
   return bd.localeCompare(ad);
 }
 
+/** Does the request cover `ymd`? Vacations match any day inside the range; day-offs match
+ * the exact date. ISO-formatted YMD strings compare correctly lexicographically. */
+function coversDate(r: LeaveRequest, ymd: string): boolean {
+  if (r.type === "vacation") {
+    if (!r.startDate || !r.endDate) return false;
+    return ymd >= r.startDate && ymd <= r.endDate;
+  }
+  return r.date === ymd;
+}
+
 function Section({
   title,
   items,
+  total,
+  filtersActive,
   empty,
   renderRow,
 }: {
   title: string;
   items: LeaveRequest[];
+  total: number;
+  filtersActive: boolean;
   empty: string;
   renderRow: (req: LeaveRequest) => React.ReactNode;
 }) {
+  let countSuffix: React.ReactNode = null;
+  if (total > 0) {
+    countSuffix = filtersActive ? (
+      <span className="text-zinc-400">
+        · {items.length} of {total}
+      </span>
+    ) : (
+      <span className="text-zinc-400">· {total}</span>
+    );
+  }
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          {title} {items.length > 0 ? <span className="text-zinc-400">· {items.length}</span> : null}
+          {title} {countSuffix}
         </h3>
       </div>
       {items.length === 0 ? (
@@ -344,6 +428,88 @@ function Section({
         </ul>
       )}
     </section>
+  );
+}
+
+function FilterRow({
+  query,
+  onQueryChange,
+  staffFilter,
+  onStaffFilterChange,
+  dateFilter,
+  onDateFilterChange,
+  staff,
+  active,
+  onClear,
+}: {
+  query: string;
+  onQueryChange: (v: string) => void;
+  staffFilter: string;
+  onStaffFilterChange: (v: string) => void;
+  dateFilter: string;
+  onDateFilterChange: (v: string) => void;
+  staff: RequestStaff[];
+  active: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative min-w-[12rem] flex-1">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="Search staff or reason"
+          aria-label="Search requests"
+          className="w-full rounded-md border border-zinc-300 bg-white py-1 pl-7 pr-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
+        />
+      </div>
+      <select
+        value={staffFilter}
+        onChange={(e) => onStaffFilterChange(e.target.value)}
+        aria-label="Filter by staff"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700"
+      >
+        <option value="all">All staff</option>
+        {staff.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.firstName} {s.lastName}
+          </option>
+        ))}
+      </select>
+      <input
+        type="date"
+        value={dateFilter}
+        onChange={(e) => onDateFilterChange(e.target.value)}
+        title="Show requests that cover this date"
+        aria-label="Filter by date"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-700"
+      />
+      {active ? (
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Clear
+        </button>
+      ) : null}
+    </div>
   );
 }
 
