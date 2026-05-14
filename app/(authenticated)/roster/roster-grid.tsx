@@ -319,14 +319,14 @@ export function RosterGrid({
             type="button"
             onClick={copyPreviousWeek}
             disabled={copying}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-sm font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {copying ? "Copying…" : "Copy previous week"}
           </button>
           <button
             type="button"
             onClick={() => setShowPresets(true)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-sm font-medium text-violet-800 hover:bg-violet-100"
           >
             Shift presets
           </button>
