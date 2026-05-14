@@ -1,0 +1,861 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { StaffAvatar } from "@/app/components/staff-avatar";
+import { dayHeaderLabel } from "@/lib/roster-week";
+import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
+import {
+  presenceClasses,
+  presenceGlyph,
+  presenceLabel,
+  type PresenceStatus,
+} from "@/lib/attendance-policy";
+import type {
+  AttendanceCell,
+  AttendanceStaff,
+  SerializedOverride,
+  SerializedPunch,
+} from "@/lib/attendance-week";
+import { methodGlyph, methodFullLabel } from "./punch-method-badge";
+
+type Holiday = { name: string; stationClosed: boolean };
+type BlockReason = "vacation" | "dayOff";
+
+const HHMM_RE = /^(\d{2}):(\d{2})$/;
+
+export function AttendanceGrid({
+  weekStartYmd,
+  days,
+  timeZone,
+  prevWeek,
+  nextWeek,
+  thisWeek,
+  todayYmd,
+  staff,
+  holidays,
+  blockMap,
+  expectedByCell,
+  cells,
+  punches,
+  overrides,
+  graceMinutes,
+  irregularCount,
+  irregularByStaff,
+}: {
+  weekStartYmd: string;
+  days: string[];
+  timeZone: string;
+  prevWeek: string;
+  nextWeek: string;
+  thisWeek: string;
+  todayYmd: string;
+  staff: AttendanceStaff[];
+  holidays: Record<string, Holiday>;
+  blockMap: Record<string, BlockReason>;
+  expectedByCell: Record<string, { startHHmm: string; endHHmm: string }>;
+  cells: Record<string, AttendanceCell>;
+  punches: SerializedPunch[];
+  overrides: SerializedOverride[];
+  graceMinutes: number;
+  irregularCount: number;
+  irregularByStaff: Record<string, number>;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [openCell, setOpenCell] = useState<{ staffId: string; ymd: string } | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const staffById = useMemo(() => {
+    const m = new Map<string, AttendanceStaff>();
+    for (const s of staff) m.set(s.id, s);
+    return m;
+  }, [staff]);
+
+  const overrideByKey = useMemo(() => {
+    const m = new Map<string, SerializedOverride>();
+    for (const o of overrides) m.set(`${o.staffId}__${o.date}`, o);
+    return m;
+  }, [overrides]);
+
+  const punchesByKey = useMemo(() => {
+    const m = new Map<string, SerializedPunch[]>();
+    for (const p of punches) {
+      if (!p.staffId) continue;
+      const ymd = formatYmdInZone(new Date(p.punchAt), timeZone);
+      if (!days.includes(ymd)) continue;
+      const key = `${p.staffId}__${ymd}`;
+      const arr = m.get(key);
+      if (arr) arr.push(p);
+      else m.set(key, [p]);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => a.punchAt.localeCompare(b.punchAt));
+    }
+    return m;
+  }, [punches, timeZone, days]);
+
+  function cellKey(staffId: string, ymd: string): string {
+    return `${staffId}__${ymd}`;
+  }
+
+  function blockedReason(s: AttendanceStaff, ymd: string): "holiday" | BlockReason | null {
+    if (holidays[ymd]?.stationClosed) return "holiday";
+    return blockMap[cellKey(s.id, ymd)] ?? null;
+  }
+
+  function goToWeek(ymd: string) {
+    router.push(`/attendance?view=week&week=${ymd}`);
+  }
+
+  const orderedStaff = useMemo(() => {
+    // Right rail wants issues-first; main grid keeps the natural sort. Done as a separate
+    // array so the grid is undisturbed.
+    return [...staff].sort((a, b) => {
+      const ai = irregularByStaff[a.id] ?? 0;
+      const bi = irregularByStaff[b.id] ?? 0;
+      if (ai !== bi) return bi - ai;
+      const an = `${a.lastName} ${a.firstName}`;
+      const bn = `${b.lastName} ${b.firstName}`;
+      return an.localeCompare(bn);
+    });
+  }, [staff, irregularByStaff]);
+
+  async function refresh() {
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <div className="min-w-0 flex-1">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => goToWeek(prevWeek)}
+              className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              ← Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => goToWeek(thisWeek)}
+              disabled={thisWeek === weekStartYmd}
+              className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              This week
+            </button>
+            <button
+              type="button"
+              onClick={() => goToWeek(nextWeek)}
+              className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              Next →
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-zinc-600">
+              Jump to:
+              <input
+                type="date"
+                value={weekStartYmd}
+                onChange={(e) => {
+                  if (e.target.value) goToWeek(e.target.value);
+                }}
+                className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              />
+            </label>
+            {irregularCount > 0 ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800"
+                title="Switch to the Log tab to see the matching punches"
+              >
+                {irregularCount} {irregularCount === 1 ? "irregularity" : "irregularities"} this week
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {notice ? (
+          <div
+            className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+            role="status"
+          >
+            <span>{notice}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="text-emerald-700 hover:text-emerald-900"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div
+            className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            role="status"
+          >
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="text-red-700 hover:text-red-900"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+          <table className="w-full min-w-[58rem] table-fixed border-collapse text-sm">
+            <colgroup>
+              <col style={{ width: "10rem" }} />
+              {days.map((d) => (
+                <col key={d} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <th className="sticky left-0 z-10 min-w-[10rem] border-r border-zinc-200 bg-zinc-50 px-3 py-3 text-left">
+                  Staff
+                </th>
+                {days.map((d) => {
+                  const h = dayHeaderLabel(d, timeZone);
+                  const isToday = d === todayYmd;
+                  const closed = holidays[d]?.stationClosed;
+                  return (
+                    <th
+                      key={d}
+                      aria-current={isToday ? "date" : undefined}
+                      className={`min-w-[7rem] px-2 py-2 text-left ${
+                        isToday ? "bg-emerald-50" : closed ? "bg-zinc-100" : ""
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                        <span
+                          className={`text-xs font-semibold ${isToday ? "text-emerald-700" : "text-zinc-500"}`}
+                        >
+                          {h.weekday}
+                        </span>
+                        <span
+                          className={`text-sm font-medium normal-case ${isToday ? "text-emerald-900" : "text-zinc-800"}`}
+                        >
+                          {h.date}
+                        </span>
+                      </div>
+                      {holidays[d] ? (
+                        <div
+                          className="mt-0.5 truncate text-[11px] font-normal normal-case text-zinc-500"
+                          title={holidays[d].name}
+                        >
+                          {holidays[d].name}
+                        </div>
+                      ) : null}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {staff.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={1 + days.length}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
+                    No staff yet. Add staff to the roster, then come back here to track
+                    attendance.
+                  </td>
+                </tr>
+              ) : (
+                staff.map((s) => (
+                  <tr key={s.id} className="hover:bg-zinc-50/40">
+                    <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
+                        <div className="min-w-0">
+                          <div
+                            className="truncate text-sm font-medium text-zinc-900"
+                            title={`${s.firstName} ${s.lastName}`}
+                          >
+                            {s.firstName} {s.lastName}
+                          </div>
+                          {s.role ? (
+                            <div className="truncate text-xs text-zinc-500" title={s.role}>
+                              {s.role}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </td>
+                    {days.map((d) => {
+                      const key = cellKey(s.id, d);
+                      const cell = cells[key];
+                      const expected = expectedByCell[key] ?? null;
+                      const cellPunches = punchesByKey.get(key) ?? [];
+                      return (
+                        <td key={d} className="p-1 align-top">
+                          <AttendanceCellButton
+                            status={cell?.status ?? "no_shift"}
+                            expected={expected}
+                            punches={cellPunches}
+                            timeZone={timeZone}
+                            isToday={d === todayYmd}
+                            onClick={() => {
+                              if (blockedReason(s, d)) {
+                                // Block reason cells aren't interactive — keeps parity
+                                // with roster grid where blocked cells are read-only.
+                                return;
+                              }
+                              setOpenCell({ staffId: s.id, ymd: d });
+                            }}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-3 text-xs text-zinc-500">
+          Grace window: <span className="font-semibold">{graceMinutes} min</span> after
+          shift start before a punch counts as late. Click any unblocked cell to add a
+          punch or override the day.
+        </p>
+      </div>
+
+      <aside className="w-full shrink-0 rounded-xl border border-zinc-200 bg-white p-3 lg:w-64">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          Staff this week
+        </div>
+        <ul className="divide-y divide-zinc-100">
+          {orderedStaff.length === 0 ? (
+            <li className="py-2 text-sm text-zinc-500">No staff yet.</li>
+          ) : (
+            orderedStaff.map((s) => {
+              const count = irregularByStaff[s.id] ?? 0;
+              return (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-2 py-1.5 text-sm"
+                >
+                  <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
+                  <span className="min-w-0 flex-1 truncate text-zinc-800" title={`${s.firstName} ${s.lastName}`}>
+                    {s.firstName} {s.lastName}
+                  </span>
+                  {count > 0 ? (
+                    <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-rose-100 px-1.5 text-[11px] font-semibold text-rose-700">
+                      {count}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-emerald-600">OK</span>
+                  )}
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </aside>
+
+      {openCell ? (
+        <CellEditorModal
+          staff={staffById.get(openCell.staffId)!}
+          ymd={openCell.ymd}
+          timeZone={timeZone}
+          expected={expectedByCell[cellKey(openCell.staffId, openCell.ymd)] ?? null}
+          cell={cells[cellKey(openCell.staffId, openCell.ymd)] ?? null}
+          punches={punchesByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? []}
+          override={overrideByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? null}
+          pending={pending}
+          onError={setError}
+          onNotice={setNotice}
+          onClose={() => setOpenCell(null)}
+          onMutate={async (fn) => {
+            setPending(true);
+            setError(null);
+            try {
+              await fn();
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setPending(false);
+            }
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AttendanceCellButton({
+  status,
+  expected,
+  punches,
+  timeZone,
+  isToday,
+  onClick,
+}: {
+  status: PresenceStatus;
+  expected: { startHHmm: string; endHHmm: string } | null;
+  punches: SerializedPunch[];
+  timeZone: string;
+  isToday: boolean;
+  onClick: () => void;
+}) {
+  const classes = presenceClasses(status);
+  const interactive =
+    status !== "station_closed" &&
+    status !== "on_vacation" &&
+    status !== "day_off";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!interactive}
+      title={presenceLabel(status)}
+      className={`flex min-h-16 w-full flex-col items-stretch gap-1 rounded-lg border px-2 py-1 text-left transition disabled:cursor-not-allowed ${
+        classes.soft || (isToday ? "bg-emerald-50/40" : "bg-white")
+      } ${interactive ? "border-zinc-200 hover:border-zinc-400" : "border-zinc-200/70 opacity-80"}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={`inline-flex size-5 shrink-0 items-center justify-center rounded text-[11px] font-bold ${classes.solid}`}
+          aria-hidden="true"
+        >
+          {presenceGlyph(status)}
+        </span>
+        <span className="truncate text-[11px] font-medium text-zinc-700">
+          {presenceLabel(status)}
+        </span>
+      </div>
+      {expected ? (
+        <div className="truncate text-[10px] text-zinc-500">
+          {expected.startHHmm}–{expected.endHHmm}
+        </div>
+      ) : null}
+      {punches.length > 0 ? (
+        <div className="flex flex-col gap-0.5">
+          {punches.map((p) => {
+            const methodTitle = methodFullLabel(p.source, p.verifyMethod);
+            const correctedTitle = p.corrected
+              ? `Corrected — original ${p.originalPunchAt ? formatTimeInZone(p.originalPunchAt, timeZone) : "?"}`
+              : null;
+            return (
+              <span
+                key={p.id}
+                className={`inline-flex max-w-full items-center gap-0.5 self-start rounded px-1 font-mono text-[10px] ${
+                  p.punchType === "in"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-orange-100 text-orange-800"
+                }`}
+                title={correctedTitle ? `${correctedTitle} · ${methodTitle}` : methodTitle}
+              >
+                <span aria-hidden="true">{p.punchType === "in" ? "↓" : "↑"}</span>
+                {formatTimeInZone(p.punchAt, timeZone)}
+                <span aria-hidden="true" className="ml-0.5 opacity-70">
+                  {methodGlyph(p.source, p.verifyMethod)}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
+    </button>
+  );
+}
+
+function formatTimeInZone(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+
+/**
+ * Per-cell editor. Lets the supervisor add/edit/delete punches and set an override on a
+ * single (staff, day). Modeled after Roster's `ShiftPopover` but rendered as a centered
+ * modal because there's more content per cell than a quick template-picker.
+ */
+function CellEditorModal({
+  staff,
+  ymd,
+  timeZone,
+  expected,
+  cell,
+  punches,
+  override,
+  pending,
+  onError,
+  onNotice,
+  onClose,
+  onMutate,
+}: {
+  staff: AttendanceStaff;
+  ymd: string;
+  timeZone: string;
+  expected: { startHHmm: string; endHHmm: string } | null;
+  cell: AttendanceCell | null;
+  punches: SerializedPunch[];
+  override: SerializedOverride | null;
+  pending: boolean;
+  onError: (msg: string) => void;
+  onNotice: (msg: string) => void;
+  onClose: () => void;
+  onMutate: (fn: () => Promise<void>) => Promise<void>;
+}) {
+  // Default the new-punch time to the expected shift's start/end when one exists, so
+  // back-filling a forgotten clock-in defaults to the obvious right answer. Falls back to
+  // "now" in zone when there's no roster entry on this day.
+  const defaultInTime = expected?.startHHmm ?? nowHhmmInZone(timeZone);
+  const defaultOutTime = expected?.endHHmm ?? nowHhmmInZone(timeZone);
+
+  const [newType, setNewType] = useState<"in" | "out">("in");
+  const [newTime, setNewTime] = useState<string>(defaultInTime);
+  const [newNote, setNewNote] = useState<string>("");
+  const [overrideStatus, setOverrideStatus] = useState<"present" | "absent" | null>(
+    override?.status ?? null,
+  );
+  const [lateReason, setLateReason] = useState<string>(override?.lateReason ?? "");
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  function onPickType(t: "in" | "out") {
+    setNewType(t);
+    setNewTime(t === "in" ? defaultInTime : defaultOutTime);
+  }
+
+  async function addPunch() {
+    if (!HHMM_RE.test(newTime)) {
+      onError("Time must be HH:MM (24-hour).");
+      return;
+    }
+    const punchAt = combineYmdAndHhmm(ymd, newTime, timeZone);
+    await onMutate(async () => {
+      const res = await fetch("/api/attendance/punches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          staffId: staff.id,
+          punchAt: punchAt.toISOString(),
+          punchType: newType,
+          note: newNote.trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Could not add punch");
+      onNotice(`Added ${newType === "in" ? "in" : "out"}-punch at ${newTime}.`);
+      setNewNote("");
+    });
+  }
+
+  async function deletePunch(id: string) {
+    const ok = window.confirm("Delete this punch? This cannot be undone.");
+    if (!ok) return;
+    await onMutate(async () => {
+      const res = await fetch(`/api/attendance/punches/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Could not delete punch");
+      onNotice("Punch deleted.");
+    });
+  }
+
+  async function saveOverride(next: "present" | "absent" | null) {
+    await onMutate(async () => {
+      const res = await fetch("/api/attendance/overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          staffId: staff.id,
+          date: ymd,
+          status: next,
+          lateReason: lateReason.trim() || null,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Could not save override");
+      setOverrideStatus(next);
+      onNotice(next === null ? "Override cleared." : `Marked as ${next}.`);
+    });
+  }
+
+  const status = cell?.status ?? "no_shift";
+  const classes = presenceClasses(status);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="fixed inset-0 z-0 cursor-default bg-zinc-900/50"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Attendance for ${staff.firstName} ${staff.lastName} on ${ymd}`}
+        className="relative z-10 mt-4 w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-5 py-3">
+          <div className="flex items-center gap-2.5">
+            <StaffAvatar firstName={staff.firstName} lastName={staff.lastName} size="md" />
+            <div>
+              <h2 className="text-base font-semibold text-zinc-900">
+                {staff.firstName} {staff.lastName}
+              </h2>
+              <p className="text-xs text-zinc-500">{ymd}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex size-6 items-center justify-center rounded text-xs font-bold ${classes.solid}`}
+              aria-hidden="true"
+            >
+              {presenceGlyph(status)}
+            </span>
+            <span className="text-sm font-medium text-zinc-900">
+              {presenceLabel(status)}
+            </span>
+            {expected ? (
+              <span className="text-xs text-zinc-500">
+                Expected {expected.startHHmm}–{expected.endHHmm}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-500">No shift scheduled</span>
+            )}
+          </div>
+
+          <section>
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Punches on this day
+            </h3>
+            {punches.length === 0 ? (
+              <p className="text-sm text-zinc-500">No punches yet.</p>
+            ) : (
+              <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200">
+                {punches.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 text-[10px] font-semibold uppercase ${
+                          p.punchType === "in"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-orange-100 text-orange-800"
+                        }`}
+                      >
+                        {p.punchType}
+                      </span>
+                      <span className="font-mono text-zinc-800">
+                        {formatTimeInZone(p.punchAt, timeZone)}
+                      </span>
+                      {p.corrected ? (
+                        <span
+                          className="rounded bg-violet-100 px-1.5 text-[10px] font-semibold uppercase text-violet-800"
+                          title={
+                            p.originalPunchAt
+                              ? `Originally ${formatTimeInZone(p.originalPunchAt, timeZone)}`
+                              : undefined
+                          }
+                        >
+                          Corrected
+                        </span>
+                      ) : null}
+                      <span
+                        className="inline-flex items-center gap-0.5 text-[10px] text-zinc-500"
+                        title={methodFullLabel(p.source, p.verifyMethod)}
+                      >
+                        <span aria-hidden="true">{methodGlyph(p.source, p.verifyMethod)}</span>
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deletePunch(p.id)}
+                      disabled={pending}
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
+                      aria-label="Delete punch"
+                      title="Delete punch"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section>
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Add a punch
+            </h3>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="inline-flex overflow-hidden rounded-md border border-zinc-300">
+                <button
+                  type="button"
+                  onClick={() => onPickType("in")}
+                  className={`px-2.5 py-1 text-sm font-medium ${
+                    newType === "in"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onPickType("out")}
+                  className={`border-l border-zinc-300 px-2.5 py-1 text-sm font-medium ${
+                    newType === "out"
+                      ? "bg-orange-600 text-white"
+                      : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  Out
+                </button>
+              </div>
+              <label className="flex flex-col text-xs text-zinc-600">
+                Time
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <input
+                type="text"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Note (optional)"
+                className="min-w-0 flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              />
+              <button
+                type="button"
+                onClick={addPunch}
+                disabled={pending}
+                className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Add
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Override
+            </h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => saveOverride("present")}
+                disabled={pending}
+                className={`rounded-md px-2.5 py-1 text-sm font-medium ${
+                  overrideStatus === "present"
+                    ? "bg-emerald-700 text-white"
+                    : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                Mark present
+              </button>
+              <button
+                type="button"
+                onClick={() => saveOverride("absent")}
+                disabled={pending}
+                className={`rounded-md px-2.5 py-1 text-sm font-medium ${
+                  overrideStatus === "absent"
+                    ? "bg-rose-700 text-white"
+                    : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                Mark absent
+              </button>
+              <button
+                type="button"
+                onClick={() => saveOverride(null)}
+                disabled={pending || overrideStatus === null}
+                className="rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Clear
+              </button>
+            </div>
+            <input
+              type="text"
+              value={lateReason}
+              onChange={(e) => setLateReason(e.target.value)}
+              placeholder="Late reason (optional)"
+              className="mt-2 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
+            />
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Overrides win over computed status — e.g. mark present even when no punches
+              landed, or absent even when the staff punched in.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Current HH:MM in the given IANA zone, used when there's no scheduled shift to default to. */
+function nowHhmmInZone(timeZone: string): string {
+  const f = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return f.format(new Date());
+}
+
+/**
+ * Combine a `YYYY-MM-DD` and `HH:MM` (both interpreted in `timeZone`) into a single UTC
+ * instant. Reuses `startOfLocalDayUtc` for the DST-safe day resolution then offsets by
+ * the minutes-of-day — same approach as the server-side policy helper.
+ */
+function combineYmdAndHhmm(ymd: string, hhmm: string, timeZone: string): Date {
+  const m = HHMM_RE.exec(hhmm);
+  if (!m) throw new Error("Time must be HH:MM");
+  const hours = Number(m[1]);
+  const minutes = Number(m[2]);
+  const dayStart = startOfLocalDayUtc(ymd, timeZone);
+  return new Date(dayStart.getTime() + (hours * 60 + minutes) * 60_000);
+}

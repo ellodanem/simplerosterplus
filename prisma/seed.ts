@@ -177,6 +177,92 @@ async function main() {
     });
   }
 
+  // Attendance: grace window between scheduled shift start and "late" classification. Lives
+  // in AppSetting so the value is editable in Studio without a code change.
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId: org.id, key: "attendance_grace_minutes" },
+    },
+    create: {
+      organizationId: org.id,
+      key: "attendance_grace_minutes",
+      value: "10",
+    },
+    update: {},
+  });
+
+  // A handful of demo device punches so the attendance log visibly demonstrates every
+  // verify-method icon (fingerprint, face, card, password/PIN, palm) alongside the manual
+  // ones. Only seeded once — guard on "no device punches exist yet" so re-running doesn't
+  // pile them up.
+  const staffForDemo = await prisma.staff.findMany({
+    where: { organizationId: org.id, locationId: defaultLocation.id },
+    orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }],
+    select: { id: true },
+  });
+  const frontDevice = await prisma.device.findFirst({
+    where: { locationId: defaultLocation.id, name: "Front entrance" },
+    select: { id: true },
+  });
+  const existingDevicePunches = await prisma.attendanceLog.count({
+    where: { organizationId: org.id, source: { not: "manual" } },
+  });
+  if (existingDevicePunches === 0 && staffForDemo.length >= 2 && frontDevice) {
+    const [s1, s2] = staffForDemo;
+    const today = new Date();
+    today.setUTCHours(13, 0, 0, 0);
+    const atTime = (hOffsetDays: number, h: number, m: number) => {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - hOffsetDays);
+      d.setUTCHours(h, m, 0, 0);
+      return d;
+    };
+    await prisma.attendanceLog.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          locationId: defaultLocation.id,
+          staffId: s1.id,
+          deviceId: frontDevice.id,
+          punchAt: atTime(1, 12, 58),
+          punchType: "in",
+          source: "device_adms",
+          verifyMethod: "fingerprint",
+        },
+        {
+          organizationId: org.id,
+          locationId: defaultLocation.id,
+          staffId: s1.id,
+          deviceId: frontDevice.id,
+          punchAt: atTime(1, 21, 5),
+          punchType: "out",
+          source: "device_adms",
+          verifyMethod: "face",
+        },
+        {
+          organizationId: org.id,
+          locationId: defaultLocation.id,
+          staffId: s2.id,
+          deviceId: frontDevice.id,
+          punchAt: atTime(1, 13, 2),
+          punchType: "in",
+          source: "device_adms",
+          verifyMethod: "card",
+        },
+        {
+          organizationId: org.id,
+          locationId: defaultLocation.id,
+          staffId: s2.id,
+          deviceId: frontDevice.id,
+          punchAt: atTime(1, 21, 12),
+          punchType: "out",
+          source: "device_adms",
+          verifyMethod: "password",
+        },
+      ],
+    });
+  }
+
   console.log("Seed OK:", { orgId: org.id, orgName, timeZone, adminEmail, adminPasswordHint: "(see SEED_ADMIN_PASSWORD or default 'demo')" });
 }
 

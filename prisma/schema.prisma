@@ -28,6 +28,7 @@ model Organization {
   appSettings    AppSetting[]
   locations      Location[]
   devices        Device[]
+  attendanceLogs AttendanceLog[]
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -45,9 +46,10 @@ model Location {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  staff       Staff[]
-  rosterWeeks RosterWeek[]
-  devices     Device[]
+  staff          Staff[]
+  rosterWeeks    RosterWeek[]
+  devices        Device[]
+  attendanceLogs AttendanceLog[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -63,39 +65,39 @@ enum DeviceConnectionMode {
 
 /// Attendance / access device (e.g. a ZKTeco terminal) attached to a single location.
 model Device {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  locationId     String
-  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  name           String
+  id                   String               @id @default(cuid())
+  organizationId       String
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId           String
+  location             Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  name                 String
   /// Free-text legacy identifier (kept for backward compatibility). Prefer `serialNumber` for
   /// new ZKTeco terminals — that's what arrives on `/iclock/cdata` callbacks as `SN=...`.
-  identifier     String?
+  identifier           String?
   /// Manufacturer serial number reported by the device. Unique within an organization when set
   /// so ADMS callbacks can route punches to a single Device row.
-  serialNumber   String?
+  serialNumber         String?
   /// Marketing model name, e.g. `K40`, `MB360`, `SpeedFace-V5L`.
-  model          String?
+  model                String?
   /// Firmware string the device reports. Surfaced for support; not used for routing.
-  firmwareVersion String?
-  connectionMode DeviceConnectionMode @default(adms_push)
+  firmwareVersion      String?
+  connectionMode       DeviceConnectionMode @default(adms_push)
   /// Required for `pull_tcp`; informational for `adms_push`.
-  ipAddress      String?
+  ipAddress            String?
   /// ZKTeco terminals default to 4370 for the pull SDK; ADMS uses HTTP and ignores this.
-  port           Int?
+  port                 Int?
   /// Hash of the comm key the device sends with every ADMS request. Treat as a secret.
-  commPasswordHash String?
+  commPasswordHash     String?
   /// Soft-disable: when false, ADMS callbacks for this device should be ignored and pull
   /// jobs should skip it. Replaces "delete the device" for terminals being temporarily removed.
-  enabled        Boolean      @default(true)
+  enabled              Boolean              @default(true)
   /// Last time we saw any contact (ADMS callback succeeded or pull completed). Drives the
   /// online/idle/offline pill on the devices list.
-  lastSeenAt     DateTime?
+  lastSeenAt           DateTime?
   /// Optional IANA override for this device. Falls back to Location.timeZone, then
   /// Organization.timeZone. Useful when a device's onboard clock is set to a different zone
   /// than the location it serves.
-  timeZone       String?
+  timeZone             String?
   /// Cached counts from the most recent successful sync. Refreshed by the sync job; surfaced
   /// in the UI so operators can see device capacity at a glance.
   lastUserCount        Int?
@@ -103,13 +105,15 @@ model Device {
   lastPunchCount       Int?
   /// Free-text operator notes ("the one by the loading dock", "replaced 2026-01-12"). Not
   /// surfaced to the device — purely for humans browsing the list.
-  notes          String?
+  notes                String?
   /// Soft delete: when set, the device is hidden from the default list and ignored by the
   /// ADMS/pull pipelines. The row stays so historical AttendanceLog references remain
   /// resolvable. Hard purge will be a separate "Recently removed" workflow.
-  deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  deletedAt            DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  attendanceLogs AttendanceLog[]
 
   /// NOTE: these uniques apply to soft-deleted rows too — until the "Recently removed"
   /// workflow exists, an operator who soft-deletes a device will need to rename the row to
@@ -130,8 +134,11 @@ model AppUser {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  decidedDayOffs   StaffDayOff[]   @relation("DayOffDecidedBy")
-  decidedVacations StaffVacation[] @relation("VacationDecidedBy")
+  decidedDayOffs   StaffDayOff[]           @relation("DayOffDecidedBy")
+  decidedVacations StaffVacation[]         @relation("VacationDecidedBy")
+  createdPunches   AttendanceLog[]         @relation("PunchCreatedBy")
+  correctedPunches AttendanceLog[]         @relation("PunchCorrectedBy")
+  decidedOverrides AttendanceDayOverride[] @relation("OverrideDecidedBy")
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -149,34 +156,36 @@ model StaffRole {
 }
 
 model Staff {
-  id             String    @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// Primary location this staff member belongs to. Required; backfilled to the org's default
   /// location during the locations migration.
   locationId     String
-  location       Location  @relation(fields: [locationId], references: [id])
+  location       Location     @relation(fields: [locationId], references: [id])
   firstName      String
   lastName       String
   email          String?
   role           String?
   roleId         String?
-  staffRole      StaffRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  staffRole      StaffRole?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
   /// User id on the location's attendance device. Unique within a location, not across the org,
   /// so two locations with separate devices can each have a "5".
   deviceUserId   String?
-  punchExempt    Boolean   @default(false)
-  dateOfBirth    DateTime? @db.Date
-  startDate      DateTime? @db.Date
+  punchExempt    Boolean      @default(false)
+  dateOfBirth    DateTime?    @db.Date
+  startDate      DateTime?    @db.Date
   contactNumber  String?
-  sortOrder      Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  dayOffs       StaffDayOff[]
-  vacations     StaffVacation[]
-  sickLeaves    StaffSickLeave[]
-  rosterEntries RosterEntry[]
+  dayOffs             StaffDayOff[]
+  vacations           StaffVacation[]
+  sickLeaves          StaffSickLeave[]
+  rosterEntries       RosterEntry[]
+  attendanceLogs      AttendanceLog[]
+  attendanceOverrides AttendanceDayOverride[]
 
   @@unique([locationId, deviceUserId])
   @@index([organizationId])
@@ -333,4 +342,115 @@ model AppSetting {
 
   @@unique([organizationId, key])
   @@index([organizationId])
+}
+
+/// Direction of a punch event. Two-state for v1 manual entry; future device sources may
+/// surface additional types (e.g. break in/out) but we'll add those when a device pipeline
+/// actually emits them rather than speculating now.
+enum PunchType {
+  in
+  out
+}
+
+/// Where a punch came from. `manual` is the only writable source in v1. The `device_*`
+/// values are reserved so the column type is stable when the ADMS / pull pipelines land.
+enum PunchSource {
+  manual
+  device_adms
+  device_pull
+}
+
+/// How the staff member verified themselves at the device — fingerprint, face, card, PIN,
+/// etc. This is the ZKTeco "verify mode" mapped to a stable label set. Null when unknown
+/// or not applicable (every manual punch is null because a supervisor entered it on the
+/// staff's behalf — there's no biometric to record). `other` is the catch-all for device
+/// codes we haven't mapped yet so unrecognized values still ingest cleanly.
+enum PunchVerifyMethod {
+  fingerprint
+  face
+  card
+  password
+  palm
+  other
+}
+
+/// One row per real-world clock event. `punchAt` is a UTC instant (not `@db.Date`), so the
+/// org/location timezone is only applied when bucketing punches into "what calendar day"
+/// — never on write.
+///
+/// `staffId` is nullable to leave room for future device punches that arrive un-mapped to a
+/// known staff member; for v1 manual entry the API requires it.
+///
+/// Edits update `punchAt` in place but record the original time in `originalPunchAt` so the
+/// UI can surface a `CORRECTED` pill (and an auditor can compare). A delete-and-recreate
+/// path also exists for cases where it's easier than editing.
+model AttendanceLog {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId        String
+  location          Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  staffId           String?
+  staff             Staff?       @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  deviceId          String?
+  device            Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  punchAt           DateTime
+  punchType         PunchType
+  source            PunchSource  @default(manual)
+  /// How the staff verified at the device (fingerprint / face / card / password / palm).
+  /// Null for `manual` source punches and for device punches whose verify mode we
+  /// couldn't map. Kept on the row (not derived from `source`) because a single device
+  /// can emit any method per punch.
+  verifyMethod      PunchVerifyMethod?
+  note              String?
+  /// Original `punchAt` value before the most recent edit. Null when the row has never been
+  /// corrected. Lets the UI render a `CORRECTED` pill with the previous time in a tooltip.
+  originalPunchAt   DateTime?
+  createdByUserId   String?
+  createdBy         AppUser?     @relation("PunchCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  correctedByUserId String?
+  correctedBy       AppUser?     @relation("PunchCorrectedBy", fields: [correctedByUserId], references: [id], onDelete: SetNull)
+  correctedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([locationId, punchAt])
+  @@index([staffId, punchAt])
+  @@index([organizationId, punchAt])
+  @@index([deviceId])
+}
+
+/// Manual supervisor call on a single calendar day for a single staff member when the
+/// punches don't tell the story (forgot to clock out, sick day called in, etc.). Mirrors the
+/// `StaffDayOff` shape — same `(staffId, date)` unique, same audit fields — so it reads as a
+/// sibling concept.
+///
+/// We deliberately stop at two states: `present` and `absent`. Excused absences (vacation,
+/// approved day off, sick leave, station-closed holiday) are already modeled by the leave
+/// tables and `PublicHoliday.stationClosed`, so layering an `excused` value here would be a
+/// second source of truth for the same question.
+enum AttendanceOverrideStatus {
+  present
+  absent
+}
+
+model AttendanceDayOverride {
+  id              String                   @id @default(cuid())
+  staffId         String
+  staff           Staff                    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date            DateTime                 @db.Date
+  status          AttendanceOverrideStatus
+  /// Free-text reason surfaced next to the cell, e.g. "Bus broke down" — used as a hint to
+  /// the next supervisor reviewing the week, not parsed by code.
+  lateReason      String?
+  note            String?
+  decidedByUserId String?
+  decidedBy       AppUser?                 @relation("OverrideDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@unique([staffId, date])
+  @@index([staffId])
+  @@index([staffId, date])
 }

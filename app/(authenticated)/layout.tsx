@@ -24,6 +24,9 @@ export default async function AuthenticatedLayout({
             <Link href="/roster" className="font-medium text-emerald-800 hover:text-emerald-950">
               Roster
             </Link>
+            <Link href="/attendance" className="font-medium text-emerald-800 hover:text-emerald-950">
+              Attendance
+            </Link>
             <Link href="/staff" className="font-medium text-emerald-800 hover:text-emerald-950">
               Staff
             </Link>
