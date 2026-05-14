@@ -53,6 +53,14 @@ model Location {
   @@index([organizationId])
 }
 
+/// How we expect to talk to a device. ADMS push is the typical ZKTeco terminal flow where the
+/// device calls our `/iclock/*` endpoints; pull TCP is when we initiate a socket to the device
+/// (port 4370 by default) and read users/punches on demand.
+enum DeviceConnectionMode {
+  adms_push
+  pull_tcp
+}
+
 /// Attendance / access device (e.g. a ZKTeco terminal) attached to a single location.
 model Device {
   id             String       @id @default(cuid())
@@ -61,14 +69,56 @@ model Device {
   locationId     String
   location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   name           String
-  /// Optional serial number / IP / MAC / vendor identifier.
+  /// Free-text legacy identifier (kept for backward compatibility). Prefer `serialNumber` for
+  /// new ZKTeco terminals — that's what arrives on `/iclock/cdata` callbacks as `SN=...`.
   identifier     String?
+  /// Manufacturer serial number reported by the device. Unique within an organization when set
+  /// so ADMS callbacks can route punches to a single Device row.
+  serialNumber   String?
+  /// Marketing model name, e.g. `K40`, `MB360`, `SpeedFace-V5L`.
+  model          String?
+  /// Firmware string the device reports. Surfaced for support; not used for routing.
+  firmwareVersion String?
+  connectionMode DeviceConnectionMode @default(adms_push)
+  /// Required for `pull_tcp`; informational for `adms_push`.
+  ipAddress      String?
+  /// ZKTeco terminals default to 4370 for the pull SDK; ADMS uses HTTP and ignores this.
+  port           Int?
+  /// Hash of the comm key the device sends with every ADMS request. Treat as a secret.
+  commPasswordHash String?
+  /// Soft-disable: when false, ADMS callbacks for this device should be ignored and pull
+  /// jobs should skip it. Replaces "delete the device" for terminals being temporarily removed.
+  enabled        Boolean      @default(true)
+  /// Last time we saw any contact (ADMS callback succeeded or pull completed). Drives the
+  /// online/idle/offline pill on the devices list.
+  lastSeenAt     DateTime?
+  /// Optional IANA override for this device. Falls back to Location.timeZone, then
+  /// Organization.timeZone. Useful when a device's onboard clock is set to a different zone
+  /// than the location it serves.
+  timeZone       String?
+  /// Cached counts from the most recent successful sync. Refreshed by the sync job; surfaced
+  /// in the UI so operators can see device capacity at a glance.
+  lastUserCount        Int?
+  lastFingerprintCount Int?
+  lastPunchCount       Int?
+  /// Free-text operator notes ("the one by the loading dock", "replaced 2026-01-12"). Not
+  /// surfaced to the device — purely for humans browsing the list.
+  notes          String?
+  /// Soft delete: when set, the device is hidden from the default list and ignored by the
+  /// ADMS/pull pipelines. The row stays so historical AttendanceLog references remain
+  /// resolvable. Hard purge will be a separate "Recently removed" workflow.
+  deletedAt      DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  /// NOTE: these uniques apply to soft-deleted rows too — until the "Recently removed"
+  /// workflow exists, an operator who soft-deletes a device will need to rename the row to
+  /// free the (locationId, name) / (organizationId, serialNumber) slots before re-adding.
   @@unique([locationId, name])
+  @@unique([organizationId, serialNumber])
   @@index([locationId])
   @@index([organizationId])
+  @@index([organizationId, deletedAt])
 }
 
 model AppUser {

@@ -100,6 +100,83 @@ async function main() {
     });
   }
 
+  // Demo ZKTeco devices covering each status pill (online, idle, offline, never connected)
+  // and both connection modes. Idempotent via the (locationId, name) unique key.
+  const now = Date.now();
+  const minutesAgo = (m: number) => new Date(now - m * 60_000);
+  const hoursAgo = (h: number) => new Date(now - h * 60 * 60_000);
+  const daysAgo = (d: number) => new Date(now - d * 24 * 60 * 60_000);
+
+  const demoDevices = [
+    {
+      name: "Front entrance",
+      serialNumber: "ZK-K40-0001",
+      model: "K40",
+      firmwareVersion: "Ver 6.60 Apr 25 2024",
+      connectionMode: "adms_push" as const,
+      enabled: true,
+      lastSeenAt: minutesAgo(2),
+      lastUserCount: 18,
+      lastFingerprintCount: 36,
+      lastPunchCount: 412,
+    },
+    {
+      name: "Back office",
+      serialNumber: "ZK-MB360-0042",
+      model: "MB360",
+      firmwareVersion: "Ver 6.21 Jan 12 2025",
+      connectionMode: "pull_tcp" as const,
+      ipAddress: "192.168.1.201",
+      port: 4370,
+      enabled: true,
+      lastSeenAt: hoursAgo(3),
+      lastUserCount: 7,
+      lastFingerprintCount: 14,
+      lastPunchCount: 88,
+    },
+    {
+      name: "Warehouse",
+      serialNumber: "ZK-SF-V5L-0117",
+      model: "SpeedFace-V5L",
+      firmwareVersion: "Ver 3.4.5 Sep 02 2025",
+      connectionMode: "adms_push" as const,
+      enabled: true,
+      lastSeenAt: daysAgo(3),
+      lastUserCount: 24,
+      lastFingerprintCount: 0,
+      lastPunchCount: 1_204,
+    },
+    {
+      name: "Spare unit",
+      serialNumber: null,
+      model: "K40",
+      firmwareVersion: null,
+      connectionMode: "adms_push" as const,
+      enabled: false,
+      lastSeenAt: null,
+      lastUserCount: null,
+      lastFingerprintCount: null,
+      lastPunchCount: null,
+    },
+  ];
+
+  for (const d of demoDevices) {
+    await prisma.device.upsert({
+      where: { locationId_name: { locationId: defaultLocation.id, name: d.name } },
+      create: {
+        organizationId: org.id,
+        locationId: defaultLocation.id,
+        ...d,
+      },
+      update: {
+        // Refresh the moving fields on every seed run so the page keeps showing fresh
+        // relative timestamps. Stable fields (model, serial, etc.) are also rewritten so
+        // editing the seed in place propagates without manual cleanup.
+        ...d,
+      },
+    });
+  }
+
   console.log("Seed OK:", { orgId: org.id, orgName, timeZone, adminEmail, adminPasswordHint: "(see SEED_ADMIN_PASSWORD or default 'demo')" });
 }
 

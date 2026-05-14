@@ -27,6 +27,9 @@ export default async function AuthenticatedLayout({
             <Link href="/staff" className="font-medium text-emerald-800 hover:text-emerald-950">
               Staff
             </Link>
+            <Link href="/devices" className="font-medium text-emerald-800 hover:text-emerald-950">
+              Devices
+            </Link>
           </nav>
           <div className="flex items-center gap-3 text-sm text-zinc-600">
             <span className="truncate max-w-[200px]" title={session.email}>
