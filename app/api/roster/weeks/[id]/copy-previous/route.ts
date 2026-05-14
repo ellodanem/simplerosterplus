@@ -25,7 +25,7 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const target = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId: session.orgId },
-    select: { id: true, weekStart: true, organizationId: true },
+    select: { id: true, weekStart: true, organizationId: true, locationId: true },
   });
   if (!target) return NextResponse.json({ error: "Roster week not found" }, { status: 404 });
 
@@ -33,8 +33,8 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const source = await prisma.rosterWeek.findUnique({
     where: {
-      organizationId_weekStart: {
-        organizationId: target.organizationId,
+      locationId_weekStart: {
+        locationId: target.locationId,
         weekStart: prevWeekStart,
       },
     },
@@ -83,7 +83,7 @@ export async function POST(_request: Request, { params }: Ctx) {
       select: { date: true },
     }),
     prisma.staff.findMany({
-      where: { organizationId: target.organizationId },
+      where: { organizationId: target.organizationId, locationId: target.locationId },
       select: { id: true, vacationStart: true, vacationEnd: true },
     }),
   ]);

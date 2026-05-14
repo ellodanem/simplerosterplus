@@ -38,12 +38,24 @@ async function main() {
     update: { passwordHash },
   });
 
+  const defaultLocation = await prisma.location.upsert({
+    where: { organizationId_name: { organizationId: org.id, name: "Main" } },
+    create: {
+      organizationId: org.id,
+      name: "Main",
+      isDefault: true,
+      sortOrder: 0,
+    },
+    update: { isDefault: true },
+  });
+
   const staffCount = await prisma.staff.count({ where: { organizationId: org.id } });
   if (staffCount === 0) {
     await prisma.staff.createMany({
       data: [
         {
           organizationId: org.id,
+          locationId: defaultLocation.id,
           firstName: "Alex",
           lastName: "Rivera",
           email: "alex@demo.local",
@@ -52,6 +64,7 @@ async function main() {
         },
         {
           organizationId: org.id,
+          locationId: defaultLocation.id,
           firstName: "Jordan",
           lastName: "Lee",
           email: "jordan@demo.local",

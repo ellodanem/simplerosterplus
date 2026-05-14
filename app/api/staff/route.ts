@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { getDefaultLocation } from "@/lib/location";
 import { parseOptionalString, parseOptionalYmd } from "@/lib/staff-input";
 
 const STAFF_SELECT = {
@@ -65,8 +66,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "startDate must be YYYY-MM-DD" }, { status: 400 });
   }
 
+  const location = await getDefaultLocation(session.orgId);
+
   const maxSort = await prisma.staff.aggregate({
-    where: { organizationId: session.orgId },
+    where: { organizationId: session.orgId, locationId: location.id },
     _max: { sortOrder: true },
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
     const staff = await prisma.staff.create({
       data: {
         organizationId: session.orgId,
+        locationId: location.id,
         firstName,
         lastName,
         email: parseOptionalString(body.email) ?? null,
@@ -92,7 +96,7 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json(
-        { error: "Another staff member already uses that device user ID." },
+        { error: "Another staff member at this location already uses that device user ID." },
         { status: 409 },
       );
     }

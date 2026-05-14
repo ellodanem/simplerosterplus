@@ -13,7 +13,8 @@ datasource db {
 model Organization {
   id        String   @id @default(cuid())
   name      String
-  /// IANA timezone, e.g. America/Toronto or UTC. Roster/holiday YMD boundaries use this zone.
+  /// IANA timezone, e.g. America/Toronto or UTC. Default for child locations and used directly when
+  /// a location does not provide its own override.
   timeZone  String   @default("UTC")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -25,6 +26,49 @@ model Organization {
   rosterWeeks    RosterWeek[]
   publicHolidays PublicHoliday[]
   appSettings    AppSetting[]
+  locations      Location[]
+  devices        Device[]
+}
+
+/// A physical (or logical) site under an organization. Single-location orgs get one default
+/// location automatically; multi-site orgs (e.g. supermarket chains) can have many.
+model Location {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  /// Optional IANA override for this location; falls back to Organization.timeZone when null.
+  timeZone       String?
+  /// Exactly one location per organization should be marked default.
+  isDefault      Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  staff       Staff[]
+  rosterWeeks RosterWeek[]
+  devices     Device[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+/// Attendance / access device (e.g. a ZKTeco terminal) attached to a single location.
+model Device {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  name           String
+  /// Optional serial number / IP / MAC / vendor identifier.
+  identifier     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([locationId, name])
+  @@index([locationId])
+  @@index([organizationId])
 }
 
 model AppUser {
@@ -55,12 +99,18 @@ model Staff {
   id             String    @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Primary location this staff member belongs to. Required; backfilled to the org's default
+  /// location during the locations migration.
+  locationId     String
+  location       Location  @relation(fields: [locationId], references: [id])
   firstName      String
   lastName       String
   email          String?
   role           String?
   roleId         String?
   staffRole      StaffRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  /// User id on the location's attendance device. Unique within a location, not across the org,
+  /// so two locations with separate devices can each have a "5".
   deviceUserId   String?
   punchExempt    Boolean   @default(false)
   vacationStart  DateTime? @db.Date
@@ -76,9 +126,10 @@ model Staff {
   sickLeaves    StaffSickLeave[]
   rosterEntries RosterEntry[]
 
-  @@unique([organizationId, deviceUserId])
+  @@unique([locationId, deviceUserId])
   @@index([organizationId])
   @@index([organizationId, sortOrder])
+  @@index([locationId])
 }
 
 model StaffDayOff {
@@ -135,6 +186,10 @@ model RosterWeek {
   id             String           @id @default(cuid())
   organizationId String
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Location this roster belongs to. Required; backfilled to the org's default location during
+  /// the locations migration.
+  locationId     String
+  location       Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
   weekStart      DateTime         @db.Date
   status         RosterWeekStatus @default(draft)
   notes          String?
@@ -143,8 +198,9 @@ model RosterWeek {
 
   entries RosterEntry[]
 
-  @@unique([organizationId, weekStart])
+  @@unique([locationId, weekStart])
   @@index([organizationId])
+  @@index([locationId])
 }
 
 model RosterEntry {

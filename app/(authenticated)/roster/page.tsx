@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { getDefaultLocation } from "@/lib/location";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import {
   currentWeekStartYmd,
@@ -33,11 +34,14 @@ export default async function RosterPage({
   });
   if (!org) redirect("/login");
 
+  const location = await getDefaultLocation(org.id);
+  const effectiveTimeZone = location.timeZone ?? org.timeZone;
+
   const params = await searchParams;
   const requestedWeek = params.week && YMD_RE.test(params.week) ? params.week : null;
   const weekStartYmd = requestedWeek
-    ? weekStartFromYmd(requestedWeek, org.timeZone)
-    : currentWeekStartYmd(org.timeZone);
+    ? weekStartFromYmd(requestedWeek, effectiveTimeZone)
+    : currentWeekStartYmd(effectiveTimeZone);
 
   const weekStartDate = utcDateFromYmd(weekStartYmd);
   const weekEndDate = utcDateFromYmd(shiftYmd(weekStartYmd, 6));
@@ -45,13 +49,14 @@ export default async function RosterPage({
 
   const week = await prisma.rosterWeek.upsert({
     where: {
-      organizationId_weekStart: {
-        organizationId: org.id,
+      locationId_weekStart: {
+        locationId: location.id,
         weekStart: weekStartDate,
       },
     },
     create: {
       organizationId: org.id,
+      locationId: location.id,
       weekStart: weekStartDate,
       status: "draft",
     },
@@ -61,7 +66,7 @@ export default async function RosterPage({
 
   const [staff, templates, entries, holidays] = await Promise.all([
     prisma.staff.findMany({
-      where: { organizationId: org.id },
+      where: { organizationId: org.id, locationId: location.id },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
       select: {
         id: true,
@@ -113,15 +118,15 @@ export default async function RosterPage({
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);
-  const thisWeek = currentWeekStartYmd(org.timeZone);
-  const todayYmd = formatYmdInZone(new Date(), org.timeZone);
+  const thisWeek = currentWeekStartYmd(effectiveTimeZone);
+  const todayYmd = formatYmdInZone(new Date(), effectiveTimeZone);
 
   return (
     <div>
       <div className="mb-4">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
         <p className="mt-0.5 text-sm text-zinc-600">
-          {org.name} · <span className="font-mono">{org.timeZone}</span> · Week of{" "}
+          {org.name} · <span className="font-mono">{effectiveTimeZone}</span> · Week of{" "}
           <span className="font-medium">{weekStartYmd}</span>
           {week.status === "published" ? (
             <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
@@ -136,7 +141,7 @@ export default async function RosterPage({
         weekId={week.id}
         weekStartYmd={weekStartYmd}
         days={days}
-        timeZone={org.timeZone}
+        timeZone={effectiveTimeZone}
         prevWeek={prevWeek}
         nextWeek={nextWeek}
         thisWeek={thisWeek}

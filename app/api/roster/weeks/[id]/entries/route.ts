@@ -22,7 +22,7 @@ export async function PUT(request: Request, { params }: Ctx) {
 
   const week = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId: session.orgId },
-    select: { id: true, weekStart: true, status: true },
+    select: { id: true, weekStart: true, status: true, locationId: true },
   });
   if (!week) return NextResponse.json({ error: "Roster week not found" }, { status: 404 });
 
@@ -64,9 +64,22 @@ export async function PUT(request: Request, { params }: Ctx) {
 
   const staff = await prisma.staff.findFirst({
     where: { id: staffId, organizationId: session.orgId },
-    select: { id: true, vacationStart: true, vacationEnd: true, firstName: true, lastName: true },
+    select: {
+      id: true,
+      locationId: true,
+      vacationStart: true,
+      vacationEnd: true,
+      firstName: true,
+      lastName: true,
+    },
   });
   if (!staff) return NextResponse.json({ error: "Staff not found" }, { status: 404 });
+  if (staff.locationId !== week.locationId) {
+    return NextResponse.json(
+      { error: "Staff is assigned to a different location than this roster." },
+      { status: 409 },
+    );
+  }
 
   if (shiftTemplateId !== null) {
     const tpl = await prisma.shiftTemplate.findFirst({

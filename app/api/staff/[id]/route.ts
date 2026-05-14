@@ -132,7 +132,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json(
-        { error: "Another staff member already uses that device user ID." },
+        { error: "Another staff member at this location already uses that device user ID." },
         { status: 409 },
       );
     }
