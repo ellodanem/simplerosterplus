@@ -22,7 +22,7 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const LOG_WINDOW_DAYS = 7;
 
 type ViewName = "log" | "week";
-type SearchParams = { view?: string; week?: string; all?: string };
+type SearchParams = { view?: string; week?: string; all?: string; staff?: string };
 
 export default async function AttendancePage({
   searchParams,
@@ -64,6 +64,7 @@ export default async function AttendancePage({
           location={location}
           tz={effectiveTimeZone}
           requestedWeek={params.week ?? null}
+          staffId={params.staff ?? null}
         />
       ) : (
         <LogTab
@@ -143,11 +144,13 @@ async function WeekTab({
   location,
   tz,
   requestedWeek,
+  staffId,
 }: {
   org: { id: string; name: string; timeZone: string };
   location: DefaultLocation;
   tz: string;
   requestedWeek: string | null;
+  staffId: string | null;
 }) {
   const weekStartYmd =
     requestedWeek && YMD_RE.test(requestedWeek)
@@ -166,6 +169,9 @@ async function WeekTab({
   const thisWeek = currentWeekStartYmd(tz);
   const todayYmd = formatYmdInZone(new Date(), tz);
 
+  const selectedStaffId =
+    staffId && data.staff.some((s) => s.id === staffId) ? staffId : null;
+
   return (
     <AttendanceGrid
       weekStartYmd={weekStartYmd}
@@ -176,6 +182,7 @@ async function WeekTab({
       thisWeek={thisWeek}
       todayYmd={todayYmd}
       staff={data.staff}
+      selectedStaffId={selectedStaffId}
       holidays={data.holidays}
       blockMap={data.blockMap}
       expectedByCell={data.expectedByCell}
