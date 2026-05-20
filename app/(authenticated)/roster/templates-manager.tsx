@@ -6,14 +6,18 @@ import {
   PRIMARY_SWATCHES,
   SECONDARY_SWATCHES,
 } from "@/lib/shift-colors";
+import { formatBreakMinutes } from "@/lib/shift-duration";
 
 export type Template = {
   id: string;
   name: string;
   startTime: string;
   endTime: string;
+  unpaidBreakMinutes: number;
   color: string | null;
 };
+
+const BREAK_PRESETS = [0, 15, 30, 45, 60] as const;
 
 function sortByName(items: Template[]): Template[] {
   return [...items].sort((a, b) => a.name.localeCompare(b.name));
@@ -89,13 +93,14 @@ export function TemplatesManager({
               <th className="px-3 py-2">Name</th>
               <th className="w-20 px-3 py-2">Start</th>
               <th className="w-20 px-3 py-2">End</th>
+              <th className="w-24 px-3 py-2">Break</th>
               <th className="w-28 px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-zinc-500">
+                <td colSpan={6} className="px-3 py-6 text-center text-zinc-500">
                   No shift presets yet. Create one above.
                 </td>
               </tr>
@@ -124,6 +129,7 @@ function NewTemplateForm({
   const [name, setName] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
+  const [unpaidBreakMinutes, setUnpaidBreakMinutes] = useState(0);
   const [color, setColor] = useState<string>(DEFAULT_SHIFT_COLOR);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -133,10 +139,11 @@ function NewTemplateForm({
     setError(null);
     setPending(true);
     try {
-      await onCreate({ name, startTime, endTime, color });
+      await onCreate({ name, startTime, endTime, unpaidBreakMinutes, color });
       setName("");
       setStartTime("09:00");
       setEndTime("17:00");
+      setUnpaidBreakMinutes(0);
       setColor(DEFAULT_SHIFT_COLOR);
     } catch (e) {
       setError((e as Error).message);
@@ -192,6 +199,9 @@ function NewTemplateForm({
         </div>
       </div>
       <div className="mt-3">
+        <UnpaidBreakField value={unpaidBreakMinutes} onChange={setUnpaidBreakMinutes} />
+      </div>
+      <div className="mt-3">
         <SwatchPicker value={color} onChange={setColor} />
       </div>
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -203,6 +213,67 @@ function NewTemplateForm({
         {pending ? "Saving…" : "Add preset"}
       </button>
     </form>
+  );
+}
+
+function UnpaidBreakField({
+  value,
+  onChange,
+  idPrefix = "break",
+}: {
+  value: number;
+  onChange: (minutes: number) => void;
+  idPrefix?: string;
+}) {
+  const presetSet = new Set<number>(BREAK_PRESETS);
+  const [custom, setCustom] = useState(!presetSet.has(value));
+  const presetValue = custom ? "custom" : String(value);
+
+  return (
+    <div>
+      <label className="text-xs font-medium text-zinc-600" htmlFor={`${idPrefix}-select`}>
+        Unpaid break
+      </label>
+      <p className="mt-0.5 text-[11px] text-zinc-500">
+        Deducted from scheduled hours (not paid).
+      </p>
+      <select
+        id={`${idPrefix}-select`}
+        value={presetValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "custom") {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          onChange(Number(v));
+        }}
+        className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-2 py-1.5 text-sm sm:w-auto"
+      >
+        <option value="0">None</option>
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="45">45 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="custom">Custom…</option>
+      </select>
+      {custom ? (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            id={`${idPrefix}-custom`}
+            type="number"
+            min={0}
+            max={480}
+            step={5}
+            value={value}
+            onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+            className="w-24 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+          />
+          <span className="text-xs text-zinc-600">minutes</span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -219,13 +290,16 @@ function TemplateRow({
   const [name, setName] = useState(template.name);
   const [startTime, setStartTime] = useState(template.startTime);
   const [endTime, setEndTime] = useState(template.endTime);
+  const [unpaidBreakMinutes, setUnpaidBreakMinutes] = useState(
+    template.unpaidBreakMinutes ?? 0,
+  );
   const [color, setColor] = useState<string>(template.color ?? DEFAULT_SHIFT_COLOR);
   const [pending, setPending] = useState(false);
 
   async function save() {
     setPending(true);
     try {
-      await onUpdate({ name, startTime, endTime, color });
+      await onUpdate({ name, startTime, endTime, unpaidBreakMinutes, color });
       setEditing(false);
     } catch (e) {
       alert((e as Error).message);
@@ -237,7 +311,7 @@ function TemplateRow({
   if (editing) {
     return (
       <tr className="bg-zinc-50">
-        <td className="px-3 py-3" colSpan={5}>
+        <td className="px-3 py-3" colSpan={6}>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
             <input
               value={name}
@@ -273,6 +347,7 @@ function TemplateRow({
                   setName(template.name);
                   setStartTime(template.startTime);
                   setEndTime(template.endTime);
+                  setUnpaidBreakMinutes(template.unpaidBreakMinutes ?? 0);
                   setColor(template.color ?? DEFAULT_SHIFT_COLOR);
                 }}
                 className="text-xs text-zinc-600 hover:text-zinc-900"
@@ -281,6 +356,13 @@ function TemplateRow({
               </button>
             </div>
           </div>
+          <div className="mt-3 max-w-sm">
+            <UnpaidBreakField
+              idPrefix={`edit-${template.id}`}
+              value={unpaidBreakMinutes}
+              onChange={setUnpaidBreakMinutes}
+            />
+          </div>
           <div className="mt-3">
             <SwatchPicker value={color} onChange={setColor} />
           </div>
@@ -288,6 +370,8 @@ function TemplateRow({
       </tr>
     );
   }
+
+  const breakMins = template.unpaidBreakMinutes ?? 0;
 
   return (
     <tr className="hover:bg-zinc-50/80">
@@ -301,6 +385,9 @@ function TemplateRow({
       <td className="px-3 py-3 font-medium text-zinc-900">{template.name}</td>
       <td className="px-3 py-3 text-zinc-600">{template.startTime}</td>
       <td className="px-3 py-3 text-zinc-600">{template.endTime}</td>
+      <td className="px-3 py-3 text-zinc-600">
+        {breakMins > 0 ? formatBreakMinutes(breakMins) : "—"}
+      </td>
       <td className="px-3 py-3 text-right whitespace-nowrap">
         <button
           type="button"

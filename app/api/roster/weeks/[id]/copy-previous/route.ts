@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
-import { ymdForDbDate } from "@/lib/roster-week";
+import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
+import { isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { formatYmdInZone } from "@/lib/datetime-policy";
+import { weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -26,9 +29,29 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const target = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId: session.orgId },
-    select: { id: true, weekStart: true, organizationId: true, locationId: true },
+    select: {
+      id: true,
+      weekStart: true,
+      organizationId: true,
+      locationId: true,
+      location: { select: { timeZone: true } },
+      organization: { select: { timeZone: true } },
+    },
   });
   if (!target) return NextResponse.json({ error: "Roster week not found" }, { status: 404 });
+
+  const anchorYmd = ymdForDbDate(target.weekStart);
+  const timeZone = target.location.timeZone ?? target.organization.timeZone;
+  if (isRosterWeekLocked(anchorYmd, timeZone)) {
+    return NextResponse.json(
+      { error: "This roster week is locked (read-only)." },
+      { status: 403 },
+    );
+  }
+
+  const todayYmd = formatYmdInZone(new Date(), timeZone);
+  const targetWeekEndYmd = weekEndYmd(anchorYmd);
+  const emptyEntries = new Set<string>();
 
   const prevWeekStart = new Date(target.weekStart.getTime() - SEVEN_DAYS_MS);
 
@@ -85,12 +108,22 @@ export async function POST(_request: Request, { params }: Ctx) {
     }),
     prisma.staff.findMany({
       where: { organizationId: target.organizationId, locationId: target.locationId },
-      select: { id: true },
+      select: {
+        id: true,
+        startDate: true,
+        isActive: true,
+        excludeFromRoster: true,
+      },
     }),
   ]);
 
   const closedDateMs = new Set(holidays.map((h) => h.date.getTime()));
   const staffById = new Map(allStaff.map((s) => [s.id, s]));
+  const membershipArgs = {
+    weekEndYmd: targetWeekEndYmd,
+    todayYmd,
+    staffIdsWithEntries: emptyEntries,
+  };
 
   const blockMap = await getApprovedBlockMap({
     staffIds: allStaff.map((s) => s.id),
@@ -120,7 +153,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     }
 
     const staff = staffById.get(e.staffId);
-    if (!staff) {
+    if (!staff || !staffEligibleForRosterWeek(staff, membershipArgs)) {
       skipped++;
       continue;
     }

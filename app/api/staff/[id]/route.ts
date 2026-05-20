@@ -12,6 +12,8 @@ const STAFF_SELECT = {
   role: true,
   deviceUserId: true,
   punchExempt: true,
+  isActive: true,
+  excludeFromRoster: true,
   dateOfBirth: true,
   startDate: true,
   contactNumber: true,
@@ -112,6 +114,12 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   if (typeof body.punchExempt === "boolean") {
     data.punchExempt = body.punchExempt;
+  }
+  if (typeof body.isActive === "boolean") {
+    data.isActive = body.isActive;
+  }
+  if (typeof body.excludeFromRoster === "boolean") {
+    data.excludeFromRoster = body.excludeFromRoster;
   }
 
   if (typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)) {

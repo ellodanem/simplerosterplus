@@ -172,9 +172,13 @@ model Staff {
   /// User id on the location's attendance device. Unique within a location, not across the org,
   /// so two locations with separate devices can each have a "5".
   deviceUserId   String?
-  punchExempt    Boolean      @default(false)
-  dateOfBirth    DateTime?    @db.Date
-  startDate      DateTime?    @db.Date
+  punchExempt         Boolean      @default(false)
+  /// When false, omit from current/future roster weeks; past weeks may still show if shifts were saved.
+  isActive            Boolean      @default(true)
+  /// When true, never show on the roster grid (attendance unchanged).
+  excludeFromRoster   Boolean      @default(false)
+  dateOfBirth         DateTime?    @db.Date
+  startDate           DateTime?    @db.Date
   contactNumber  String?
   sortOrder      Int          @default(0)
   createdAt      DateTime     @default(now())
@@ -267,6 +271,8 @@ model ShiftTemplate {
   name           String
   startTime      String
   endTime        String
+  /// Unpaid break deducted from scheduled hours (e.g. 15 for a quarter-hour lunch).
+  unpaidBreakMinutes Int      @default(0)
   color          String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

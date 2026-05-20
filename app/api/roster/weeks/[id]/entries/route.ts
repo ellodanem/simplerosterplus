@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isApprovedBlocked } from "@/lib/leave-blocks";
-import { utcDateFromYmd } from "@/lib/datetime-policy";
-import { daysOfWeek, ymdForDbDate } from "@/lib/roster-week";
+import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
+import { isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
+import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -14,7 +16,8 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
  * Body: { staffId, date: YYYY-MM-DD, shiftTemplateId: string | null }
  * - null/clears the cell (deletes any existing entry)
  * - non-null creates or updates the entry
- * Enforces: org scoping, date within week, public-holiday closed days, staff vacation.
+ * Enforces: org scoping, date within week, public-holiday closed days, staff vacation,
+ * roster membership, and read-only past weeks.
  */
 export async function PUT(request: Request, { params }: Ctx) {
   const session = await getSession();
@@ -23,9 +26,25 @@ export async function PUT(request: Request, { params }: Ctx) {
 
   const week = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId: session.orgId },
-    select: { id: true, weekStart: true, status: true, locationId: true },
+    select: {
+      id: true,
+      weekStart: true,
+      status: true,
+      locationId: true,
+      location: { select: { timeZone: true } },
+      organization: { select: { timeZone: true } },
+    },
   });
   if (!week) return NextResponse.json({ error: "Roster week not found" }, { status: 404 });
+
+  const anchorYmd = ymdForDbDate(week.weekStart);
+  const timeZone = week.location.timeZone ?? week.organization.timeZone;
+  if (isRosterWeekLocked(anchorYmd, timeZone)) {
+    return NextResponse.json(
+      { error: "This roster week is locked (read-only)." },
+      { status: 403 },
+    );
+  }
 
   let body: Record<string, unknown>;
   try {
@@ -55,7 +74,7 @@ export async function PUT(request: Request, { params }: Ctx) {
     );
   }
 
-  const validDays = daysOfWeek(ymdForDbDate(week.weekStart));
+  const validDays = daysOfWeek(anchorYmd);
   if (!validDays.includes(date)) {
     return NextResponse.json(
       { error: "date is outside the roster week" },
@@ -70,12 +89,34 @@ export async function PUT(request: Request, { params }: Ctx) {
       locationId: true,
       firstName: true,
       lastName: true,
+      startDate: true,
+      isActive: true,
+      excludeFromRoster: true,
     },
   });
   if (!staff) return NextResponse.json({ error: "Staff not found" }, { status: 404 });
   if (staff.locationId !== week.locationId) {
     return NextResponse.json(
       { error: "Staff is assigned to a different location than this roster." },
+      { status: 409 },
+    );
+  }
+
+  const weekEntries = await prisma.rosterEntry.findMany({
+    where: { rosterWeekId: week.id },
+    select: { staffId: true, shiftTemplateId: true },
+  });
+  const staffIdsWithEntries = staffIdsWithRosterEntries(weekEntries);
+  const todayYmd = formatYmdInZone(new Date(), timeZone);
+  if (
+    !staffEligibleForRosterWeek(staff, {
+      weekEndYmd: weekEndYmd(anchorYmd),
+      todayYmd,
+      staffIdsWithEntries,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "This staff member cannot be scheduled on this roster week." },
       { status: 409 },
     );
   }

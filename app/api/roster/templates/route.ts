@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_SHIFT_COLOR, isAllowedSwatch } from "@/lib/shift-colors";
+import {
+  parseUnpaidBreakMinutes,
+  validateUnpaidBreak,
+} from "@/lib/shift-duration";
 
 const TEMPLATE_SELECT = {
   id: true,
   name: true,
   startTime: true,
   endTime: true,
+  unpaidBreakMinutes: true,
   color: true,
 } as const;
 
@@ -51,12 +56,25 @@ export async function POST(request: Request) {
   }
   const color = rawColor && isAllowedSwatch(rawColor) ? rawColor : DEFAULT_SHIFT_COLOR;
 
+  const unpaidBreakMinutes = parseUnpaidBreakMinutes(body.unpaidBreakMinutes);
+  if (unpaidBreakMinutes === null) {
+    return NextResponse.json(
+      { error: "unpaidBreakMinutes must be a non-negative integer up to 480" },
+      { status: 400 },
+    );
+  }
+  const breakError = validateUnpaidBreak(startTime, endTime, unpaidBreakMinutes);
+  if (breakError) {
+    return NextResponse.json({ error: breakError }, { status: 400 });
+  }
+
   const template = await prisma.shiftTemplate.create({
     data: {
       organizationId: session.orgId,
       name,
       startTime,
       endTime,
+      unpaidBreakMinutes,
       color,
     },
     select: TEMPLATE_SELECT,

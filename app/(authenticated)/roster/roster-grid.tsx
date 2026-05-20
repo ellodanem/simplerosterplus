@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { dayHeaderLabel } from "@/lib/roster-week";
+import { formatBreakMinutes } from "@/lib/shift-duration";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
+import { WeekStartSettings } from "./week-start-settings";
 
 type Staff = {
   id: string;
@@ -34,12 +36,14 @@ const FALLBACK_COLOR = "#475569";
 export function RosterGrid({
   weekId,
   weekStartYmd,
+  weekStartWeekday,
   days,
   timeZone,
   prevWeek,
   nextWeek,
   thisWeek,
   todayYmd,
+  weekLocked,
   staff,
   templates: initialTemplates,
   initialEntries,
@@ -49,12 +53,14 @@ export function RosterGrid({
 }: {
   weekId: string;
   weekStartYmd: string;
+  weekStartWeekday: number;
   days: string[];
   timeZone: string;
   prevWeek: string;
   nextWeek: string;
   thisWeek: string;
   todayYmd: string;
+  weekLocked: boolean;
   staff: Staff[];
   templates: Template[];
   initialEntries: Record<string, string>;
@@ -70,7 +76,9 @@ export function RosterGrid({
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
+  const [showWeekStartSettings, setShowWeekStartSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
+  const [showAddStaff, setShowAddStaff] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
   const blockMap = initialBlockMap;
@@ -138,6 +146,7 @@ export function RosterGrid({
     s: Staff,
     ymd: string,
   ) {
+    if (weekLocked) return;
     if (blockedReason(s, ymd)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchor({
@@ -150,6 +159,7 @@ export function RosterGrid({
   }
 
   function openRowPopover(e: React.MouseEvent<HTMLButtonElement>, s: Staff) {
+    if (weekLocked) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchor({
       type: "row",
@@ -172,6 +182,7 @@ export function RosterGrid({
   }
 
   async function setCell(staffId: string, ymd: string, templateId: string | null) {
+    if (weekLocked) return;
     const key = cellKey(staffId, ymd);
     const previous = entries[key];
     setEntries((s) => {
@@ -202,6 +213,7 @@ export function RosterGrid({
   }
 
   async function applyToRow(staffId: string, templateId: string | null) {
+    if (weekLocked) return;
     const s = staffById.get(staffId);
     if (!s) return;
 
@@ -269,6 +281,7 @@ export function RosterGrid({
   }
 
   async function copyPreviousWeek() {
+    if (weekLocked) return;
     if (Object.keys(entries).length > 0) {
       const ok = window.confirm(
         "Replace this week's roster with the previous week's shifts? Existing entries will be overwritten.",
@@ -343,7 +356,7 @@ export function RosterGrid({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-zinc-600">
-            Jump to:
+            Jump to week:
             <input
               type="date"
               value={weekStartYmd}
@@ -351,12 +364,21 @@ export function RosterGrid({
                 if (e.target.value) goToWeek(e.target.value);
               }}
               className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              title="Pick any day in the week; the roster snaps to that week's start date."
             />
           </label>
           <button
             type="button"
+            onClick={() => setShowWeekStartSettings(true)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Week start
+          </button>
+          <button
+            type="button"
             onClick={copyPreviousWeek}
-            disabled={copying}
+            disabled={copying || weekLocked}
+            title={weekLocked ? "Past weeks are read-only" : undefined}
             className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-sm font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {copying ? "Copying…" : "Copy previous week"}
@@ -393,6 +415,16 @@ export function RosterGrid({
           >
             Create one to start scheduling
           </button>
+        </div>
+      ) : null}
+
+      {weekLocked ? (
+        <div
+          className="mb-3 rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-700"
+          role="status"
+        >
+          This week has ended and is locked. Shifts are read-only; you can still review and use
+          Requests.
         </div>
       ) : null}
 
@@ -441,7 +473,19 @@ export function RosterGrid({
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
               <th className="sticky left-0 z-10 min-w-[10rem] border-r border-zinc-200 bg-zinc-50 px-3 py-3 text-left">
-                Staff
+                <div className="flex items-center justify-between gap-2">
+                  <span>Staff</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStaff(true)}
+                    disabled={weekLocked}
+                    title={weekLocked ? "Past weeks are read-only" : "Add staff"}
+                    aria-label="Add staff"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-sm font-bold leading-none text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                </div>
               </th>
               {days.map((d) => {
                 const h = dayHeaderLabel(d, timeZone);
@@ -492,9 +536,17 @@ export function RosterGrid({
                   className="px-4 py-8 text-center text-zinc-500"
                 >
                   No staff yet.{" "}
-                  <Link href="/staff" className="font-semibold text-emerald-700 underline">
-                    Add staff
-                  </Link>{" "}
+                  {weekLocked ? null : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddStaff(true)}
+                        className="font-semibold text-emerald-700 underline hover:text-emerald-800"
+                      >
+                        Add staff
+                      </button>{" "}
+                    </>
+                  )}
                   to start building the roster.
                 </td>
               </tr>
@@ -573,9 +625,14 @@ export function RosterGrid({
                       <button
                         type="button"
                         onClick={(e) => openRowPopover(e, s)}
-                        title="Apply shift to all days this week"
+                        disabled={weekLocked}
+                        title={
+                          weekLocked
+                            ? "Past weeks are read-only"
+                            : "Apply shift to all days this week"
+                        }
                         aria-label={`Apply shift to all days for ${s.firstName} ${s.lastName}`}
-                        className="shrink-0 rounded-md border border-zinc-300 bg-white p-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                        className="shrink-0 rounded-md border border-zinc-300 bg-white p-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <svg
                           width="14"
@@ -606,6 +663,7 @@ export function RosterGrid({
                           tpl={tpl}
                           blocked={blocked}
                           pending={isPending}
+                          readOnly={weekLocked}
                           onClick={(e) => openCellPopover(e, s, d)}
                         />
                       </td>
@@ -619,7 +677,7 @@ export function RosterGrid({
         </table>
       </div>
 
-      {anchor ? (
+      {anchor && !weekLocked ? (
         <ShiftPopover
           anchor={anchor}
           title={anchor.type === "row" ? "Apply to whole week" : "Assign shift"}
@@ -647,6 +705,13 @@ export function RosterGrid({
         />
       ) : null}
 
+      {showWeekStartSettings ? (
+        <WeekStartSettings
+          initialWeekday={weekStartWeekday}
+          onClose={() => setShowWeekStartSettings(false)}
+        />
+      ) : null}
+
       <Modal
         open={showPresets}
         onClose={() => setShowPresets(false)}
@@ -663,6 +728,26 @@ export function RosterGrid({
         onPendingCountChange={setPendingRequests}
         onApproved={() => router.refresh()}
       />
+
+      <Modal
+        open={showAddStaff}
+        onClose={() => setShowAddStaff(false)}
+        title="Add staff"
+        size="md"
+      >
+        {showAddStaff ? (
+          <AddStaffForm
+            requiredOnly
+            variant="modal"
+            onCancel={() => setShowAddStaff(false)}
+            onSuccess={() => {
+              setShowAddStaff(false);
+              setNotice("Staff member added.");
+              router.refresh();
+            }}
+          />
+        ) : null}
+      </Modal>
     </div>
   );
 }
@@ -671,11 +756,13 @@ function CellButton({
   tpl,
   blocked,
   pending,
+  readOnly,
   onClick,
 }: {
   tpl: Template | undefined;
   blocked: BlockReason | null;
   pending: boolean;
+  readOnly: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   if (blocked) {
@@ -702,6 +789,16 @@ function CellButton({
   }
 
   if (!tpl) {
+    if (readOnly) {
+      return (
+        <div
+          className="flex h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-sm text-zinc-400"
+          aria-label="Off"
+        >
+          Off
+        </div>
+      );
+    }
     return (
       <button
         type="button"
@@ -715,21 +812,42 @@ function CellButton({
   }
 
   const bg = tpl.color || FALLBACK_COLOR;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-1"
-      style={{ background: bg }}
-      aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
-    >
+  const inner = (
+    <>
       <span className="truncate text-xs font-semibold leading-tight">{tpl.name}</span>
       <span className="truncate text-[11px] leading-tight opacity-90">
         {tpl.startTime}–{tpl.endTime}
+        {(tpl.unpaidBreakMinutes ?? 0) > 0
+          ? ` · ${formatBreakMinutes(tpl.unpaidBreakMinutes)} break`
+          : ""}
       </span>
       {pending ? (
         <span className="absolute right-1 top-1 text-[10px] opacity-80">…</span>
       ) : null}
+    </>
+  );
+
+  if (readOnly) {
+    return (
+      <div
+        className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm"
+        style={{ background: bg }}
+        aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-1"
+      style={{ background: bg }}
+      aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
+    >
+      {inner}
     </button>
   );
 }
@@ -818,6 +936,9 @@ function ShiftPopover({
                       </span>
                       <span className="text-xs text-zinc-500">
                         {t.startTime}–{t.endTime}
+                        {(t.unpaidBreakMinutes ?? 0) > 0
+                          ? ` · ${formatBreakMinutes(t.unpaidBreakMinutes)}`
+                          : ""}
                       </span>
                     </button>
                   </li>

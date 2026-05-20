@@ -29,6 +29,8 @@ export default async function StaffPage() {
     dateOfBirth: ymdFromDate(s.dateOfBirth),
     startDate: ymdFromDate(s.startDate),
     punchExempt: s.punchExempt,
+    isActive: s.isActive,
+    excludeFromRoster: s.excludeFromRoster,
     sortOrder: s.sortOrder,
   }));
 

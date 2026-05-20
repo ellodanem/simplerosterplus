@@ -57,16 +57,44 @@ export function startOfLocalDayUtc(ymd: string, timeZone: string): Date {
   return new Date(minMs);
 }
 
-/** Monday 00:00 local of the week containing `d`, as `YYYY-MM-DD` in `timeZone`. */
-export function weekStartMondayYmd(d: Date, timeZone: string): string {
+const LOCAL_WEEKDAY_TO_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+/**
+ * Local calendar day that starts the work week containing `d`, as `YYYY-MM-DD` in `timeZone`.
+ * `weekStartWeekday` uses JavaScript convention: 0 = Sunday … 6 = Saturday.
+ */
+export function weekStartAnchorYmd(
+  d: Date,
+  timeZone: string,
+  weekStartWeekday: number,
+): string {
+  if (!Number.isInteger(weekStartWeekday) || weekStartWeekday < 0 || weekStartWeekday > 6) {
+    throw new Error(`weekStartWeekday must be 0–6, got ${weekStartWeekday}`);
+  }
   const ymd = formatYmdInZone(d, timeZone);
   const dayStart = startOfLocalDayUtc(ymd, timeZone);
-  const dow = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(dayStart);
-  const delta: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-  const n = delta[dow];
-  if (n === undefined) {
-    throw new Error(`Unexpected weekday: ${dow}`);
+  const dowShort = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  }).format(dayStart);
+  const dow = LOCAL_WEEKDAY_TO_INDEX[dowShort];
+  if (dow === undefined) {
+    throw new Error(`Unexpected weekday: ${dowShort}`);
   }
-  const mondayMs = dayStart.getTime() - n * 86400000;
-  return formatYmdInZone(new Date(mondayMs), timeZone);
+  const daysBack = (dow - weekStartWeekday + 7) % 7;
+  const anchorMs = dayStart.getTime() - daysBack * 86_400_000;
+  return formatYmdInZone(new Date(anchorMs), timeZone);
+}
+
+/** Monday-start week containing `d` (convenience wrapper). */
+export function weekStartMondayYmd(d: Date, timeZone: string): string {
+  return weekStartAnchorYmd(d, timeZone, 1);
 }

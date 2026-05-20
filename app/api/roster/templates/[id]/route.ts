@@ -3,12 +3,17 @@ import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isAllowedSwatch } from "@/lib/shift-colors";
+import {
+  parseUnpaidBreakMinutes,
+  validateUnpaidBreak,
+} from "@/lib/shift-duration";
 
 const TEMPLATE_SELECT = {
   id: true,
   name: true,
   startTime: true,
   endTime: true,
+  unpaidBreakMinutes: true,
   color: true,
 } as const;
 
@@ -62,9 +67,31 @@ export async function PATCH(request: Request, { params }: Ctx) {
     }
     data.color = v;
   }
+  if (body.unpaidBreakMinutes !== undefined) {
+    const v = parseUnpaidBreakMinutes(body.unpaidBreakMinutes);
+    if (v === null) {
+      return NextResponse.json(
+        { error: "unpaidBreakMinutes must be a non-negative integer up to 480" },
+        { status: 400 },
+      );
+    }
+    data.unpaidBreakMinutes = v;
+  }
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ template: existing });
+  }
+
+  const startTime =
+    typeof data.startTime === "string" ? data.startTime : existing.startTime;
+  const endTime = typeof data.endTime === "string" ? data.endTime : existing.endTime;
+  const unpaidBreakMinutes =
+    typeof data.unpaidBreakMinutes === "number"
+      ? data.unpaidBreakMinutes
+      : existing.unpaidBreakMinutes;
+  const breakError = validateUnpaidBreak(startTime, endTime, unpaidBreakMinutes);
+  if (breakError) {
+    return NextResponse.json({ error: breakError }, { status: 400 });
   }
 
   const template = await prisma.shiftTemplate.update({

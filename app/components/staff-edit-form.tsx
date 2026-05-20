@@ -14,6 +14,8 @@ export type StaffEditValues = {
   dateOfBirth: string;
   startDate: string;
   punchExempt: boolean;
+  isActive: boolean;
+  excludeFromRoster: boolean;
   sortOrder: number;
 };
 
@@ -59,6 +61,8 @@ export function StaffEditForm({
           dateOfBirth: v.dateOfBirth,
           startDate: v.startDate,
           punchExempt: v.punchExempt,
+          isActive: v.isActive,
+          excludeFromRoster: v.excludeFromRoster,
           sortOrder: Number.isFinite(v.sortOrder) ? v.sortOrder : 0,
         }),
       });
@@ -171,16 +175,46 @@ export function StaffEditForm({
           value={v.startDate}
           onChange={(x) => update("startDate", x)}
         />
-        <div className="sm:col-span-2">
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+        <div className="sm:col-span-2 space-y-3">
+          <label className="flex items-start gap-2 text-sm text-zinc-700">
             <input
               type="checkbox"
-              className="size-4 rounded border-zinc-300"
+              className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
               checked={v.punchExempt}
               onChange={(e) => update("punchExempt", e.target.checked)}
             />
-            Punch exempt (does not need to clock in/out)
+            <span>Punch exempt (does not need to clock in/out)</span>
           </label>
+          <div>
+            <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
+                checked={v.isActive}
+                onChange={(e) => update("isActive", e.target.checked)}
+              />
+              <span>Plan on roster (current and future weeks)</span>
+            </label>
+            <p className="mt-1 pl-6 text-xs text-zinc-500">
+              Uncheck when they leave the team. They stop appearing on new weeks; past weeks
+              that already have their shifts stay on the roster.
+            </p>
+          </div>
+          <div>
+            <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
+                checked={v.excludeFromRoster}
+                onChange={(e) => update("excludeFromRoster", e.target.checked)}
+              />
+              <span>Never show on roster (attendance only)</span>
+            </label>
+            <p className="mt-1 pl-6 text-xs text-zinc-500">
+              For managers, office staff, or others who clock in but are not scheduled on
+              shifts. They still appear in attendance; the roster grid never lists them.
+            </p>
+          </div>
         </div>
         <Field
           id="eso"

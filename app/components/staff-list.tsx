@@ -28,13 +28,15 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
               <th className="px-4 py-3">Device ID</th>
               <th className="px-4 py-3">Order</th>
               <th className="px-4 py-3">Punch exempt</th>
+              <th className="px-4 py-3">Roster planning</th>
+              <th className="px-4 py-3">Roster grid</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {staff.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
                   No staff yet. Add someone below or run{" "}
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
                 </td>
@@ -64,6 +66,10 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-zinc-600">{s.sortOrder}</td>
                   <td className="px-4 py-3 text-zinc-600">{s.punchExempt ? "Yes" : "No"}</td>
+                  <td className="px-4 py-3 text-zinc-600">{s.isActive ? "Yes" : "Left"}</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    {s.excludeFromRoster ? "Attendance only" : "Shift rows"}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"

@@ -1,17 +1,26 @@
-import { startOfLocalDayUtc, weekStartMondayYmd } from "@/lib/datetime-policy";
+import { startOfLocalDayUtc, weekStartAnchorYmd } from "@/lib/datetime-policy";
 
 const NOON_MS = 12 * 3600_000;
 
-/** `YYYY-MM-DD` Monday of the current week in `timeZone`. */
-export function currentWeekStartYmd(timeZone: string): string {
-  return weekStartMondayYmd(new Date(), timeZone);
+/** `YYYY-MM-DD` anchor of the current work week in `timeZone`. */
+export function currentWeekStartYmd(timeZone: string, weekStartWeekday: number): string {
+  return weekStartAnchorYmd(new Date(), timeZone, weekStartWeekday);
 }
 
-/** Monday `YYYY-MM-DD` of the week containing the local calendar day `ymd`. */
-export function weekStartFromYmd(ymd: string, timeZone: string): string {
+/** Anchor `YYYY-MM-DD` of the work week containing the local calendar day `ymd`. */
+export function weekStartFromYmd(
+  ymd: string,
+  timeZone: string,
+  weekStartWeekday: number,
+): string {
   const local = startOfLocalDayUtc(ymd, timeZone);
   const noon = new Date(local.getTime() + NOON_MS);
-  return weekStartMondayYmd(noon, timeZone);
+  return weekStartAnchorYmd(noon, timeZone, weekStartWeekday);
+}
+
+/** Last calendar day of the work week (anchor + 6). */
+export function weekEndYmd(anchorYmd: string): string {
+  return shiftYmd(anchorYmd, 6);
 }
 
 /** Add or subtract whole days from a `YYYY-MM-DD` value (UTC arithmetic). */
@@ -25,9 +34,9 @@ export function shiftYmd(ymd: string, deltaDays: number): string {
   ].join("-");
 }
 
-/** Seven `YYYY-MM-DD` strings, Monday → Sunday, starting at `mondayYmd`. */
-export function daysOfWeek(mondayYmd: string): string[] {
-  return Array.from({ length: 7 }, (_, i) => shiftYmd(mondayYmd, i));
+/** Seven `YYYY-MM-DD` strings from anchor through anchor + 6. */
+export function daysOfWeek(anchorYmd: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => shiftYmd(anchorYmd, i));
 }
 
 /** Friendly column label for a `YYYY-MM-DD` (e.g. "Mon · May 11"). */

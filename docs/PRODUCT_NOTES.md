@@ -3,7 +3,8 @@
 ## Timezone (not fixed to one region)
 
 - Each **organization** has `Organization.timeZone` (IANA string, e.g. `America/Toronto`, `Europe/London`, `UTC`).
-- Roster weeks, public holidays, and leave dates are stored as PostgreSQL `DATE` values; **“which calendar day”** and **week boundaries (Monday start)** must be computed using that organization’s zone.
+- Roster weeks, public holidays, and leave dates are stored as PostgreSQL `DATE` values; **“which calendar day”** and **week boundaries** must be computed using that organization’s zone and the org’s **week start weekday** (`AppSetting` key `roster_week_start_weekday`, 0 = Sunday … 6 = Saturday; default Monday).
+- **Roster row membership** (`Staff.isActive`, `Staff.excludeFromRoster`, `Staff.startDate`): exclude-from-roster hides someone on the grid only (attendance unchanged); inactive staff drop off current/future weeks but can remain on past weeks when they have saved shifts; start date hides weeks that end before they joined. Past weeks (`today >= weekEnd`) are read-only in the UI and on roster write APIs.
 - Shared helpers live in `lib/datetime-policy.ts`. They take `timeZone` as an argument — there is **no** app-wide hard-coded zone (contrast: Shift Close `BUSINESS_TIME_ZONE`).
 
 ## Multi-user (planned, not implemented yet)

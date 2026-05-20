@@ -13,6 +13,8 @@ const STAFF_SELECT = {
   role: true,
   deviceUserId: true,
   punchExempt: true,
+  isActive: true,
+  excludeFromRoster: true,
   dateOfBirth: true,
   startDate: true,
   contactNumber: true,
@@ -68,6 +70,10 @@ export async function POST(request: Request) {
 
   const location = await getDefaultLocation(session.orgId);
 
+  const isActive = typeof body.isActive === "boolean" ? body.isActive : true;
+  const excludeFromRoster =
+    typeof body.excludeFromRoster === "boolean" ? body.excludeFromRoster : false;
+
   const maxSort = await prisma.staff.aggregate({
     where: { organizationId: session.orgId, locationId: location.id },
     _max: { sortOrder: true },
@@ -87,6 +93,8 @@ export async function POST(request: Request) {
         contactNumber: parseOptionalString(body.contactNumber) ?? null,
         dateOfBirth: dateOfBirth ?? null,
         startDate: startDate ?? null,
+        isActive,
+        excludeFromRoster,
         sortOrder,
       },
       select: STAFF_SELECT,

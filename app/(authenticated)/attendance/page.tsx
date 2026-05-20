@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getDefaultLocation, type DefaultLocation } from "@/lib/location";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
+import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import {
   currentWeekStartYmd,
   shiftYmd,
@@ -152,10 +153,11 @@ async function WeekTab({
   requestedWeek: string | null;
   staffId: string | null;
 }) {
+  const weekStartWeekday = await getRosterWeekStartWeekday(org.id);
   const weekStartYmd =
     requestedWeek && YMD_RE.test(requestedWeek)
-      ? weekStartFromYmd(requestedWeek, tz)
-      : currentWeekStartYmd(tz);
+      ? weekStartFromYmd(requestedWeek, tz, weekStartWeekday)
+      : currentWeekStartYmd(tz, weekStartWeekday);
 
   const data = await getAttendanceWeekData({
     organizationId: org.id,
@@ -166,7 +168,7 @@ async function WeekTab({
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);
-  const thisWeek = currentWeekStartYmd(tz);
+  const thisWeek = currentWeekStartYmd(tz, weekStartWeekday);
   const todayYmd = formatYmdInZone(new Date(), tz);
 
   const selectedStaffId =
