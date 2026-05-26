@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { StaffAvatar } from "@/app/components/staff-avatar";
 import { dayHeaderLabel } from "@/lib/roster-week";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
@@ -18,6 +19,14 @@ import type {
   SerializedOverride,
   SerializedPunch,
 } from "@/lib/attendance-week";
+import {
+  countOvertimeAlerts,
+  formatOvertimeHours,
+  getWorkedMinutesByStaff,
+  summarizeOvertimeByStaff,
+  type OvertimeSettings,
+  type OvertimeStatus,
+} from "@/lib/overtime";
 import { methodGlyph, methodFullLabel } from "./punch-method-badge";
 
 type Holiday = { name: string; stationClosed: boolean };
@@ -57,6 +66,7 @@ export function AttendanceGrid({
   graceMinutes,
   irregularCount,
   irregularByStaff,
+  initialOvertimeSettings,
 }: {
   weekStartYmd: string;
   days: string[];
@@ -77,12 +87,15 @@ export function AttendanceGrid({
   graceMinutes: number;
   irregularCount: number;
   irregularByStaff: Record<string, number>;
+  initialOvertimeSettings: OvertimeSettings;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [openCell, setOpenCell] = useState<{ staffId: string; ymd: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
+  const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
   const [weekData, setWeekData] = useState<AttendanceWeekViewState>({
     staff,
     holidays,
@@ -191,6 +204,35 @@ export function AttendanceGrid({
     return currentIrregularByStaff[selectedStaffId] ?? 0;
   }, [selectedStaffId, currentIrregularCount, currentIrregularByStaff]);
 
+  const workedMinutesByStaff = useMemo(
+    () =>
+      getWorkedMinutesByStaff({
+        punches: currentPunches,
+        weekStartYmd,
+        timeZone,
+      }),
+    [currentPunches, timeZone, weekStartYmd],
+  );
+
+  const overtimeByStaff = useMemo(
+    () => summarizeOvertimeByStaff(workedMinutesByStaff, overtimeSettings),
+    [workedMinutesByStaff, overtimeSettings],
+  );
+
+  const visibleOvertimeAlertCounts = useMemo(
+    () =>
+      countOvertimeAlerts(
+        visibleStaff.map(
+          (person) =>
+            overtimeByStaff[person.id] ?? {
+              totalMinutes: 0,
+              status: "normal" as const,
+            },
+        ),
+      ),
+    [overtimeByStaff, visibleStaff],
+  );
+
   function weekUrl(weekYmd: string, staffId: string | null): string {
     const params = new URLSearchParams({ view: "week", week: weekYmd });
     if (staffId) params.set("staff", staffId);
@@ -262,6 +304,28 @@ export function AttendanceGrid({
                 className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
               />
             </label>
+            {overtimeSettings.enabled &&
+            (visibleOvertimeAlertCounts.approaching > 0 || visibleOvertimeAlertCounts.over > 0) ? (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium ${
+                  visibleOvertimeAlertCounts.over > 0
+                    ? "border border-rose-200 bg-rose-50 text-rose-800"
+                    : "border border-amber-200 bg-amber-50 text-amber-800"
+                }`}
+              >
+                OT:{" "}
+                {[
+                  visibleOvertimeAlertCounts.approaching > 0
+                    ? `${visibleOvertimeAlertCounts.approaching} approaching`
+                    : null,
+                  visibleOvertimeAlertCounts.over > 0
+                    ? `${visibleOvertimeAlertCounts.over} over`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : null}
             {visibleIrregularCount > 0 ? (
               <span
                 className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800"
@@ -272,6 +336,13 @@ export function AttendanceGrid({
                 {selectedStaff ? ` for ${selectedStaff.firstName}` : " this week"}
               </span>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setShowOvertimeSettings(true)}
+              className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-800 hover:bg-amber-100"
+            >
+              OT alerts
+            </button>
           </div>
         </div>
 
@@ -390,61 +461,78 @@ export function AttendanceGrid({
                   </td>
                 </tr>
               ) : (
-                visibleStaff.map((s) => (
-                  <tr key={s.id} className="hover:bg-zinc-50/40">
-                    <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
-                        <div className="min-w-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setStaffFilter(selectedStaffId === s.id ? null : s.id)
-                            }
-                            className={`truncate text-left text-sm font-medium hover:underline ${
-                              selectedStaffId === s.id
-                                ? "text-emerald-800"
-                                : "text-zinc-900"
-                            }`}
-                            title={`${s.firstName} ${s.lastName}`}
-                          >
-                            {s.firstName} {s.lastName}
-                          </button>
-                          {s.role ? (
-                            <div className="truncate text-xs text-zinc-500" title={s.role}>
-                              {s.role}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </td>
-                    {days.map((d) => {
-                      const key = cellKey(s.id, d);
-                      const cell = currentCells[key];
-                      const expected = currentExpectedByCell[key] ?? null;
-                      const cellPunches = punchesByKey.get(key) ?? [];
-                      return (
-                        <td key={d} className="p-1 align-top">
-                          <AttendanceCellButton
-                            status={cell?.status ?? "no_shift"}
-                            expected={expected}
-                            punches={cellPunches}
-                            timeZone={timeZone}
-                            isToday={d === todayYmd}
-                            onClick={() => {
-                              if (blockedReason(s, d)) {
-                                // Block reason cells aren't interactive — keeps parity
-                                // with roster grid where blocked cells are read-only.
-                                return;
+                visibleStaff.map((s) => {
+                  const overtimeSummary = overtimeByStaff[s.id];
+                  return (
+                    <tr key={s.id} className="hover:bg-zinc-50/40">
+                      <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setStaffFilter(selectedStaffId === s.id ? null : s.id)
                               }
-                              setOpenCell({ staffId: s.id, ymd: d });
-                            }}
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
+                              className={`truncate text-left text-sm font-medium hover:underline ${
+                                selectedStaffId === s.id
+                                  ? "text-emerald-800"
+                                  : "text-zinc-900"
+                              }`}
+                              title={`${s.firstName} ${s.lastName}`}
+                            >
+                              {s.firstName} {s.lastName}
+                            </button>
+                            {s.role ? (
+                              <div className="truncate text-xs text-zinc-500" title={s.role}>
+                                {s.role}
+                              </div>
+                            ) : null}
+                            {overtimeSettings.enabled && (overtimeSummary?.totalMinutes ?? 0) > 0 ? (
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-zinc-500">
+                                  {formatOvertimeHours(overtimeSummary?.totalMinutes ?? 0)} worked
+                                </span>
+                                {overtimeSummary && overtimeSummary.status !== "normal" ? (
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 font-semibold ${overtimePillClasses(overtimeSummary.status)}`}
+                                  >
+                                    {overtimePillLabel(overtimeSummary.status)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </td>
+                      {days.map((d) => {
+                        const key = cellKey(s.id, d);
+                        const cell = currentCells[key];
+                        const expected = currentExpectedByCell[key] ?? null;
+                        const cellPunches = punchesByKey.get(key) ?? [];
+                        return (
+                          <td key={d} className="p-1 align-top">
+                            <AttendanceCellButton
+                              status={cell?.status ?? "no_shift"}
+                              expected={expected}
+                              punches={cellPunches}
+                              timeZone={timeZone}
+                              isToday={d === todayYmd}
+                              onClick={() => {
+                                if (blockedReason(s, d)) {
+                                  // Block reason cells aren't interactive — keeps parity
+                                  // with roster grid where blocked cells are read-only.
+                                  return;
+                                }
+                                setOpenCell({ staffId: s.id, ymd: d });
+                              }}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -452,8 +540,8 @@ export function AttendanceGrid({
 
         <p className="mt-3 text-xs text-zinc-500">
           Grace window: <span className="font-semibold">{currentGraceMinutes} min</span> after
-          shift start before a punch counts as late. Click any unblocked cell to add a
-          punch or override the day.
+          shift start before a punch counts as late. OT uses worked hours for the week. Click any
+          unblocked cell to add a punch or override the day.
         </p>
       </div>
 
@@ -515,6 +603,18 @@ export function AttendanceGrid({
         </ul>
       </aside>
 
+      {showOvertimeSettings ? (
+        <OvertimeSettingsModal
+          initialSettings={overtimeSettings}
+          onClose={() => setShowOvertimeSettings(false)}
+          onSaved={(nextSettings, message) => {
+            setShowOvertimeSettings(false);
+            setOvertimeSettings(nextSettings);
+            setNotice(message);
+          }}
+        />
+      ) : null}
+
       {openCell ? (
         <CellEditorModal
           staff={staffById.get(openCell.staffId)!}
@@ -544,6 +644,16 @@ export function AttendanceGrid({
       ) : null}
     </div>
   );
+}
+
+function overtimePillLabel(status: OvertimeStatus): string {
+  return status === "over" ? "Over OT" : "Approaching OT";
+}
+
+function overtimePillClasses(status: OvertimeStatus): string {
+  return status === "over"
+    ? "bg-rose-100 text-rose-800"
+    : "bg-amber-100 text-amber-800";
 }
 
 function AttendanceCellButton({

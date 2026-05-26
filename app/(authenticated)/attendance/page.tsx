@@ -10,6 +10,7 @@ import {
   getAttendanceLogWindowDays,
   isExpandedAttendanceLog,
 } from "@/lib/attendance-log-window";
+import { getOvertimeSettings } from "@/lib/overtime-settings";
 import {
   currentWeekStartYmd,
   shiftYmd,
@@ -165,12 +166,15 @@ async function WeekTab({
       ? weekStartFromYmd(requestedWeek, tz, weekStartWeekday)
       : currentWeekStartYmd(tz, weekStartWeekday);
 
-  const data = await getAttendanceWeekData({
-    organizationId: org.id,
-    locationId: location.id,
-    weekStartYmd,
-    timeZone: tz,
-  });
+  const [data, overtimeSettings] = await Promise.all([
+    getAttendanceWeekData({
+      organizationId: org.id,
+      locationId: location.id,
+      weekStartYmd,
+      timeZone: tz,
+    }),
+    getOvertimeSettings(org.id),
+  ]);
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);
@@ -201,6 +205,7 @@ async function WeekTab({
       graceMinutes={data.graceMinutes}
       irregularCount={data.irregularCount}
       irregularByStaff={data.irregularByStaff}
+      initialOvertimeSettings={overtimeSettings}
     />
   );
 }

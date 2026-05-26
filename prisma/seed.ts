@@ -191,6 +191,30 @@ async function main() {
     update: {},
   });
 
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId: org.id, key: "overtime_alerts_enabled" },
+    },
+    create: {
+      organizationId: org.id,
+      key: "overtime_alerts_enabled",
+      value: "true",
+    },
+    update: {},
+  });
+
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId: org.id, key: "overtime_weekly_threshold_hours" },
+    },
+    create: {
+      organizationId: org.id,
+      key: "overtime_weekly_threshold_hours",
+      value: "40",
+    },
+    update: {},
+  });
+
   // A handful of demo device punches so the attendance log visibly demonstrates every
   // verify-method icon (fingerprint, face, card, password/PIN, palm) alongside the manual
   // ones. Only seeded once — guard on "no device punches exist yet" so re-running doesn't

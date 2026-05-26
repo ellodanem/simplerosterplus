@@ -13,6 +13,7 @@ import {
   getRosterWeekStartWeekday,
   weekStartWeekdayLabel,
 } from "@/lib/roster-week-settings";
+import { getOvertimeSettings } from "@/lib/overtime-settings";
 import {
   currentWeekStartYmd,
   daysOfWeek,
@@ -45,9 +46,10 @@ export default async function RosterPage({
   });
   if (!org) redirect("/login");
 
-  const [location, weekStartWeekday] = await Promise.all([
+  const [location, weekStartWeekday, overtimeSettings] = await Promise.all([
     getDefaultLocation(org.id),
     getRosterWeekStartWeekday(org.id),
+    getOvertimeSettings(org.id),
   ]);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
   const weekStartLabel = weekStartWeekdayLabel(weekStartWeekday);
@@ -212,6 +214,7 @@ export default async function RosterPage({
         holidays={holidayMap}
         blockMap={blockMap}
         initialPendingCount={pendingRequestsCount}
+        initialOvertimeSettings={overtimeSettings}
       />
     </div>
   );

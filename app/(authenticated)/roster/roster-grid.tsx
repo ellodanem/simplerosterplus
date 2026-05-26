@@ -4,8 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
+import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { dayHeaderLabel } from "@/lib/roster-week";
-import { formatBreakMinutes } from "@/lib/shift-duration";
+import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
+import {
+  countOvertimeAlerts,
+  formatOvertimeHours,
+  getScheduledMinutesByStaff,
+  summarizeOvertimeByStaff,
+  type OvertimeSettings,
+  type OvertimeStatus,
+} from "@/lib/overtime";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
@@ -50,6 +59,7 @@ export function RosterGrid({
   holidays,
   blockMap: initialBlockMap,
   initialPendingCount,
+  initialOvertimeSettings,
 }: {
   weekId: string;
   weekStartYmd: string;
@@ -67,6 +77,7 @@ export function RosterGrid({
   holidays: Record<string, Holiday>;
   blockMap: Record<string, "vacation" | "dayOff">;
   initialPendingCount: number;
+  initialOvertimeSettings: OvertimeSettings;
 }) {
   const router = useRouter();
   const [staffRows, setStaffRows] = useState<Staff[]>(staff);
@@ -78,11 +89,13 @@ export function RosterGrid({
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
   const [showWeekStartSettings, setShowWeekStartSettings] = useState(false);
+  const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
   const [blockMap, setBlockMap] = useState(initialBlockMap);
+  const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -129,6 +142,34 @@ export function RosterGrid({
     }
     return result;
   }, [days, entries, holidays, staffRows, blockMap]);
+
+  const scheduledMinutesByStaff = useMemo(() => {
+    const shifts: Array<{ staffId: string; minutes: number }> = [];
+    for (const [key, templateId] of Object.entries(entries)) {
+      const template = templateById.get(templateId);
+      if (!template) continue;
+      const [staffId] = key.split("__");
+      shifts.push({
+        staffId,
+        minutes: paidShiftMinutes(
+          template.startTime,
+          template.endTime,
+          template.unpaidBreakMinutes ?? 0,
+        ),
+      });
+    }
+    return getScheduledMinutesByStaff(shifts);
+  }, [entries, templateById]);
+
+  const overtimeByStaff = useMemo(
+    () => summarizeOvertimeByStaff(scheduledMinutesByStaff, overtimeSettings),
+    [scheduledMinutesByStaff, overtimeSettings],
+  );
+
+  const overtimeAlertCounts = useMemo(
+    () => countOvertimeAlerts(Object.values(overtimeByStaff)),
+    [overtimeByStaff],
+  );
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
@@ -425,12 +466,39 @@ export function RosterGrid({
               title="Pick any day in the week; the roster snaps to that week's start date."
             />
           </label>
+          {overtimeSettings.enabled &&
+          (overtimeAlertCounts.approaching > 0 || overtimeAlertCounts.over > 0) ? (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium ${
+                overtimeAlertCounts.over > 0
+                  ? "border border-rose-200 bg-rose-50 text-rose-800"
+                  : "border border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              OT:{" "}
+              {[
+                overtimeAlertCounts.approaching > 0
+                  ? `${overtimeAlertCounts.approaching} approaching`
+                  : null,
+                overtimeAlertCounts.over > 0 ? `${overtimeAlertCounts.over} over` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={() => setShowWeekStartSettings(true)}
             className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Week start
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowOvertimeSettings(true)}
+            className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-800 hover:bg-amber-100"
+          >
+            OT alerts
           </button>
           <button
             type="button"
@@ -663,7 +731,9 @@ export function RosterGrid({
                     );
                   })}
                 </tr>
-                {staffRows.map((s) => (
+                {staffRows.map((s) => {
+                  const overtimeSummary = overtimeByStaff[s.id];
+                  return (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
                     <div className="flex items-start justify-between gap-2">
@@ -677,6 +747,20 @@ export function RosterGrid({
                         {s.role ? (
                           <div className="truncate text-xs text-zinc-500" title={s.role}>
                             {s.role}
+                          </div>
+                        ) : null}
+                        {overtimeSettings.enabled && (overtimeSummary?.totalMinutes ?? 0) > 0 ? (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                            <span className="text-zinc-500">
+                              {formatOvertimeHours(overtimeSummary?.totalMinutes ?? 0)} scheduled
+                            </span>
+                            {overtimeSummary && overtimeSummary.status !== "normal" ? (
+                              <span
+                                className={`rounded-full px-2 py-0.5 font-semibold ${overtimePillClasses(overtimeSummary.status)}`}
+                              >
+                                {overtimePillLabel(overtimeSummary.status)}
+                              </span>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
@@ -728,7 +812,8 @@ export function RosterGrid({
                     );
                   })}
                 </tr>
-              ))}
+                  );
+                })}
               </>
             )}
           </tbody>
@@ -767,6 +852,18 @@ export function RosterGrid({
         <WeekStartSettings
           initialWeekday={weekStartWeekday}
           onClose={() => setShowWeekStartSettings(false)}
+        />
+      ) : null}
+
+      {showOvertimeSettings ? (
+        <OvertimeSettingsModal
+          initialSettings={overtimeSettings}
+          onClose={() => setShowOvertimeSettings(false)}
+          onSaved={(nextSettings, message) => {
+            setShowOvertimeSettings(false);
+            setOvertimeSettings(nextSettings);
+            setNotice(message);
+          }}
         />
       ) : null}
 
@@ -822,6 +919,16 @@ export function RosterGrid({
       </Modal>
     </div>
   );
+}
+
+function overtimePillLabel(status: OvertimeStatus): string {
+  return status === "over" ? "Over OT" : "Approaching OT";
+}
+
+function overtimePillClasses(status: OvertimeStatus): string {
+  return status === "over"
+    ? "bg-rose-100 text-rose-800"
+    : "bg-amber-100 text-amber-800";
 }
 
 function CellButton({
