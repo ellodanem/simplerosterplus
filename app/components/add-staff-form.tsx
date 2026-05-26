@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { StaffEditValues } from "@/app/components/staff-edit-form";
 
 export function AddStaffForm({
@@ -19,6 +19,7 @@ export function AddStaffForm({
   onCancel?: () => void;
 } = {}) {
   const router = useRouter();
+  const firstNameRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,13 +31,30 @@ export function AddStaffForm({
   const [excludeFromRoster, setExcludeFromRoster] = useState(false);
   const [isTestUser, setIsTestUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  function resetForm() {
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setRole("");
+    setDeviceUserId("");
+    setContactNumber("");
+    setDateOfBirth("");
+    setStartDate("");
+    setExcludeFromRoster(false);
+    setIsTestUser(false);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setMessage(null);
     setPending(true);
     try {
+      const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+      const addAnother = submitter?.value === "add-another";
       const res = await fetch("/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,20 +106,28 @@ export function AddStaffForm({
               canDelete: Boolean(data.staff.canDelete),
             } satisfies StaffEditValues)
           : null;
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setRole("");
-      setDeviceUserId("");
-      setContactNumber("");
-      setDateOfBirth("");
-      setStartDate("");
-      setExcludeFromRoster(false);
-      setIsTestUser(false);
-      if (onSuccess && createdStaff) {
+      if (createdStaff && onSuccess) {
         onSuccess(createdStaff);
       } else {
         router.refresh();
+      }
+
+      if (addAnother || !onCancel) {
+        resetForm();
+      }
+
+      if (addAnother) {
+        const addedName =
+          createdStaff?.firstName && createdStaff?.lastName
+            ? `${createdStaff.firstName} ${createdStaff.lastName}`
+            : `${firstName} ${lastName}`.trim() || "staff member";
+        setMessage(`Added ${addedName}. Ready for another.`);
+        queueMicrotask(() => firstNameRef.current?.focus());
+        return;
+      }
+
+      if (onCancel) {
+        onCancel();
       }
     } finally {
       setPending(false);
@@ -114,12 +140,23 @@ export function AddStaffForm({
       : "";
 
   return (
-    <form onSubmit={onSubmit} className={formClassName}>
+    <form
+      onSubmit={onSubmit}
+      onInputCapture={() => setMessage(null)}
+      className={formClassName}
+    >
       {variant === "page" ? (
         <h2 className="text-sm font-semibold text-zinc-800">Add staff</h2>
       ) : null}
       <div className={`grid gap-3 sm:grid-cols-2 ${variant === "page" ? "mt-3" : ""}`}>
-        <Field id="nf" label="First name" required value={firstName} onChange={setFirstName} />
+        <Field
+          id="nf"
+          label="First name"
+          required
+          value={firstName}
+          onChange={setFirstName}
+          inputRef={firstNameRef}
+        />
         <Field id="nl" label="Last name" required value={lastName} onChange={setLastName} />
         {requiredOnly ? null : (
           <Field id="ne" label="Email" type="email" value={email} onChange={setEmail} />
@@ -189,9 +226,11 @@ export function AddStaffForm({
         )}
       </div>
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+      {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
       <div className={`flex flex-wrap items-center gap-2 ${variant === "page" ? "mt-3" : "mt-4"}`}>
         <button
           type="submit"
+          value="add"
           disabled={pending}
           className={
             variant === "page"
@@ -199,8 +238,18 @@ export function AddStaffForm({
               : "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           }
         >
-          {pending ? "Saving…" : variant === "page" ? "Add" : "Add staff"}
+          {pending ? "Saving…" : "Add"}
         </button>
+        {variant === "modal" ? (
+          <button
+            type="submit"
+            value="add-another"
+            disabled={pending}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+          >
+            {pending ? "Saving…" : "Add New"}
+          </button>
+        ) : null}
         {onCancel ? (
           <button
             type="button"
@@ -224,8 +273,9 @@ function Field(props: {
   type?: string;
   required?: boolean;
   help?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
 }) {
-  const { id, label, value, onChange, type, required, help } = props;
+  const { id, label, value, onChange, type, required, help, inputRef } = props;
   return (
     <div>
       <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
@@ -233,6 +283,7 @@ function Field(props: {
         {required ? <span className="ml-0.5 text-red-600">*</span> : null}
       </label>
       <input
+        ref={inputRef}
         id={id}
         type={type ?? "text"}
         required={required}

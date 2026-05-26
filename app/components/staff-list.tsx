@@ -16,6 +16,7 @@ function staffStatusLabel(s: StaffRow): string {
 
 export function StaffList({ staff }: { staff: StaffRow[] }) {
   const [rows, setRows] = useState<StaffRow[]>(sortRows(staff));
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<StaffRow | null>(null);
 
   function handleSaved(next: StaffRow) {
@@ -34,6 +35,16 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
 
   return (
     <>
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+        >
+          Add Staff
+        </button>
+      </div>
+
       <div className="mt-6 overflow-hidden rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -51,7 +62,7 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
-                  No staff yet. Add someone below or run{" "}
+                  No staff yet. Use Add Staff or run{" "}
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
                 </td>
               </tr>
@@ -97,10 +108,23 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
       </div>
 
       <Modal
+        open={adding}
+        onClose={() => setAdding(false)}
+        title="Add staff"
+        size="xl"
+      >
+        <AddStaffForm
+          variant="modal"
+          onSuccess={handleAdded}
+          onCancel={() => setAdding(false)}
+        />
+      </Modal>
+
+      <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title={editing ? `${editing.firstName} ${editing.lastName}` : "Edit staff"}
-        size="lg"
+        title={editing ? `Edit ${editing.firstName} ${editing.lastName}` : "Edit staff"}
+        size="xl"
       >
         {editing ? (
           <StaffEditForm
@@ -111,8 +135,6 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
           />
         ) : null}
       </Modal>
-
-      <AddStaffForm onSuccess={handleAdded} />
     </>
   );
 }
