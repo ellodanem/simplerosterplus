@@ -100,6 +100,7 @@ export function RosterGrid({
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
   const [showWeekStartSettings, setShowWeekStartSettings] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
@@ -498,27 +499,77 @@ export function RosterGrid({
                 .join(" · ")}
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setShowWeekStartSettings(true)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            Week start
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowHolidaySettings(true)}
-            className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
-          >
-            Holiday calendar
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowOvertimeSettings(true)}
-            className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-800 hover:bg-amber-100"
-          >
-            OT alerts
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSettingsMenu((current) => !current)}
+              aria-label="Open extra settings"
+              aria-haspopup="menu"
+              aria-expanded={showSettingsMenu}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+              title="More settings"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-.33-1 1.65 1.65 0 0 0-1-.6 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1-.33H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1-.33 1.65 1.65 0 0 0 .6-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6c.36-.16.74-.24 1.13-.24H10a1.65 1.65 0 0 0 1-.33 1.65 1.65 0 0 0 .33-1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 .33 1 1.65 1.65 0 0 0 1 .6 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.16.36.24.74.24 1.13V10a1.65 1.65 0 0 0 .33 1 1.65 1.65 0 0 0 1 .33H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1 .33 1.65 1.65 0 0 0-.51.34Z" />
+              </svg>
+            </button>
+            {showSettingsMenu ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close extra settings"
+                  onClick={() => setShowSettingsMenu(false)}
+                  className="fixed inset-0 z-30 cursor-default bg-transparent"
+                />
+                <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowWeekStartSettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Week start</span>
+                    <span className="text-[11px] text-zinc-400">Calendar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowHolidaySettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Holiday calendar</span>
+                    <span className="text-[11px] text-zinc-400">Sync</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowOvertimeSettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>OT alerts</span>
+                    <span className="text-[11px] text-zinc-400">Rules</span>
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={copyPreviousWeek}
