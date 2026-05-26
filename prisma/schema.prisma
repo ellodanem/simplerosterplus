@@ -40,6 +40,10 @@ model Location {
   name           String
   /// Optional IANA override for this location; falls back to Organization.timeZone when null.
   timeZone       String?
+  /// ISO 3166-1 alpha-2 holiday calendar for this location (e.g. `CA`, `GB`).
+  holidayCountryCode     String?
+  /// Optional first-level subdivision code for the holiday calendar (e.g. `ON`, `ENG`).
+  holidaySubdivisionCode String?
   /// Exactly one location per organization should be marked default.
   isDefault      Boolean      @default(false)
   sortOrder      Int          @default(0)
@@ -49,6 +53,7 @@ model Location {
   staff          Staff[]
   rosterWeeks    RosterWeek[]
   devices        Device[]
+  publicHolidays PublicHoliday[]
   attendanceLogs AttendanceLog[]
 
   @@unique([organizationId, name])
@@ -333,14 +338,18 @@ model PublicHoliday {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   date           DateTime     @db.Date
   name           String
+  source         String       @default("manual")
   stationClosed  Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  @@unique([organizationId, date])
+  @@unique([locationId, date])
   @@index([organizationId])
+  @@index([locationId])
 }
 
 model AppSetting {

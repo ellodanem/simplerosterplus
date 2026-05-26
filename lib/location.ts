@@ -5,6 +5,8 @@ export type DefaultLocation = {
   name: string;
   /** IANA override for this location, or null when it inherits the org timezone. */
   timeZone: string | null;
+  holidayCountryCode: string | null;
+  holidaySubdivisionCode: string | null;
 };
 
 /**
@@ -17,7 +19,13 @@ export async function getDefaultLocation(organizationId: string): Promise<Defaul
   const loc = await prisma.location.findFirst({
     where: { organizationId, isDefault: true },
     orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true, timeZone: true },
+    select: {
+      id: true,
+      name: true,
+      timeZone: true,
+      holidayCountryCode: true,
+      holidaySubdivisionCode: true,
+    },
   });
   if (!loc) {
     throw new Error(

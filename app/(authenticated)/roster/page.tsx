@@ -10,6 +10,11 @@ import {
 import { isRosterWeekLocked } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import {
+  getHolidaySyncYears,
+  listHolidayCountries,
+  listHolidaySubdivisions,
+} from "@/lib/holiday-calendar";
+import {
   getRosterWeekStartWeekday,
   weekStartWeekdayLabel,
 } from "@/lib/roster-week-settings";
@@ -53,6 +58,10 @@ export default async function RosterPage({
   ]);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
   const weekStartLabel = weekStartWeekdayLabel(weekStartWeekday);
+  const holidayCountries = listHolidayCountries();
+  const holidaySubdivisions = location.holidayCountryCode
+    ? listHolidaySubdivisions(location.holidayCountryCode)
+    : [];
 
   const params = await searchParams;
   const requestedWeek = params.week && YMD_RE.test(params.week) ? params.week : null;
@@ -117,6 +126,7 @@ export default async function RosterPage({
     prisma.publicHoliday.findMany({
       where: {
         organizationId: org.id,
+        locationId: location.id,
         date: { gte: weekStartDate, lte: weekEndDate },
       },
       select: { date: true, name: true, stationClosed: true },
@@ -215,6 +225,13 @@ export default async function RosterPage({
         blockMap={blockMap}
         initialPendingCount={pendingRequestsCount}
         initialOvertimeSettings={overtimeSettings}
+        initialHolidayCalendar={{
+          countryCode: location.holidayCountryCode,
+          subdivisionCode: location.holidaySubdivisionCode,
+          syncYears: getHolidaySyncYears(),
+          countries: holidayCountries,
+          subdivisions: holidaySubdivisions,
+        }}
       />
     </div>
   );

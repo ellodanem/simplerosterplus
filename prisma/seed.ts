@@ -43,6 +43,8 @@ async function main() {
     create: {
       organizationId: org.id,
       name: "Main",
+      holidayCountryCode: "CA",
+      holidaySubdivisionCode: "ON",
       isDefault: true,
       sortOrder: 0,
     },
@@ -88,13 +90,15 @@ async function main() {
     });
   }
 
-  const holCount = await prisma.publicHoliday.count({ where: { organizationId: org.id } });
+  const holCount = await prisma.publicHoliday.count({ where: { locationId: defaultLocation.id } });
   if (holCount === 0) {
     await prisma.publicHoliday.create({
       data: {
         organizationId: org.id,
+        locationId: defaultLocation.id,
         date: new Date(Date.UTC(2026, 11, 25)),
         name: "Christmas",
+        source: "manual",
         stationClosed: true,
       },
     });

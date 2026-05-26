@@ -183,7 +183,11 @@ export async function getAttendanceLogData(args: {
         select: { staffId: true, date: true },
       }),
       prisma.publicHoliday.findMany({
-        where: { organizationId, date: { gte: rangeStartDate, lte: rangeEndDate } },
+        where: {
+          organizationId,
+          locationId,
+          date: { gte: rangeStartDate, lte: rangeEndDate },
+        },
         select: { date: true, stationClosed: true },
       }),
       prisma.attendanceDayOverride.findMany({

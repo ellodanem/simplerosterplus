@@ -15,6 +15,7 @@ import {
   type OvertimeSettings,
   type OvertimeStatus,
 } from "@/lib/overtime";
+import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
@@ -27,6 +28,14 @@ type Staff = {
 };
 
 type Holiday = { name: string; stationClosed: boolean };
+type HolidayOption = { code: string; name: string };
+type HolidayCalendarConfig = {
+  countryCode: string | null;
+  subdivisionCode: string | null;
+  syncYears: number[];
+  countries: HolidayOption[];
+  subdivisions: HolidayOption[];
+};
 
 type BlockReason = "holiday" | "vacation" | "dayOff";
 
@@ -60,6 +69,7 @@ export function RosterGrid({
   blockMap: initialBlockMap,
   initialPendingCount,
   initialOvertimeSettings,
+  initialHolidayCalendar,
 }: {
   weekId: string;
   weekStartYmd: string;
@@ -78,6 +88,7 @@ export function RosterGrid({
   blockMap: Record<string, "vacation" | "dayOff">;
   initialPendingCount: number;
   initialOvertimeSettings: OvertimeSettings;
+  initialHolidayCalendar: HolidayCalendarConfig;
 }) {
   const router = useRouter();
   const [staffRows, setStaffRows] = useState<Staff[]>(staff);
@@ -89,6 +100,7 @@ export function RosterGrid({
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showPresets, setShowPresets] = useState(false);
   const [showWeekStartSettings, setShowWeekStartSettings] = useState(false);
+  const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
@@ -495,6 +507,13 @@ export function RosterGrid({
           </button>
           <button
             type="button"
+            onClick={() => setShowHolidaySettings(true)}
+            className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
+          >
+            Holiday calendar
+          </button>
+          <button
+            type="button"
             onClick={() => setShowOvertimeSettings(true)}
             className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-800 hover:bg-amber-100"
           >
@@ -804,6 +823,7 @@ export function RosterGrid({
                         <CellButton
                           tpl={tpl}
                           blocked={blocked}
+                          holidayName={holidays[d]?.name ?? null}
                           pending={isPending}
                           readOnly={weekLocked}
                           onClick={(e) => openCellPopover(e, s, d)}
@@ -852,6 +872,21 @@ export function RosterGrid({
         <WeekStartSettings
           initialWeekday={weekStartWeekday}
           onClose={() => setShowWeekStartSettings(false)}
+        />
+      ) : null}
+
+      {showHolidaySettings ? (
+        <HolidayCalendarSettings
+          initialCountryCode={initialHolidayCalendar.countryCode}
+          initialSubdivisionCode={initialHolidayCalendar.subdivisionCode}
+          initialSyncYears={initialHolidayCalendar.syncYears}
+          initialCountries={initialHolidayCalendar.countries}
+          initialSubdivisions={initialHolidayCalendar.subdivisions}
+          onClose={() => setShowHolidaySettings(false)}
+          onSaved={(message) => {
+            setShowHolidaySettings(false);
+            setNotice(message);
+          }}
         />
       ) : null}
 
@@ -934,12 +969,14 @@ function overtimePillClasses(status: OvertimeStatus): string {
 function CellButton({
   tpl,
   blocked,
+  holidayName,
   pending,
   readOnly,
   onClick,
 }: {
   tpl: Template | undefined;
   blocked: BlockReason | null;
+  holidayName: string | null;
   pending: boolean;
   readOnly: boolean;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -959,9 +996,14 @@ function CellButton({
           : "Approved day off";
     return (
       <div
-        className="flex h-14 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] text-xs font-medium text-zinc-500"
+        className="flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"
         aria-label={ariaLabel}
       >
+        {holidayName ? (
+          <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
+            {holidayName}
+          </span>
+        ) : null}
         {label}
       </div>
     );
@@ -971,9 +1013,14 @@ function CellButton({
     if (readOnly) {
       return (
         <div
-          className="flex h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-sm text-zinc-400"
+          className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400"
           aria-label="Off"
         >
+          {holidayName ? (
+            <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
+              {holidayName}
+            </span>
+          ) : null}
           Off
         </div>
       );
@@ -982,9 +1029,14 @@ function CellButton({
       <button
         type="button"
         onClick={onClick}
-        className="flex h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white text-xl text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
+        className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
         aria-label="Assign shift"
       >
+        {holidayName ? (
+          <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
+            {holidayName}
+          </span>
+        ) : null}
         {pending ? <span className="text-xs text-zinc-500">…</span> : "+"}
       </button>
     );
@@ -993,6 +1045,11 @@ function CellButton({
   const bg = tpl.color || FALLBACK_COLOR;
   const inner = (
     <>
+      {holidayName ? (
+        <span className="truncate text-[10px] font-medium leading-tight text-white/85">
+          {holidayName}
+        </span>
+      ) : null}
       <span className="truncate text-xs font-semibold leading-tight">{tpl.name}</span>
       <span className="truncate text-[11px] leading-tight opacity-90">
         {tpl.startTime}–{tpl.endTime}

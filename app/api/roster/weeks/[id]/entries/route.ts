@@ -131,7 +131,12 @@ export async function PUT(request: Request, { params }: Ctx) {
     const dateUtc = utcDateFromYmd(date);
 
     const holiday = await prisma.publicHoliday.findFirst({
-      where: { organizationId: session.orgId, date: dateUtc, stationClosed: true },
+      where: {
+        organizationId: session.orgId,
+        locationId: week.locationId,
+        date: dateUtc,
+        stationClosed: true,
+      },
       select: { name: true },
     });
     if (holiday) {

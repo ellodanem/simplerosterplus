@@ -101,6 +101,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     prisma.publicHoliday.findMany({
       where: {
         organizationId: target.organizationId,
+        locationId: target.locationId,
         stationClosed: true,
         date: { gte: weekStartDate, lte: weekEndDate },
       },

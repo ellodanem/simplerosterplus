@@ -167,6 +167,7 @@ export async function getAttendanceWeekData(args: {
     prisma.publicHoliday.findMany({
       where: {
         organizationId,
+        locationId,
         date: { gte: weekStartDate, lte: weekEndDate },
       },
       select: { date: true, name: true, stationClosed: true },
