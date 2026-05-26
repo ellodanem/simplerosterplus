@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
 import { utcDateFromYmd } from "@/lib/datetime-policy";
+import { isYmdAfterArchiveDay } from "@/lib/staff-archive";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -42,6 +43,11 @@ export async function PUT(request: Request) {
   }
 
   const location = await getDefaultLocation(session.orgId);
+  const org = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { timeZone: true },
+  });
+  const timeZone = location.timeZone ?? org?.timeZone ?? "UTC";
 
   const staff = await prisma.staff.findFirst({
     where: {
@@ -49,13 +55,20 @@ export async function PUT(request: Request) {
       organizationId: session.orgId,
       locationId: location.id,
     },
-    select: { id: true },
+    select: { id: true, archivedAt: true },
   });
   if (!staff) {
     return NextResponse.json({ error: "Staff not found at this location" }, { status: 404 });
   }
 
   const dateUtc = utcDateFromYmd(date);
+
+  if (staff.archivedAt && isYmdAfterArchiveDay(date, staff.archivedAt, timeZone)) {
+    return NextResponse.json(
+      { error: "Cannot change attendance after this staff member was archived." },
+      { status: 403 },
+    );
+  }
 
   if (statusRaw === null) {
     await prisma.attendanceDayOverride.deleteMany({

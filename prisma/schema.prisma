@@ -173,9 +173,13 @@ model Staff {
   /// so two locations with separate devices can each have a "5".
   deviceUserId   String?
   punchExempt         Boolean      @default(false)
-  /// When false, omit from current/future roster weeks; past weeks may still show if shifts were saved.
+  /// Synced with archive: false when `archivedAt` is set (no longer with the company).
   isActive            Boolean      @default(true)
-  /// When true, never show on the roster grid (attendance unchanged).
+  /// When set, staff has left; attendance and roster only show data at or before this instant.
+  archivedAt          DateTime?
+  /// Set only at creation. Test/dummy rows may be deleted when they have no linked data.
+  isTestUser          Boolean      @default(false)
+  /// When true, attendance only — omitted from the roster grid.
   excludeFromRoster   Boolean      @default(false)
   dateOfBirth         DateTime?    @db.Date
   startDate           DateTime?    @db.Date

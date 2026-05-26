@@ -92,7 +92,7 @@ export default async function RosterPage({
         lastName: true,
         role: true,
         startDate: true,
-        isActive: true,
+        archivedAt: true,
         excludeFromRoster: true,
       },
     }),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
+import { isStaffArchived, isStaffEventVisible } from "@/lib/staff-archive";
 
 /**
  * POST /api/attendance/punches
@@ -56,10 +57,16 @@ export async function POST(request: Request) {
       organizationId: session.orgId,
       locationId: location.id,
     },
-    select: { id: true },
+    select: { id: true, archivedAt: true },
   });
   if (!staff) {
     return NextResponse.json({ error: "Staff not found at this location" }, { status: 404 });
+  }
+  if (isStaffArchived(staff) && !isStaffEventVisible(staff, punchAt)) {
+    return NextResponse.json(
+      { error: "Cannot add punches after this staff member was archived." },
+      { status: 403 },
+    );
   }
 
   const user = await prisma.appUser.findFirst({

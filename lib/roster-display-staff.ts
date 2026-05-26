@@ -1,9 +1,10 @@
+import { isStaffArchived } from "@/lib/staff-archive";
 import { ymdForDbDate } from "@/lib/roster-week";
 
 export type RosterMembershipStaff = {
   id: string;
   startDate: Date | null;
-  isActive: boolean;
+  archivedAt: Date | null;
   excludeFromRoster: boolean;
 };
 
@@ -12,9 +13,13 @@ export function isPastRosterWeek(weekEndYmd: string, todayYmd: string): boolean 
   return todayYmd >= weekEndYmd;
 }
 
+function isPlannableForRoster(s: RosterMembershipStaff): boolean {
+  return !isStaffArchived(s);
+}
+
 /**
  * Who may appear as rows on the roster grid for a given week.
- * Order: exclude from roster → start-date gate → active vs past-with-entries.
+ * Order: exclude from roster → start-date gate → archived vs past-with-entries.
  */
 export function filterRosterStaffForWeek<T extends RosterMembershipStaff>(
   staff: T[],
@@ -35,11 +40,11 @@ export function filterRosterStaffForWeek<T extends RosterMembershipStaff>(
     }
 
     if (past) {
-      if (s.isActive) return true;
+      if (isPlannableForRoster(s)) return true;
       return args.staffIdsWithEntries.has(s.id);
     }
 
-    return s.isActive;
+    return isPlannableForRoster(s);
   });
 }
 

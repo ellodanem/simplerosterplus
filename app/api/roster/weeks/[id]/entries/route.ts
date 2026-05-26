@@ -90,7 +90,7 @@ export async function PUT(request: Request, { params }: Ctx) {
       firstName: true,
       lastName: true,
       startDate: true,
-      isActive: true,
+      archivedAt: true,
       excludeFromRoster: true,
     },
   });

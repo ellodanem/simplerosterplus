@@ -111,7 +111,7 @@ export async function POST(_request: Request, { params }: Ctx) {
       select: {
         id: true,
         startDate: true,
-        isActive: true,
+        archivedAt: true,
         excludeFromRoster: true,
       },
     }),

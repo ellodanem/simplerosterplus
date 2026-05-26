@@ -1,0 +1,40 @@
+---
+description: Optimization rules for DB-backed and serverless apps
+alwaysApply: true
+---
+
+# Project Optimization Best Practices
+
+Use these defaults for new features, active-project audits, and incident response in DB-backed or serverless apps.
+
+- Optimize for fewer DB wake-ups and shorter busy windows: batch writes, bound reads, reduce polling, and collapse parallel fetches where possible.
+- Triage provider quota, connection, auth, and env issues before refactoring application code. Generic app errors can mean the database never answered.
+- Default list and history queries to pagination, date windows, or explicit caps. Avoid unbounded reads and "load the whole table" patterns.
+- Use aggregate queries or dedicated count endpoints for badges and totals. Never fetch full lists just to compute `.length`.
+- Prefer bootstrap or domain-bundle endpoints over many DB-backed API calls on page load.
+- Treat polling as a last resort. Prefer push or webhooks; otherwise poll only when visible, increase intervals when acceptable, and use cheap "changed?" fingerprints before full reloads.
+- Throttle refetch-on-focus or refetch-on-visibility behavior so alt-tabbing or multiple open tabs does not hammer the database.
+- Cache stable session, profile, and static bootstrap data with a short TTL, and force refresh only after relevant mutations such as login or logout.
+- Batch high-volume writes, imports, sync jobs, and webhook processing with bulk operations and shared ingest helpers instead of per-row loops.
+- Document one canonical environment story, keep dev away from prod databases by default, and never commit `.env.local`, credentials, or build output.
+- Ship optimization work in small measurable phases, then verify provider usage and smoke-test the heaviest user flows before moving on.
+
+## Per-Feature Review
+
+Before merging a data-touching feature, check:
+
+- How many DB round trips happen per user action, and can they be reduced to one?
+- Does any timer, polling loop, webhook, or visibility hook create ongoing background traffic?
+- Does cost grow with table history or open-tab count?
+- Is there a cheap aggregate or fingerprint check before a full reload?
+- Are counts and summaries using aggregates instead of full list fetches?
+
+## Concrete Defaults
+
+- Good: one authenticated bootstrap endpoint that returns the page's initial data.
+- Good: `count()` or aggregate queries for tab badges and summary cards.
+- Good: `recentDays`, pagination, or cursor-based history windows by default.
+- Good: poll a lightweight fingerprint endpoint and reload only when it changes.
+- Bad: several parallel page-mount fetches, per-keystroke DB search, or 500-item syncs implemented as 500 individual writes.
+
+For deeper guidance, phased rollout order, and incident triage details, refer to `PROJECT_OPTIMIZATION_GUIDE.md`.
