@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
+import { allowStaffDeleteInDev } from "@/lib/staff-archive";
 import { parseOptionalString, parseOptionalYmd } from "@/lib/staff-input";
 
 const STAFF_SELECT = {
@@ -14,6 +15,8 @@ const STAFF_SELECT = {
   deviceUserId: true,
   punchExempt: true,
   isActive: true,
+  archivedAt: true,
+  isTestUser: true,
   excludeFromRoster: true,
   dateOfBirth: true,
   startDate: true,
@@ -33,7 +36,12 @@ export async function GET() {
     select: STAFF_SELECT,
   });
 
-  return NextResponse.json({ staff });
+  return NextResponse.json({
+    staff: staff.map((s) => ({
+      ...s,
+      archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
+    })),
+  });
 }
 
 export async function POST(request: Request) {
@@ -68,11 +76,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "startDate must be YYYY-MM-DD" }, { status: 400 });
   }
 
-  const location = await getDefaultLocation(session.orgId);
-
-  const isActive = typeof body.isActive === "boolean" ? body.isActive : true;
+  const isTestUser = body.isTestUser === true;
   const excludeFromRoster =
     typeof body.excludeFromRoster === "boolean" ? body.excludeFromRoster : false;
+
+  const location = await getDefaultLocation(session.orgId);
 
   const maxSort = await prisma.staff.aggregate({
     where: { organizationId: session.orgId, locationId: location.id },
@@ -93,14 +101,24 @@ export async function POST(request: Request) {
         contactNumber: parseOptionalString(body.contactNumber) ?? null,
         dateOfBirth: dateOfBirth ?? null,
         startDate: startDate ?? null,
-        isActive,
+        isActive: true,
+        isTestUser,
         excludeFromRoster,
         sortOrder,
       },
       select: STAFF_SELECT,
     });
 
-    return NextResponse.json({ staff }, { status: 201 });
+    return NextResponse.json(
+      {
+        staff: {
+          ...staff,
+          archivedAt: null,
+          canDelete: allowStaffDeleteInDev() || staff.isTestUser,
+        },
+      },
+      { status: 201 },
+    );
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json(

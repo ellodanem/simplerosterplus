@@ -14,9 +14,11 @@ export type StaffEditValues = {
   dateOfBirth: string;
   startDate: string;
   punchExempt: boolean;
-  isActive: boolean;
   excludeFromRoster: boolean;
+  archivedAt: string | null;
+  isTestUser: boolean;
   sortOrder: number;
+  canDelete: boolean;
 };
 
 export function StaffEditForm({
@@ -26,18 +28,19 @@ export function StaffEditForm({
   onCancel,
 }: {
   initial: StaffEditValues;
-  /** Called after a successful save. If provided, the form will not call router.refresh itself. */
-  onSaved?: () => void;
-  /** Called after a successful delete. If omitted, the form falls back to navigating to /staff. */
-  onDeleted?: () => void;
-  /** Called when the user clicks Cancel. If omitted, the form falls back to navigating to /staff. */
+  onSaved?: (staff: StaffEditValues) => void;
+  onDeleted?: (staffId: string) => void;
   onCancel?: () => void;
 }) {
   const router = useRouter();
   const [v, setV] = useState<StaffEditValues>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const isArchived = Boolean(v.archivedAt);
 
   function update<K extends keyof StaffEditValues>(key: K, value: StaffEditValues[K]) {
     setV((s) => ({ ...s, [key]: value }));
@@ -61,7 +64,6 @@ export function StaffEditForm({
           dateOfBirth: v.dateOfBirth,
           startDate: v.startDate,
           punchExempt: v.punchExempt,
-          isActive: v.isActive,
           excludeFromRoster: v.excludeFromRoster,
           sortOrder: Number.isFinite(v.sortOrder) ? v.sortOrder : 0,
         }),
@@ -72,7 +74,7 @@ export function StaffEditForm({
         return;
       }
       if (onSaved) {
-        onSaved();
+        onSaved(v);
       } else {
         router.refresh();
       }
@@ -81,8 +83,62 @@ export function StaffEditForm({
     }
   }
 
+  async function onArchive() {
+    if (
+      !confirm(
+        `Mark ${v.firstName} ${v.lastName} as no longer with the company?\n\nThey will be removed from current roster and attendance going forward. Punches and shifts at or before this moment stay visible.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/staff/${encodeURIComponent(v.id)}/archive`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        staff?: { archivedAt: string | null };
+      };
+      if (!res.ok) {
+        setError(data.error || "Could not archive");
+        return;
+      }
+      const next = { ...v, archivedAt: data.staff?.archivedAt ?? new Date().toISOString() };
+      setV(next);
+      if (onSaved) onSaved(next);
+      else router.refresh();
+    } finally {
+      setArchiving(false);
+    }
+  }
+
+  async function onRestore() {
+    setError(null);
+    setRestoring(true);
+    try {
+      const res = await fetch(`/api/staff/${encodeURIComponent(v.id)}/restore`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(data.error || "Could not restore");
+        return;
+      }
+      const next = { ...v, archivedAt: null };
+      setV(next);
+      if (onSaved) onSaved(next);
+      else router.refresh();
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   async function onDelete() {
-    if (!confirm(`Remove ${v.firstName} ${v.lastName}? This cannot be undone.`)) return;
+    if (!confirm(`Permanently delete ${v.firstName} ${v.lastName}? This cannot be undone.`)) {
+      return;
+    }
     setError(null);
     setDeleting(true);
     try {
@@ -93,7 +149,7 @@ export function StaffEditForm({
         return;
       }
       if (onDeleted) {
-        onDeleted();
+        onDeleted(v.id);
       } else {
         router.push("/staff");
         router.refresh();
@@ -104,13 +160,11 @@ export function StaffEditForm({
   }
 
   function handleCancel() {
-    if (onCancel) {
-      onCancel();
-    } else {
-      router.push("/staff");
-    }
+    if (onCancel) onCancel();
+    else router.push("/staff");
   }
 
+  const busy = saving || archiving || restoring || deleting;
   const inModal = Boolean(onSaved || onDeleted || onCancel);
 
   return (
@@ -118,6 +172,26 @@ export function StaffEditForm({
       onSubmit={onSubmit}
       className={inModal ? "" : "rounded-xl border border-zinc-200 bg-white p-5"}
     >
+      {isArchived ? (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Archived — no longer with the company. Attendance and roster only show records from
+          before{" "}
+          {v.archivedAt
+            ? new Date(v.archivedAt).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            : "archive"}
+          .
+        </div>
+      ) : null}
+
+      {v.isTestUser ? (
+        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-violet-700">
+          Test account (set at creation)
+        </p>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
           id="ef"
@@ -190,29 +264,14 @@ export function StaffEditForm({
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
-                checked={v.isActive}
-                onChange={(e) => update("isActive", e.target.checked)}
-              />
-              <span>Plan on roster (current and future weeks)</span>
-            </label>
-            <p className="mt-1 pl-6 text-xs text-zinc-500">
-              Uncheck when they leave the team. They stop appearing on new weeks; past weeks
-              that already have their shifts stay on the roster.
-            </p>
-          </div>
-          <div>
-            <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
                 checked={v.excludeFromRoster}
                 onChange={(e) => update("excludeFromRoster", e.target.checked)}
               />
-              <span>Never show on roster (attendance only)</span>
+              <span>Attendance Only</span>
             </label>
             <p className="mt-1 pl-6 text-xs text-zinc-500">
               For managers, office staff, or others who clock in but are not scheduled on
-              shifts. They still appear in attendance; the roster grid never lists them.
+              shifts. Listed in attendance, not on the shift roster.
             </p>
           </div>
         </div>
@@ -230,28 +289,54 @@ export function StaffEditForm({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={saving || deleting}
+          disabled={busy}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={saving || deleting}
-          className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
-        >
-          {deleting ? "Removing…" : "Delete staff"}
-        </button>
+        {isArchived ? (
+          <button
+            type="button"
+            onClick={onRestore}
+            disabled={busy}
+            className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+          >
+            {restoring ? "Restoring…" : "Restore to active"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onArchive}
+            disabled={busy}
+            className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+          >
+            {archiving ? "Archiving…" : "Archive (left company)"}
+          </button>
+        )}
+        {v.canDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={busy}
+            className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+          >
+            {deleting ? "Removing…" : "Delete staff"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleCancel}
-          disabled={saving || deleting}
+          disabled={busy}
           className="text-sm text-zinc-600 hover:text-zinc-900"
         >
           Cancel
         </button>
       </div>
+      {!v.canDelete && !v.isTestUser ? (
+        <p className="mt-2 text-xs text-zinc-500">
+          Staff records are archived when someone leaves, not deleted.
+        </p>
+      ) : null}
     </form>
   );
 }

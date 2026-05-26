@@ -10,6 +10,11 @@
 
 import { prisma } from "./prisma";
 import { formatYmdInZone, utcDateFromYmd } from "./datetime-policy";
+import {
+  includeStaffOnAttendanceWeek,
+  isStaffEventVisible,
+  isYmdAfterArchiveDay,
+} from "@/lib/staff-archive";
 import { daysOfWeek, shiftYmd, ymdForDbDate } from "./roster-week";
 import { getApprovedBlockMap } from "./leave-blocks";
 import {
@@ -31,6 +36,8 @@ export type AttendanceStaff = {
   lastName: string;
   role: string | null;
   punchExempt: boolean;
+  /** ISO instant when archived, or null if active. */
+  archivedAt: string | null;
 };
 
 /** Mirrors the `PunchVerifyMethod` Prisma enum. Kept as a string union so client
@@ -141,6 +148,7 @@ export async function getAttendanceWeekData(args: {
         lastName: true,
         role: true,
         punchExempt: true,
+        archivedAt: true,
       },
     }),
     prisma.rosterWeek.findUnique({
@@ -198,8 +206,13 @@ export async function getAttendanceWeekData(args: {
     getGraceMinutes(organizationId),
   ]);
 
+  const visibleStaffRows = staffRows.filter((s) =>
+    includeStaffOnAttendanceWeek(s, weekStartYmd, timeZone),
+  );
+  const staffById = new Map(visibleStaffRows.map((s) => [s.id, s] as const));
+
   const blockMap = await getApprovedBlockMap({
-    staffIds: staffRows.map((s) => s.id),
+    staffIds: visibleStaffRows.map((s) => s.id),
     rangeStartDate: weekStartDate,
     rangeEndDate: weekEndDate,
   });
@@ -225,6 +238,9 @@ export async function getAttendanceWeekData(args: {
   const punchIdsByCell = new Map<string, string[]>();
   const serializedPunches: SerializedPunch[] = [];
   for (const p of punches) {
+    const staff = p.staffId ? staffById.get(p.staffId) : undefined;
+    if (staff && !isStaffEventVisible(staff, p.punchAt)) continue;
+
     serializedPunches.push({
       id: p.id,
       staffId: p.staffId,
@@ -236,7 +252,7 @@ export async function getAttendanceWeekData(args: {
       corrected: p.originalPunchAt !== null,
       originalPunchAt: p.originalPunchAt ? p.originalPunchAt.toISOString() : null,
     });
-    if (!p.staffId) continue;
+    if (!p.staffId || !staff) continue;
     const ymd = formatYmdInZone(p.punchAt, timeZone);
     if (!days.includes(ymd)) continue;
     const key = `${p.staffId}__${ymd}`;
@@ -255,25 +271,50 @@ export async function getAttendanceWeekData(args: {
   }
 
   const overrideByCell = new Map<string, "present" | "absent">();
-  const serializedOverrides: SerializedOverride[] = overrides.map((o) => {
+  const serializedOverrides: SerializedOverride[] = [];
+  for (const o of overrides) {
+    const staff = staffById.get(o.staffId);
+    if (!staff) continue;
     const ymd = ymdForDbDate(o.date);
+    if (
+      staff.archivedAt &&
+      isYmdAfterArchiveDay(ymd, staff.archivedAt, timeZone)
+    ) {
+      continue;
+    }
     overrideByCell.set(`${o.staffId}__${ymd}`, o.status);
-    return {
+    serializedOverrides.push({
       id: o.id,
       staffId: o.staffId,
       date: ymd,
       status: o.status,
       lateReason: o.lateReason,
       note: o.note,
-    };
-  });
+    });
+  }
 
   const cells: Record<string, AttendanceCell> = {};
   const irregularByStaff: Record<string, number> = {};
   let irregularCount = 0;
 
-  for (const s of staffRows) {
+  const staffForClient: AttendanceStaff[] = visibleStaffRows.map((s) => ({
+    id: s.id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    role: s.role,
+    punchExempt: s.punchExempt,
+    archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
+  }));
+
+  for (const s of visibleStaffRows) {
     for (const d of days) {
+      if (
+        s.archivedAt &&
+        isYmdAfterArchiveDay(d, s.archivedAt, timeZone)
+      ) {
+        continue;
+      }
+
       const key = `${s.id}__${d}`;
       const expected = expectedByCell[key] ?? null;
       const result = computePresence({
@@ -304,7 +345,7 @@ export async function getAttendanceWeekData(args: {
 
   return {
     graceMinutes,
-    staff: staffRows,
+    staff: staffForClient,
     days,
     holidays: holidayMap,
     blockMap,

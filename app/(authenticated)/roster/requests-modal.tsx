@@ -35,25 +35,28 @@ type ListResponse = {
 };
 
 type Filter = "requested" | "all";
+export type RequestChange =
+  | { kind: "approved"; request: LeaveRequest; clearedDates: string[] }
+  | { kind: "deletedApproved"; request: LeaveRequest };
 
 /**
  * Approval modal. Self-contained: fetches its own state on open, posts approvals/denials
  * inline, and surfaces conflict-preview + confirm. Parent gets `onPendingCountChange` so the
- * top-bar badge stays accurate without a route refresh, and `onApproved` so the grid can
- * re-fetch / refresh blocking state when leave is granted.
+ * top-bar badge stays accurate without a route refresh, and `onRequestChanged` so the grid can
+ * update blocking state when an approved request changes roster availability.
  */
 export function RequestsModal({
   open,
   onClose,
   staff,
   onPendingCountChange,
-  onApproved,
+  onRequestChanged,
 }: {
   open: boolean;
   onClose: () => void;
   staff: RequestStaff[];
   onPendingCountChange: (n: number) => void;
-  onApproved: () => void;
+  onRequestChanged: (change: RequestChange) => void;
 }) {
   const [filter, setFilter] = useState<Filter>("requested");
   const [data, setData] = useState<ListResponse | null>(null);
@@ -103,7 +106,13 @@ export function RequestsModal({
 
   useEffect(() => {
     if (!open) return;
-    load(filter);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load(filter);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, filter, load]);
 
   function busy(id: string): boolean {
@@ -135,6 +144,8 @@ export function RequestsModal({
         conflictCount?: number;
         conflictDates?: string[];
         requiresConfirm?: boolean;
+        request?: LeaveRequest;
+        clearedDates?: string[];
       };
       if (res.status === 409 && body.requiresConfirm && action === "approve") {
         setConfirm({
@@ -146,7 +157,13 @@ export function RequestsModal({
       }
       if (!res.ok) throw new Error(body.error || `Could not ${action} request`);
       await load(filter, { silent: true });
-      if (action === "approve") onApproved();
+      if (action === "approve" && body.request) {
+        onRequestChanged({
+          kind: "approved",
+          request: body.request,
+          clearedDates: body.clearedDates ?? body.conflictDates ?? [],
+        });
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -166,10 +183,15 @@ export function RequestsModal({
         `/api/requests/${req.type === "vacation" ? "vacation" : "day-off"}/${encodeURIComponent(req.id)}`,
         { method: "DELETE" },
       );
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        request?: LeaveRequest;
+      };
       if (!res.ok) throw new Error(body.error || "Could not delete request");
       await load(filter, { silent: true });
-      if (req.status === "approved") onApproved();
+      if (req.status === "approved" && body.request) {
+        onRequestChanged({ kind: "deletedApproved", request: body.request });
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {

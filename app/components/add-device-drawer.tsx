@@ -139,7 +139,6 @@ function AddDeviceDrawer({
       }
       setSavedDeviceName(data.device?.name ?? form.name);
       setPairing(data.pairing ?? null);
-      router.refresh();
     } finally {
       setSaving(false);
     }

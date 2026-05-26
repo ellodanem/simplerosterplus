@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { canDeleteStaff } from "@/lib/staff-archive";
 import { parseOptionalString, parseOptionalYmd } from "@/lib/staff-input";
 
 const STAFF_SELECT = {
@@ -13,6 +14,8 @@ const STAFF_SELECT = {
   deviceUserId: true,
   punchExempt: true,
   isActive: true,
+  archivedAt: true,
+  isTestUser: true,
   excludeFromRoster: true,
   dateOfBirth: true,
   startDate: true,
@@ -21,6 +24,16 @@ const STAFF_SELECT = {
 } as const;
 
 type Ctx = { params: Promise<{ id: string }> };
+
+function serializeStaff(staff: {
+  archivedAt: Date | null;
+  [key: string]: unknown;
+}) {
+  return {
+    ...staff,
+    archivedAt: staff.archivedAt ? staff.archivedAt.toISOString() : null,
+  };
+}
 
 async function loadStaff(orgId: string, id: string) {
   return prisma.staff.findFirst({
@@ -39,7 +52,15 @@ export async function GET(_request: Request, { params }: Ctx) {
   if (!staff) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ staff });
+  const deleteCheck = await canDeleteStaff({
+    staffId: staff.id,
+    isTestUser: staff.isTestUser,
+  });
+  return NextResponse.json({
+    staff: serializeStaff(staff),
+    canDelete: deleteCheck.allowed,
+    deleteBlockReason: deleteCheck.reason ?? null,
+  });
 }
 
 export async function PATCH(request: Request, { params }: Ctx) {
@@ -59,6 +80,13 @@ export async function PATCH(request: Request, { params }: Ctx) {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if ("isActive" in body || "archivedAt" in body || "isTestUser" in body) {
+    return NextResponse.json(
+      { error: "Use Archive or Restore for employment status; isTestUser cannot be changed." },
+      { status: 400 },
+    );
   }
 
   const data: Prisma.StaffUpdateInput = {};
@@ -115,9 +143,6 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if (typeof body.punchExempt === "boolean") {
     data.punchExempt = body.punchExempt;
   }
-  if (typeof body.isActive === "boolean") {
-    data.isActive = body.isActive;
-  }
   if (typeof body.excludeFromRoster === "boolean") {
     data.excludeFromRoster = body.excludeFromRoster;
   }
@@ -127,7 +152,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ staff: existing });
+    return NextResponse.json({ staff: serializeStaff(existing) });
   }
 
   try {
@@ -136,7 +161,17 @@ export async function PATCH(request: Request, { params }: Ctx) {
       data,
       select: STAFF_SELECT,
     });
-    return NextResponse.json({ staff });
+    const deleteCheck = await canDeleteStaff({
+      staffId: staff.id,
+      isTestUser: staff.isTestUser,
+    });
+    return NextResponse.json({
+      staff: {
+        ...serializeStaff(staff),
+        canDelete: deleteCheck.allowed,
+      },
+      deleteBlockReason: deleteCheck.reason ?? null,
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json(
@@ -158,6 +193,14 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   const existing = await loadStaff(session.orgId, id);
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const deleteCheck = await canDeleteStaff({
+    staffId: existing.id,
+    isTestUser: existing.isTestUser,
+  });
+  if (!deleteCheck.allowed) {
+    return NextResponse.json({ error: deleteCheck.reason ?? "Delete not allowed" }, { status: 403 });
   }
 
   await prisma.staff.delete({ where: { id } });

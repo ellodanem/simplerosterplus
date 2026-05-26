@@ -6,6 +6,8 @@ import { getDefaultLocation } from "@/lib/location";
 import {
   decidedBySelect,
   errorJson,
+  getConflictSummaries,
+  requestConflictKey,
   requestStaffSelect,
   serializeDayOff,
   serializeVacation,
@@ -97,9 +99,36 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const conflictSummaries = await getConflictSummaries([
+      ...vacationRows
+        .filter((row) => row.status === "requested")
+        .map((row) => ({
+          key: requestConflictKey("vacation", row.id),
+          staffId: row.staffId,
+          startDate: row.startDate,
+          endDate: row.endDate,
+        })),
+      ...dayOffRows
+        .filter((row) => row.status === "requested")
+        .map((row) => ({
+          key: requestConflictKey("dayOff", row.id),
+          staffId: row.staffId,
+          startDate: row.date,
+          endDate: row.date,
+        })),
+    ]);
+
     const [vacation, dayOff] = await Promise.all([
-      Promise.all(vacationRows.map(serializeVacation)),
-      Promise.all(dayOffRows.map(serializeDayOff)),
+      Promise.all(
+        vacationRows.map((row) =>
+          serializeVacation(row, conflictSummaries.get(requestConflictKey("vacation", row.id))),
+        ),
+      ),
+      Promise.all(
+        dayOffRows.map((row) =>
+          serializeDayOff(row, conflictSummaries.get(requestConflictKey("dayOff", row.id))),
+        ),
+      ),
     ]);
 
     return NextResponse.json({

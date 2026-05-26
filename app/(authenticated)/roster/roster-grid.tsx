@@ -69,6 +69,7 @@ export function RosterGrid({
   initialPendingCount: number;
 }) {
   const router = useRouter();
+  const [staffRows, setStaffRows] = useState<Staff[]>(staff);
   const [entries, setEntries] = useState<Record<string, string>>(initialEntries);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export function RosterGrid({
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
-  const blockMap = initialBlockMap;
+  const [blockMap, setBlockMap] = useState(initialBlockMap);
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -91,9 +92,9 @@ export function RosterGrid({
 
   const staffById = useMemo(() => {
     const m = new Map<string, Staff>();
-    for (const s of staff) m.set(s.id, s);
+    for (const s of staffRows) m.set(s.id, s);
     return m;
-  }, [staff]);
+  }, [staffRows]);
 
   const dayCounts = useMemo(() => {
     const result: Record<
@@ -110,7 +111,7 @@ export function RosterGrid({
       let assigned = 0;
       let unavailable = 0;
       if (!isClosed) {
-        for (const s of staff) {
+        for (const s of staffRows) {
           if (blockMap[`${s.id}__${ymd}`]) {
             unavailable++;
             continue;
@@ -122,12 +123,12 @@ export function RosterGrid({
           }
         }
       }
-      const active = isClosed ? 0 : staff.length - unavailable;
+      const active = isClosed ? 0 : staffRows.length - unavailable;
       const offCount = Math.max(0, active - assigned);
       result[ymd] = { templateCounts, offCount, isClosed };
     }
     return result;
-  }, [days, entries, holidays, staff, blockMap]);
+  }, [days, entries, holidays, staffRows, blockMap]);
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
@@ -178,6 +179,18 @@ export function RosterGrid({
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) {
       throw new Error(data.error || "Could not save");
+    }
+  }
+
+  async function putEntriesBatch(staffId: string, ymds: string[], templateId: string | null) {
+    const res = await fetch(`/api/roster/weeks/${encodeURIComponent(weekId)}/entries/batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staffId, dates: ymds, shiftTemplateId: templateId }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      throw new Error(data.error || "Could not save shifts");
     }
   }
 
@@ -242,42 +255,87 @@ export function RosterGrid({
     });
     setError(null);
 
-    const results = await Promise.allSettled(
-      targets.map((ymd) => putEntry(staffId, ymd, templateId)),
-    );
-
-    const failures: { ymd: string; message: string }[] = [];
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      if (r.status === "rejected") {
-        failures.push({ ymd: targets[i], message: (r.reason as Error).message });
-      }
-    }
-
-    if (failures.length > 0) {
+    try {
+      await putEntriesBatch(staffId, targets, templateId);
+    } catch (e) {
       setEntries((curr) => {
         const next = { ...curr };
-        for (const f of failures) {
-          const k = cellKey(staffId, f.ymd);
+        for (const ymd of targets) {
+          const k = cellKey(staffId, ymd);
           const prev = previousByKey[k];
           if (prev) next[k] = prev;
           else delete next[k];
         }
         return next;
       });
-      const word = failures.length === 1 ? "day" : "days";
-      setError(`${failures.length} ${word} couldn't be updated: ${failures[0].message}`);
+      setError((e as Error).message);
+    } finally {
+      setPending((curr) => {
+        const next = { ...curr };
+        for (const ymd of targets) delete next[cellKey(staffId, ymd)];
+        return next;
+      });
     }
-
-    setPending((curr) => {
-      const next = { ...curr };
-      for (const ymd of targets) delete next[cellKey(staffId, ymd)];
-      return next;
-    });
   }
 
   function goToWeek(ymd: string) {
     router.push(`/roster?week=${ymd}`);
+  }
+
+  function requestDates(req: {
+    type: "vacation" | "dayOff";
+    startDate?: string;
+    endDate?: string;
+    date?: string;
+  }): string[] {
+    if (req.type === "dayOff") return req.date ? [req.date] : [];
+    if (!req.startDate || !req.endDate) return [];
+    const dates: string[] = [];
+    for (const ymd of days) {
+      if (ymd >= req.startDate && ymd <= req.endDate) dates.push(ymd);
+    }
+    return dates;
+  }
+
+  function applyApprovedRequestChange(req: {
+    type: "vacation" | "dayOff";
+    staff: { id: string };
+    startDate?: string;
+    endDate?: string;
+    date?: string;
+  }, clearedDates: string[]) {
+    const nextDates = requestDates(req);
+    if (nextDates.length > 0) {
+      setBlockMap((curr) => {
+        const next = { ...curr };
+        const blockType = req.type === "vacation" ? "vacation" : "dayOff";
+        for (const ymd of nextDates) next[cellKey(req.staff.id, ymd)] = blockType;
+        return next;
+      });
+    }
+    if (clearedDates.length > 0) {
+      setEntries((curr) => {
+        const next = { ...curr };
+        for (const ymd of clearedDates) delete next[cellKey(req.staff.id, ymd)];
+        return next;
+      });
+    }
+  }
+
+  function removeApprovedRequestChange(req: {
+    staff: { id: string };
+    type: "vacation" | "dayOff";
+    startDate?: string;
+    endDate?: string;
+    date?: string;
+  }) {
+    const nextDates = requestDates(req);
+    if (nextDates.length === 0) return;
+    setBlockMap((curr) => {
+      const next = { ...curr };
+      for (const ymd of nextDates) delete next[cellKey(req.staff.id, ymd)];
+      return next;
+    });
   }
 
   async function copyPreviousWeek() {
@@ -529,7 +587,7 @@ export function RosterGrid({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {staff.length === 0 ? (
+            {staffRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={1 + days.length}
@@ -605,7 +663,7 @@ export function RosterGrid({
                     );
                   })}
                 </tr>
-                {staff.map((s) => (
+                {staffRows.map((s) => (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
                     <div className="flex items-start justify-between gap-2">
@@ -724,9 +782,15 @@ export function RosterGrid({
       <RequestsModal
         open={showRequests}
         onClose={() => setShowRequests(false)}
-        staff={staff as RequestStaff[]}
+        staff={staffRows as RequestStaff[]}
         onPendingCountChange={setPendingRequests}
-        onApproved={() => router.refresh()}
+        onRequestChanged={(change) => {
+          if (change.kind === "approved") {
+            applyApprovedRequestChange(change.request, change.clearedDates);
+          } else {
+            removeApprovedRequestChange(change.request);
+          }
+        }}
       />
 
       <Modal
@@ -740,10 +804,18 @@ export function RosterGrid({
             requiredOnly
             variant="modal"
             onCancel={() => setShowAddStaff(false)}
-            onSuccess={() => {
+            onSuccess={(added) => {
               setShowAddStaff(false);
               setNotice("Staff member added.");
-              router.refresh();
+              setStaffRows((curr) => [
+                ...curr,
+                {
+                  id: added.id,
+                  firstName: added.firstName,
+                  lastName: added.lastName,
+                  role: added.role || null,
+                },
+              ]);
             }}
           />
         ) : null}

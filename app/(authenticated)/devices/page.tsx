@@ -4,42 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { DeviceEnabledToggle } from "@/app/components/device-enabled-toggle";
 import { AddDeviceButton } from "@/app/components/add-device-drawer";
+import { DeviceStatusCells } from "@/app/components/device-status-cells";
 
 export const metadata = {
   title: "Devices | Simple Roster Plus",
-};
-
-const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
-const IDLE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
-
-type DeviceStatus = "online" | "idle" | "offline" | "never";
-
-function deriveStatus(lastSeenAt: Date | null, enabled: boolean, now: number): DeviceStatus {
-  if (!enabled) return "offline";
-  if (!lastSeenAt) return "never";
-  const age = now - lastSeenAt.getTime();
-  if (age <= ONLINE_THRESHOLD_MS) return "online";
-  if (age <= IDLE_THRESHOLD_MS) return "idle";
-  return "offline";
-}
-
-function relativeTime(d: Date | null, now: number): string {
-  if (!d) return "Never";
-  const diffSec = Math.max(0, Math.round((now - d.getTime()) / 1000));
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr${diffHr === 1 ? "" : "s"} ago`;
-  const diffDay = Math.round(diffHr / 24);
-  return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
-}
-
-const STATUS_PILL: Record<DeviceStatus, { label: string; className: string }> = {
-  online: { label: "Online", className: "bg-emerald-100 text-emerald-800" },
-  idle: { label: "Idle", className: "bg-amber-100 text-amber-800" },
-  offline: { label: "Offline", className: "bg-rose-100 text-rose-800" },
-  never: { label: "Never connected", className: "bg-zinc-200 text-zinc-700" },
 };
 
 export default async function DevicesPage() {
@@ -58,8 +26,6 @@ export default async function DevicesPage() {
       select: { id: true, name: true },
     }),
   ]);
-
-  const now = Date.now();
 
   return (
     <div>
@@ -97,8 +63,8 @@ export default async function DevicesPage() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Last active</th>
-              <th className="px-4 py-3">Serial</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Serial</th>
               <th className="px-4 py-3 text-right">Enabled</th>
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
@@ -113,8 +79,6 @@ export default async function DevicesPage() {
               </tr>
             ) : (
               devices.map((d) => {
-                const status = deriveStatus(d.lastSeenAt, d.enabled, now);
-                const pill = STATUS_PILL[status];
                 return (
                   <tr key={d.id} className="hover:bg-zinc-50/80">
                     <td className="px-4 py-3">
@@ -131,11 +95,10 @@ export default async function DevicesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-600">{d.location.name}</td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      <time dateTime={d.lastSeenAt?.toISOString() ?? ""}>
-                        {relativeTime(d.lastSeenAt, now)}
-                      </time>
-                    </td>
+                    <DeviceStatusCells
+                      lastSeenAt={d.lastSeenAt?.toISOString() ?? null}
+                      enabled={d.enabled}
+                    />
                     <td className="px-4 py-3 text-zinc-600">
                       {d.serialNumber ? (
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
@@ -144,13 +107,6 @@ export default async function DevicesPage() {
                       ) : (
                         <span className="text-zinc-400">—</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${pill.className}`}
-                      >
-                        {pill.label}
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DeviceEnabledToggle

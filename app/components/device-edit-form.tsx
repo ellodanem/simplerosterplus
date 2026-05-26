@@ -45,6 +45,7 @@ export function DeviceEditForm({
   const router = useRouter();
   const [v, setV] = useState<DeviceEditValues>(initial);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -56,6 +57,7 @@ export function DeviceEditForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setSaving(true);
     try {
       const portTrimmed = v.port.trim();
@@ -84,7 +86,7 @@ export function DeviceEditForm({
         setError(data.error || "Could not save changes");
         return;
       }
-      router.refresh();
+      setNotice("Device updated.");
     } finally {
       setSaving(false);
     }
@@ -104,7 +106,6 @@ export function DeviceEditForm({
         return;
       }
       router.push("/devices");
-      router.refresh();
     } catch {
       setDeleting(false);
     }
@@ -215,6 +216,7 @@ export function DeviceEditForm({
 
         <ReportedPanel reported={reported} />
 
+        {notice ? <p className="text-sm text-emerald-700">{notice}</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex flex-wrap items-center gap-3">

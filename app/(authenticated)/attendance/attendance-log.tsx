@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StaffAvatar } from "@/app/components/staff-avatar";
@@ -10,34 +10,44 @@ import {
   type PresenceStatus,
 } from "@/lib/attendance-policy";
 import type { AttendanceStaff } from "@/lib/attendance-week";
-import type { LogKpis, LogRow } from "@/lib/attendance-log-data";
+import type { AttendanceLogData, LogKpis, LogRow } from "@/lib/attendance-log-data";
 import { LogRowEditor } from "./log-row-editor";
 import { AddPunchModal } from "./add-punch-modal";
 import { GraceSettingsModal } from "./grace-settings-modal";
 import { PunchMethodBadge } from "./punch-method-badge";
 
 type FilterKey = "all" | "late" | "corrected" | "manual" | "device" | "in" | "out";
+type LogViewState = Pick<
+  AttendanceLogData,
+  "graceMinutes" | "staff" | "rows" | "kpis" | "hasMoreRows" | "rowLimit"
+>;
 
 export function AttendanceLog({
   timeZone,
   todayYmd,
   windowStartYmd,
-  showAll,
+  defaultWindowDays,
+  expandedWindow,
   windowDays,
   graceMinutes,
   staff,
   rows,
   kpis,
+  hasMoreRows,
+  rowLimit,
 }: {
   timeZone: string;
   todayYmd: string;
   windowStartYmd: string;
-  showAll: boolean;
+  defaultWindowDays: number;
+  expandedWindow: boolean;
   windowDays: number;
   graceMinutes: number;
   staff: AttendanceStaff[];
   rows: LogRow[];
   kpis: LogKpis;
+  hasMoreRows: boolean;
+  rowLimit: number;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -48,21 +58,43 @@ export function AttendanceLog({
   const [showGraceModal, setShowGraceModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [logData, setLogData] = useState<LogViewState>({
+    graceMinutes,
+    staff,
+    rows,
+    kpis,
+    hasMoreRows,
+    rowLimit,
+  });
 
   // Deferred search lets us keep the typing responsive while filtering ~hundreds of rows
   // without manual debouncing — React batches the heavy work into the lower-priority
   // update.
   const deferredSearch = useDeferredValue(search);
 
+  const reloadLog = useCallback(async () => {
+    const res = await fetch(`/api/attendance/log${expandedWindow ? "?all=1" : ""}`);
+    const body = (await res.json().catch(() => ({}))) as Partial<LogViewState> & { error?: string };
+    if (!res.ok) throw new Error(body.error || "Could not refresh attendance log");
+    setLogData({
+      graceMinutes: body.graceMinutes ?? graceMinutes,
+      staff: body.staff ?? staff,
+      rows: body.rows ?? rows,
+      kpis: body.kpis ?? kpis,
+      hasMoreRows: body.hasMoreRows ?? hasMoreRows,
+      rowLimit: body.rowLimit ?? rowLimit,
+    });
+  }, [expandedWindow, graceMinutes, staff, rows, kpis, hasMoreRows, rowLimit]);
+
   const staffById = useMemo(() => {
     const m = new Map<string, AttendanceStaff>();
-    for (const s of staff) m.set(s.id, s);
+    for (const s of logData.staff) m.set(s.id, s);
     return m;
-  }, [staff]);
+  }, [logData.staff]);
 
   const filteredRows = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
-    return rows.filter((r) => {
+    return logData.rows.filter((r) => {
       if (staffFilter && r.punch.staffId !== staffFilter) return false;
       if (filter === "in" && r.punch.punchType !== "in") return false;
       if (filter === "out" && r.punch.punchType !== "out") return false;
@@ -82,18 +114,18 @@ export function AttendanceLog({
       }
       return true;
     });
-  }, [rows, filter, staffFilter, deferredSearch, staffById]);
+  }, [logData.rows, filter, staffFilter, deferredSearch, staffById]);
 
   // Per-staff punch counts for the right rail. Always computed from the unfiltered `rows`
   // (the full window) so the badge numbers don't blink to zero when a user clicks one row.
   const staffCounts = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows) {
+    for (const r of logData.rows) {
       if (!r.punch.staffId) continue;
       m.set(r.punch.staffId, (m.get(r.punch.staffId) ?? 0) + 1);
     }
     return m;
-  }, [rows]);
+  }, [logData.rows]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, LogRow[]>();
@@ -107,19 +139,19 @@ export function AttendanceLog({
     return Array.from(m.entries());
   }, [filteredRows]);
 
-  function toggleShowAll() {
-    const url = showAll ? "/attendance?view=log" : "/attendance?view=log&all=1";
+  function toggleWindowSize() {
+    const url = expandedWindow ? "/attendance?view=log" : "/attendance?view=log&all=1";
     router.push(url);
   }
 
-  const editing = editingId ? rows.find((r) => r.punch.id === editingId) ?? null : null;
+  const editing = editingId ? logData.rows.find((r) => r.punch.id === editingId) ?? null : null;
 
   const activeStaff = staffFilter ? (staffById.get(staffFilter) ?? null) : null;
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <KpiChips kpis={kpis} active={filter} onPick={setFilter} />
+        <KpiChips kpis={logData.kpis} active={filter} onPick={setFilter} />
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
@@ -182,9 +214,9 @@ export function AttendanceLog({
           <div className="rounded-xl border border-zinc-200 bg-white">
             {grouped.length === 0 ? (
               <EmptyState
-                showAll={showAll}
+                expandedWindow={expandedWindow}
                 windowDays={windowDays}
-                hasAnyRows={rows.length > 0}
+                hasAnyRows={logData.rows.length > 0}
                 onAddPunch={() => setShowAddModal(true)}
               />
             ) : (
@@ -202,22 +234,22 @@ export function AttendanceLog({
             )}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500">
               <span>
-                {showAll
-                  ? `Showing all active punches (${rows.length}).`
-                  : `Showing the last ${windowDays} days from ${windowStartYmd} (${rows.length} ${rows.length === 1 ? "punch" : "punches"}).`}
+                {`Showing the last ${windowDays} days from ${windowStartYmd} (${logData.rows.length} ${
+                  logData.rows.length === 1 ? "punch" : "punches"
+                }${logData.hasMoreRows ? `, capped to the most recent ${logData.rowLimit}` : ""}).`}
               </span>
               <button
                 type="button"
-                onClick={toggleShowAll}
+                onClick={toggleWindowSize}
                 className="rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
               >
-                {showAll ? `Back to last ${windowDays} days` : "Show more"}
+                {expandedWindow ? `Back to last ${defaultWindowDays} days` : "Show 120 days"}
               </button>
             </div>
           </div>
 
           <p className="mt-3 text-xs text-zinc-500">
-            Grace window: <span className="font-semibold">{graceMinutes} min</span> after the
+            Grace window: <span className="font-semibold">{logData.graceMinutes} min</span> after the
             scheduled start.{" "}
             <button
               type="button"
@@ -235,7 +267,7 @@ export function AttendanceLog({
         </div>
 
         <StaffFilterRail
-          staff={staff}
+          staff={logData.staff}
           counts={staffCounts}
           activeStaffId={staffFilter}
           onPick={(id) => setStaffFilter(id)}
@@ -249,9 +281,13 @@ export function AttendanceLog({
           timeZone={timeZone}
           onClose={() => setEditingId(null)}
           onError={setError}
-          onNotice={(msg) => {
+          onNotice={async (msg) => {
             setNotice(msg);
-            router.refresh();
+            try {
+              await reloadLog();
+            } catch (e) {
+              setError((e as Error).message);
+            }
           }}
         />
       ) : null}
@@ -259,28 +295,32 @@ export function AttendanceLog({
       {showAddModal ? (
         <AddPunchModal
           open
-          staff={staff}
+          staff={logData.staff}
           timeZone={timeZone}
           todayYmd={todayYmd}
           onClose={() => setShowAddModal(false)}
           onError={setError}
-          onAdded={(msg) => {
+          onAdded={async (msg) => {
             setShowAddModal(false);
             setNotice(msg);
-            router.refresh();
+            try {
+              await reloadLog();
+            } catch (e) {
+              setError((e as Error).message);
+            }
           }}
         />
       ) : null}
 
       {showGraceModal ? (
         <GraceSettingsModal
-          initialMinutes={graceMinutes}
+          initialMinutes={logData.graceMinutes}
           onClose={() => setShowGraceModal(false)}
           onError={setError}
-          onSaved={(msg) => {
+          onSaved={(msg, nextGraceMinutes) => {
             setShowGraceModal(false);
             setNotice(msg);
-            router.refresh();
+            setLogData((curr) => ({ ...curr, graceMinutes: nextGraceMinutes }));
           }}
         />
       ) : null}
@@ -629,12 +669,12 @@ function statusPillLabel(status: PresenceStatus, minutesLate: number | null): st
 }
 
 function EmptyState({
-  showAll,
+  expandedWindow,
   windowDays,
   hasAnyRows,
   onAddPunch,
 }: {
-  showAll: boolean;
+  expandedWindow: boolean;
   windowDays: number;
   hasAnyRows: boolean;
   onAddPunch: () => void;
@@ -642,14 +682,14 @@ function EmptyState({
   return (
     <div className="px-6 py-10 text-center">
       <p className="text-sm font-medium text-zinc-700">
-        {showAll
-          ? "No active punches to show."
+        {expandedWindow
+          ? "No punches in the extended history window."
           : hasAnyRows
             ? "No matches for your filters."
             : `No punches in the last ${windowDays} days yet.`}
       </p>
       <p className="mt-1 text-xs text-zinc-500">
-        {showAll
+        {expandedWindow
           ? "Manual punches will appear here as you add them."
           : "Add one to get started, or switch to Week view to see the schedule."}
       </p>

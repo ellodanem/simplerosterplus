@@ -33,6 +33,15 @@ Scripts **`npm run db:migrate`**, **`db:push`**, **`db:studio`**, and **`db:seed
 
 `npm run db:generate` does not need a database URL.
 
+### Optimization guardrails
+
+- Keep local development pointed at a local, branch, or disposable database when possible. Avoid using the production `DATABASE_URL` as the default during day-to-day work.
+- `scripts/run-prisma.mjs` and Next.js both treat **`.env.local`** as an override on top of **`.env`**. A blank or stale value in `.env.local` wins, so check both files when auth or database access breaks unexpectedly.
+- Restart the dev server after env changes; auth and database settings are read at startup.
+- Before and after performance-sensitive changes, review the database provider's compute/usage graph and smoke-test the heaviest paths: login, roster, attendance, staff, and requests.
+
+For the current optimization baseline and rollout checklist, see [`docs/OPTIMIZATION_BASELINE.md`](./docs/OPTIMIZATION_BASELINE.md).
+
 ### Useful scripts
 
 | Command | Purpose |

@@ -4,6 +4,18 @@ import { utcDateFromYmd } from "./datetime-policy";
 import { ymdForDbDate } from "./roster-week";
 
 export type RequestType = "vacation" | "dayOff";
+export type ConflictSummary = { count: number; dates: string[] };
+
+type ConflictRange = {
+  key: string;
+  staffId: string;
+  startDate: Date;
+  endDate: Date;
+};
+
+export function requestConflictKey(type: RequestType, id: string): string {
+  return `${type}:${id}`;
+}
 
 export type SerializedRequest = {
   id: string;
@@ -39,24 +51,64 @@ export type SerializedRequest = {
  * count rows with an actual `shiftTemplateId` because empty (off) entries are functionally
  * the same as no entry — clearing them isn't user-visible.
  */
+export async function getConflictSummaries(
+  ranges: ConflictRange[],
+): Promise<Map<string, ConflictSummary>> {
+  const summaries = new Map<string, ConflictSummary>();
+  if (ranges.length === 0) return summaries;
+
+  let minDate = ranges[0].startDate;
+  let maxDate = ranges[0].endDate;
+  for (const range of ranges) {
+    if (range.startDate < minDate) minDate = range.startDate;
+    if (range.endDate > maxDate) maxDate = range.endDate;
+  }
+
+  const rows = await prisma.rosterEntry.findMany({
+    where: {
+      staffId: { in: Array.from(new Set(ranges.map((range) => range.staffId))) },
+      shiftTemplateId: { not: null },
+      date: { gte: minDate, lte: maxDate },
+    },
+    select: { staffId: true, date: true },
+    orderBy: [{ staffId: "asc" }, { date: "asc" }],
+  });
+
+  const datesByStaffId = new Map<string, string[]>();
+  for (const row of rows) {
+    const dates = datesByStaffId.get(row.staffId);
+    if (dates) dates.push(ymdForDbDate(row.date));
+    else datesByStaffId.set(row.staffId, [ymdForDbDate(row.date)]);
+  }
+
+  for (const range of ranges) {
+    const startYmd = ymdForDbDate(range.startDate);
+    const endYmd = ymdForDbDate(range.endDate);
+    const dates =
+      datesByStaffId
+        .get(range.staffId)
+        ?.filter((ymd) => ymd >= startYmd && ymd <= endYmd) ?? [];
+    summaries.set(range.key, { count: dates.length, dates });
+  }
+
+  return summaries;
+}
+
 export async function countConflicts(args: {
   staffId: string;
   startDate: Date;
   endDate: Date;
-}): Promise<{ count: number; dates: string[] }> {
-  const rows = await prisma.rosterEntry.findMany({
-    where: {
-      staffId: args.staffId,
-      shiftTemplateId: { not: null },
-      date: { gte: args.startDate, lte: args.endDate },
-    },
-    select: { date: true },
-    orderBy: { date: "asc" },
-  });
-  return {
-    count: rows.length,
-    dates: rows.map((r) => ymdForDbDate(r.date)),
-  };
+}): Promise<ConflictSummary> {
+  return (
+    (await getConflictSummaries([
+      {
+        key: "single",
+        staffId: args.staffId,
+        startDate: args.startDate,
+        endDate: args.endDate,
+      },
+    ])).get("single") ?? { count: 0, dates: [] }
+  );
 }
 
 type StaffMini = {
@@ -102,33 +154,43 @@ export const requestStaffSelect = {
 
 export const decidedBySelect = { email: true } as const;
 
-export async function serializeVacation(row: VacationRow): Promise<SerializedRequest> {
+export async function serializeVacation(
+  row: VacationRow,
+  conflictSummary?: ConflictSummary,
+): Promise<SerializedRequest> {
   const base = baseSerialized("vacation", row, {
     startDate: ymdForDbDate(row.startDate),
     endDate: ymdForDbDate(row.endDate),
   });
   if (row.status === "requested") {
-    const conflicts = await countConflicts({
-      staffId: row.staffId,
-      startDate: row.startDate,
-      endDate: row.endDate,
-    });
+    const conflicts =
+      conflictSummary ??
+      (await countConflicts({
+        staffId: row.staffId,
+        startDate: row.startDate,
+        endDate: row.endDate,
+      }));
     base.conflictCount = conflicts.count;
     base.conflictDates = conflicts.dates;
   }
   return base;
 }
 
-export async function serializeDayOff(row: DayOffRow): Promise<SerializedRequest> {
+export async function serializeDayOff(
+  row: DayOffRow,
+  conflictSummary?: ConflictSummary,
+): Promise<SerializedRequest> {
   const base = baseSerialized("dayOff", row, {
     date: ymdForDbDate(row.date),
   });
   if (row.status === "requested") {
-    const conflicts = await countConflicts({
-      staffId: row.staffId,
-      startDate: row.date,
-      endDate: row.date,
-    });
+    const conflicts =
+      conflictSummary ??
+      (await countConflicts({
+        staffId: row.staffId,
+        startDate: row.date,
+        endDate: row.date,
+      }));
     base.conflictCount = conflicts.count;
     base.conflictDates = conflicts.dates;
   }

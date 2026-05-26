@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 export function DeviceEnabledToggle({
@@ -12,7 +11,6 @@ export function DeviceEnabledToggle({
   enabled: boolean;
   deviceName: string;
 }) {
-  const router = useRouter();
   const [optimistic, setOptimistic] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -33,7 +31,6 @@ export function DeviceEnabledToggle({
         setError(data.error ?? "Could not update");
         return;
       }
-      router.refresh();
     });
   }
 

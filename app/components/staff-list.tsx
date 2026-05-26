@@ -1,19 +1,35 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { StaffEditForm, type StaffEditValues } from "@/app/components/staff-edit-form";
 
 export type StaffRow = StaffEditValues;
 
+function staffStatusLabel(s: StaffRow): string {
+  if (s.isTestUser) return "Test";
+  if (s.archivedAt) return "Archived";
+  if (s.excludeFromRoster) return "Attendance Only";
+  return "Active";
+}
+
 export function StaffList({ staff }: { staff: StaffRow[] }) {
-  const router = useRouter();
+  const [rows, setRows] = useState<StaffRow[]>(sortRows(staff));
   const [editing, setEditing] = useState<StaffRow | null>(null);
 
-  function closeAndRefresh() {
+  function handleSaved(next: StaffRow) {
+    setRows((curr) => sortRows(curr.map((row) => (row.id === next.id ? next : row))));
     setEditing(null);
-    router.refresh();
+  }
+
+  function handleDeleted(staffId: string) {
+    setRows((curr) => curr.filter((row) => row.id !== staffId));
+    setEditing(null);
+  }
+
+  function handleAdded(next: StaffRow) {
+    setRows((curr) => sortRows([...curr, next]));
   }
 
   return (
@@ -26,23 +42,21 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Device ID</th>
-              <th className="px-4 py-3">Order</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Punch exempt</th>
-              <th className="px-4 py-3">Roster planning</th>
-              <th className="px-4 py-3">Roster grid</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {staff.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
                   No staff yet. Add someone below or run{" "}
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
                 </td>
               </tr>
             ) : (
-              staff.map((s) => (
+              rows.map((s) => (
                 <tr key={s.id} className="hover:bg-zinc-50/80">
                   <td className="px-4 py-3 font-medium text-zinc-900">
                     <button
@@ -64,12 +78,8 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
                       <span className="text-zinc-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-zinc-600">{s.sortOrder}</td>
+                  <td className="px-4 py-3 text-zinc-600">{staffStatusLabel(s)}</td>
                   <td className="px-4 py-3 text-zinc-600">{s.punchExempt ? "Yes" : "No"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{s.isActive ? "Yes" : "Left"}</td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {s.excludeFromRoster ? "Attendance only" : "Shift rows"}
-                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
@@ -90,18 +100,26 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
         open={editing !== null}
         onClose={() => setEditing(null)}
         title={editing ? `${editing.firstName} ${editing.lastName}` : "Edit staff"}
-        size="xl"
+        size="lg"
       >
         {editing ? (
           <StaffEditForm
-            key={editing.id}
             initial={editing}
-            onSaved={closeAndRefresh}
-            onDeleted={closeAndRefresh}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
             onCancel={() => setEditing(null)}
           />
         ) : null}
       </Modal>
+
+      <AddStaffForm onSuccess={handleAdded} />
     </>
   );
+}
+
+function sortRows(rows: StaffRow[]): StaffRow[] {
+  return [...rows].sort((a, b) => {
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`);
+  });
 }

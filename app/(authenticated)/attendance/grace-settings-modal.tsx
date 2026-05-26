@@ -22,7 +22,7 @@ export function GraceSettingsModal({
   initialMinutes: number;
   onClose: () => void;
   onError: (msg: string) => void;
-  onSaved: (msg: string) => void;
+  onSaved: (msg: string, graceMinutes: number) => void;
 }) {
   const [minutes, setMinutes] = useState<string>(String(initialMinutes));
   const [pending, setPending] = useState(false);
@@ -50,7 +50,7 @@ export function GraceSettingsModal({
         setPending(false);
         return;
       }
-      onSaved(`Grace window set to ${Math.round(n)} min.`);
+      onSaved(`Grace window set to ${Math.round(n)} min.`, Math.round(n));
     } catch {
       onError("Network error while saving.");
       setPending(false);

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { StaffEditValues } from "@/app/components/staff-edit-form";
 
 export function AddStaffForm({
   requiredOnly = false,
@@ -14,7 +15,7 @@ export function AddStaffForm({
   /** Page variant keeps the bordered section on /staff; modal variant is for dialogs. */
   variant?: "page" | "modal";
   /** Called after a successful add. If provided, the form will not call router.refresh itself. */
-  onSuccess?: () => void;
+  onSuccess?: (staff: StaffEditValues) => void;
   onCancel?: () => void;
 } = {}) {
   const router = useRouter();
@@ -27,6 +28,7 @@ export function AddStaffForm({
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [startDate, setStartDate] = useState("");
   const [excludeFromRoster, setExcludeFromRoster] = useState(false);
+  const [isTestUser, setIsTestUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -48,13 +50,44 @@ export function AddStaffForm({
           dateOfBirth: dateOfBirth || null,
           startDate: startDate || null,
           excludeFromRoster: requiredOnly ? false : excludeFromRoster,
+          isTestUser: requiredOnly ? false : isTestUser,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        staff?: Partial<StaffEditValues> & {
+          archivedAt?: string | null;
+          dateOfBirth?: string | null;
+          startDate?: string | null;
+        };
+      };
       if (!res.ok) {
         setError(data.error || "Could not add staff");
         return;
       }
+      const createdStaff =
+        data.staff && data.staff.id
+          ? ({
+              id: data.staff.id,
+              firstName: data.staff.firstName ?? firstName,
+              lastName: data.staff.lastName ?? lastName,
+              email: data.staff.email ?? email,
+              role: data.staff.role ?? role,
+              deviceUserId: data.staff.deviceUserId ?? deviceUserId,
+              contactNumber: data.staff.contactNumber ?? contactNumber,
+              dateOfBirth: data.staff.dateOfBirth?.slice(0, 10) ?? dateOfBirth,
+              startDate: data.staff.startDate?.slice(0, 10) ?? startDate,
+              punchExempt: Boolean(data.staff.punchExempt),
+              excludeFromRoster: Boolean(data.staff.excludeFromRoster),
+              archivedAt: data.staff.archivedAt ?? null,
+              isTestUser: Boolean(data.staff.isTestUser),
+              sortOrder:
+                typeof data.staff.sortOrder === "number" && Number.isFinite(data.staff.sortOrder)
+                  ? data.staff.sortOrder
+                  : 0,
+              canDelete: Boolean(data.staff.canDelete),
+            } satisfies StaffEditValues)
+          : null;
       setFirstName("");
       setLastName("");
       setEmail("");
@@ -64,8 +97,9 @@ export function AddStaffForm({
       setDateOfBirth("");
       setStartDate("");
       setExcludeFromRoster(false);
-      if (onSuccess) {
-        onSuccess();
+      setIsTestUser(false);
+      if (onSuccess && createdStaff) {
+        onSuccess(createdStaff);
       } else {
         router.refresh();
       }
@@ -129,11 +163,26 @@ export function AddStaffForm({
                   checked={excludeFromRoster}
                   onChange={(e) => setExcludeFromRoster(e.target.checked)}
                 />
-                <span>Never show on roster (attendance only)</span>
+                <span>Attendance Only</span>
               </label>
               <p className="mt-1 pl-6 text-xs text-zinc-500">
                 Managers and punch-only staff: listed in attendance, not on the shift
                 roster.
+              </p>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
+                  checked={isTestUser}
+                  onChange={(e) => setIsTestUser(e.target.checked)}
+                />
+                <span>Test / dummy account</span>
+              </label>
+              <p className="mt-1 pl-6 text-xs text-zinc-500">
+                For trials only. Can be deleted later if it has no roster or attendance
+                data. Cannot be changed after creation.
               </p>
             </div>
           </>

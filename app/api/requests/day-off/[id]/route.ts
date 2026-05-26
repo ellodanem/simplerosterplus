@@ -126,6 +126,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     return NextResponse.json({
       request: await serializeDayOff(updated),
       cleared: conflicts.count,
+      clearedDates: conflicts.dates,
     });
   } catch (e) {
     const { status, body } = errorJson(e);
@@ -144,10 +145,10 @@ export async function DELETE(_request: Request, { params }: Ctx) {
 
     const { id } = await params;
     const location = await getDefaultLocation(session.orgId);
-    await loadDayOff(id, session.orgId, location.id);
+    const row = await loadDayOff(id, session.orgId, location.id);
 
     await prisma.staffDayOff.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, request: await serializeDayOff(row) });
   } catch (e) {
     const { status, body } = errorJson(e);
     return NextResponse.json(body, { status });

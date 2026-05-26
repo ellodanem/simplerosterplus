@@ -13,6 +13,7 @@
 
 import { prisma } from "./prisma";
 import { formatYmdInZone, utcDateFromYmd } from "./datetime-policy";
+import { isStaffEventVisible } from "@/lib/staff-archive";
 import { ymdForDbDate } from "./roster-week";
 import {
   computePresence,
@@ -21,6 +22,8 @@ import {
   type Punch,
 } from "./attendance-policy";
 import { getGraceMinutes, type AttendanceStaff, type SerializedPunch } from "./attendance-week";
+
+export const MAX_ATTENDANCE_LOG_ROWS = 1500;
 
 export type LogRow = {
   punch: SerializedPunch;
@@ -53,6 +56,10 @@ export type AttendanceLogData = {
   windowed: boolean;
   /** Lower bound used to filter, ISO string. Null when `windowed` is false. */
   sinceIso: string | null;
+  /** True when more rows matched than we returned. */
+  hasMoreRows: boolean;
+  /** Hard cap applied to the query result set. */
+  rowLimit: number;
 };
 
 export async function getAttendanceLogData(args: {
@@ -61,10 +68,17 @@ export async function getAttendanceLogData(args: {
   timeZone: string;
   /** When set, the SQL filter is `punchAt >= sinceDate`. When null, no lower bound — every active punch. */
   sinceDate: Date | null;
+  rowLimit?: number;
 }): Promise<AttendanceLogData> {
-  const { organizationId, locationId, timeZone, sinceDate } = args;
+  const {
+    organizationId,
+    locationId,
+    timeZone,
+    sinceDate,
+    rowLimit = MAX_ATTENDANCE_LOG_ROWS,
+  } = args;
 
-  const [staffRows, graceMinutes, punches] = await Promise.all([
+  const [staffRows, graceMinutes, punchRows] = await Promise.all([
     prisma.staff.findMany({
       where: { organizationId, locationId },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -74,6 +88,7 @@ export async function getAttendanceLogData(args: {
         lastName: true,
         role: true,
         punchExempt: true,
+        archivedAt: true,
       },
     }),
     getGraceMinutes(organizationId),
@@ -86,6 +101,7 @@ export async function getAttendanceLogData(args: {
         ...(sinceDate ? { punchAt: { gte: sinceDate } } : {}),
       },
       orderBy: { punchAt: "desc" },
+      take: rowLimit + 1,
       select: {
         id: true,
         staffId: true,
@@ -98,14 +114,20 @@ export async function getAttendanceLogData(args: {
       },
     }),
   ]);
+  const hasMoreRows = punchRows.length > rowLimit;
+  const punches = hasMoreRows ? punchRows.slice(0, rowLimit) : punchRows;
 
   // Determine the set of (staffId, dayYmd) tuples we need presence for. Only days that
   // contain at least one punch — we don't synthesize "no punch" rows here (per product
   // decision to ignore non-punchers for v1).
+  const staffById = new Map(staffRows.map((s) => [s.id, s] as const));
+
   const dayKeys = new Set<string>();
   const punchDayByPunchId = new Map<string, string>();
   for (const p of punches) {
     if (!p.staffId) continue;
+    const staff = staffById.get(p.staffId);
+    if (staff && !isStaffEventVisible(staff, p.punchAt)) continue;
     const ymd = formatYmdInZone(p.punchAt, timeZone);
     dayKeys.add(`${p.staffId}__${ymd}`);
     punchDayByPunchId.set(p.id, ymd);
@@ -222,6 +244,8 @@ export async function getAttendanceLogData(args: {
     const punchesByDayKey = new Map<string, Punch[]>();
     for (const dp of allDayPunches) {
       if (!dp.staffId) continue;
+      const staff = staffById.get(dp.staffId);
+      if (staff && !isStaffEventVisible(staff, dp.punchAt)) continue;
       const ymd = formatYmdInZone(dp.punchAt, timeZone);
       const k = `${dp.staffId}__${ymd}`;
       let arr = punchesByDayKey.get(k);
@@ -231,8 +255,6 @@ export async function getAttendanceLogData(args: {
       }
       arr.push({ punchAt: dp.punchAt, punchType: dp.punchType });
     }
-
-    const staffById = new Map(staffRows.map((s) => [s.id, s] as const));
 
     for (const key of dayKeys) {
       const [staffId, ymd] = key.split("__");
@@ -261,6 +283,10 @@ export async function getAttendanceLogData(args: {
   let manualCount = 0;
   let deviceCount = 0;
   for (const p of punches) {
+    if (p.staffId) {
+      const staff = staffById.get(p.staffId);
+      if (staff && !isStaffEventVisible(staff, p.punchAt)) continue;
+    }
     const dayYmd = p.staffId ? (punchDayByPunchId.get(p.id) ?? formatYmdInZone(p.punchAt, timeZone)) : formatYmdInZone(p.punchAt, timeZone);
     const dayKey = p.staffId ? `${p.staffId}__${dayYmd}` : null;
     const dayStatus: PresenceStatus = dayKey ? (staffByDayKey.get(dayKey) ?? "no_shift") : "no_shift";
@@ -285,9 +311,18 @@ export async function getAttendanceLogData(args: {
     else deviceCount += 1;
   }
 
+  const staffForClient: AttendanceStaff[] = staffRows.map((s) => ({
+    id: s.id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    role: s.role,
+    punchExempt: s.punchExempt,
+    archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
+  }));
+
   return {
     graceMinutes,
-    staff: staffRows,
+    staff: staffForClient,
     rows,
     kpis: {
       total: rows.length,
@@ -299,5 +334,7 @@ export async function getAttendanceLogData(args: {
     oldestPunchAt: rows.length > 0 ? rows[rows.length - 1].punch.punchAt : null,
     windowed: sinceDate !== null,
     sinceIso: sinceDate ? sinceDate.toISOString() : null,
+    hasMoreRows,
+    rowLimit,
   };
 }

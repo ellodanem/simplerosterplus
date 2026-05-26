@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StaffAvatar } from "@/app/components/staff-avatar";
 import { dayHeaderLabel } from "@/lib/roster-week";
@@ -14,6 +14,7 @@ import {
 import type {
   AttendanceCell,
   AttendanceStaff,
+  AttendanceWeekData,
   SerializedOverride,
   SerializedPunch,
 } from "@/lib/attendance-week";
@@ -21,6 +22,19 @@ import { methodGlyph, methodFullLabel } from "./punch-method-badge";
 
 type Holiday = { name: string; stationClosed: boolean };
 type BlockReason = "vacation" | "dayOff";
+type AttendanceWeekViewState = Pick<
+  AttendanceWeekData,
+  | "staff"
+  | "holidays"
+  | "blockMap"
+  | "expectedByCell"
+  | "cells"
+  | "punches"
+  | "overrides"
+  | "graceMinutes"
+  | "irregularCount"
+  | "irregularByStaff"
+>;
 
 const HHMM_RE = /^(\d{2}):(\d{2})$/;
 
@@ -69,22 +83,77 @@ export function AttendanceGrid({
   const [notice, setNotice] = useState<string | null>(null);
   const [openCell, setOpenCell] = useState<{ staffId: string; ymd: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const [weekData, setWeekData] = useState<AttendanceWeekViewState>({
+    staff,
+    holidays,
+    blockMap,
+    expectedByCell,
+    cells,
+    punches,
+    overrides,
+    graceMinutes,
+    irregularCount,
+    irregularByStaff,
+  });
+
+  const reloadWeek = useCallback(async () => {
+    const res = await fetch(`/api/attendance/week?week=${encodeURIComponent(weekStartYmd)}`);
+    const body = (await res.json().catch(() => ({}))) as Partial<AttendanceWeekViewState> & {
+      error?: string;
+    };
+    if (!res.ok) throw new Error(body.error || "Could not refresh attendance week");
+    setWeekData({
+      staff: body.staff ?? staff,
+      holidays: body.holidays ?? holidays,
+      blockMap: body.blockMap ?? blockMap,
+      expectedByCell: body.expectedByCell ?? expectedByCell,
+      cells: body.cells ?? cells,
+      punches: body.punches ?? punches,
+      overrides: body.overrides ?? overrides,
+      graceMinutes: body.graceMinutes ?? graceMinutes,
+      irregularCount: body.irregularCount ?? irregularCount,
+      irregularByStaff: body.irregularByStaff ?? irregularByStaff,
+    });
+  }, [
+    weekStartYmd,
+    staff,
+    holidays,
+    blockMap,
+    expectedByCell,
+    cells,
+    punches,
+    overrides,
+    graceMinutes,
+    irregularCount,
+    irregularByStaff,
+  ]);
+
+  const currentStaff = weekData.staff;
+  const currentHolidays = weekData.holidays;
+  const currentBlockMap = weekData.blockMap;
+  const currentExpectedByCell = weekData.expectedByCell;
+  const currentCells = weekData.cells;
+  const currentPunches = weekData.punches;
+  const currentOverrides = weekData.overrides;
+  const currentGraceMinutes = weekData.graceMinutes;
+  const currentIrregularCount = weekData.irregularCount;
+  const currentIrregularByStaff = weekData.irregularByStaff;
 
   const staffById = useMemo(() => {
     const m = new Map<string, AttendanceStaff>();
-    for (const s of staff) m.set(s.id, s);
+    for (const s of currentStaff) m.set(s.id, s);
     return m;
-  }, [staff]);
+  }, [currentStaff]);
 
   const overrideByKey = useMemo(() => {
     const m = new Map<string, SerializedOverride>();
-    for (const o of overrides) m.set(`${o.staffId}__${o.date}`, o);
+    for (const o of currentOverrides) m.set(`${o.staffId}__${o.date}`, o);
     return m;
-  }, [overrides]);
+  }, [currentOverrides]);
 
   const punchesByKey = useMemo(() => {
     const m = new Map<string, SerializedPunch[]>();
-    for (const p of punches) {
+    for (const p of currentPunches) {
       if (!p.staffId) continue;
       const ymd = formatYmdInZone(new Date(p.punchAt), timeZone);
       if (!days.includes(ymd)) continue;
@@ -97,30 +166,30 @@ export function AttendanceGrid({
       arr.sort((a, b) => a.punchAt.localeCompare(b.punchAt));
     }
     return m;
-  }, [punches, timeZone, days]);
+  }, [currentPunches, timeZone, days]);
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
   }
 
   function blockedReason(s: AttendanceStaff, ymd: string): "holiday" | BlockReason | null {
-    if (holidays[ymd]?.stationClosed) return "holiday";
-    return blockMap[cellKey(s.id, ymd)] ?? null;
+    if (currentHolidays[ymd]?.stationClosed) return "holiday";
+    return currentBlockMap[cellKey(s.id, ymd)] ?? null;
   }
 
   const visibleStaff = useMemo(() => {
-    if (!selectedStaffId) return staff;
-    return staff.filter((s) => s.id === selectedStaffId);
-  }, [staff, selectedStaffId]);
+    if (!selectedStaffId) return currentStaff;
+    return currentStaff.filter((s) => s.id === selectedStaffId);
+  }, [currentStaff, selectedStaffId]);
 
   const selectedStaff = selectedStaffId
-    ? staff.find((s) => s.id === selectedStaffId)
+    ? currentStaff.find((s) => s.id === selectedStaffId)
     : null;
 
   const visibleIrregularCount = useMemo(() => {
-    if (!selectedStaffId) return irregularCount;
-    return irregularByStaff[selectedStaffId] ?? 0;
-  }, [selectedStaffId, irregularCount, irregularByStaff]);
+    if (!selectedStaffId) return currentIrregularCount;
+    return currentIrregularByStaff[selectedStaffId] ?? 0;
+  }, [selectedStaffId, currentIrregularCount, currentIrregularByStaff]);
 
   function weekUrl(weekYmd: string, staffId: string | null): string {
     const params = new URLSearchParams({ view: "week", week: weekYmd });
@@ -139,18 +208,18 @@ export function AttendanceGrid({
   const orderedStaff = useMemo(() => {
     // Right rail wants issues-first; main grid keeps the natural sort. Done as a separate
     // array so the grid is undisturbed.
-    return [...staff].sort((a, b) => {
-      const ai = irregularByStaff[a.id] ?? 0;
-      const bi = irregularByStaff[b.id] ?? 0;
+    return [...currentStaff].sort((a, b) => {
+      const ai = currentIrregularByStaff[a.id] ?? 0;
+      const bi = currentIrregularByStaff[b.id] ?? 0;
       if (ai !== bi) return bi - ai;
       const an = `${a.lastName} ${a.firstName}`;
       const bn = `${b.lastName} ${b.firstName}`;
       return an.localeCompare(bn);
     });
-  }, [staff, irregularByStaff]);
+  }, [currentStaff, currentIrregularByStaff]);
 
   async function refresh() {
-    router.refresh();
+    await reloadWeek();
   }
 
   return (
@@ -275,7 +344,7 @@ export function AttendanceGrid({
                 {days.map((d) => {
                   const h = dayHeaderLabel(d, timeZone);
                   const isToday = d === todayYmd;
-                  const closed = holidays[d]?.stationClosed;
+                  const closed = currentHolidays[d]?.stationClosed;
                   return (
                     <th
                       key={d}
@@ -296,12 +365,12 @@ export function AttendanceGrid({
                           {h.date}
                         </span>
                       </div>
-                      {holidays[d] ? (
+                      {currentHolidays[d] ? (
                         <div
                           className="mt-0.5 truncate text-[11px] font-normal normal-case text-zinc-500"
-                          title={holidays[d].name}
+                          title={currentHolidays[d].name}
                         >
-                          {holidays[d].name}
+                          {currentHolidays[d].name}
                         </div>
                       ) : null}
                     </th>
@@ -310,7 +379,7 @@ export function AttendanceGrid({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {staff.length === 0 ? (
+              {currentStaff.length === 0 ? (
                 <tr>
                   <td
                     colSpan={1 + days.length}
@@ -351,8 +420,8 @@ export function AttendanceGrid({
                     </td>
                     {days.map((d) => {
                       const key = cellKey(s.id, d);
-                      const cell = cells[key];
-                      const expected = expectedByCell[key] ?? null;
+                      const cell = currentCells[key];
+                      const expected = currentExpectedByCell[key] ?? null;
                       const cellPunches = punchesByKey.get(key) ?? [];
                       return (
                         <td key={d} className="p-1 align-top">
@@ -382,7 +451,7 @@ export function AttendanceGrid({
         </div>
 
         <p className="mt-3 text-xs text-zinc-500">
-          Grace window: <span className="font-semibold">{graceMinutes} min</span> after
+          Grace window: <span className="font-semibold">{currentGraceMinutes} min</span> after
           shift start before a punch counts as late. Click any unblocked cell to add a
           punch or override the day.
         </p>
@@ -408,7 +477,7 @@ export function AttendanceGrid({
             <li className="py-2 text-sm text-zinc-500">No staff yet.</li>
           ) : (
             orderedStaff.map((s) => {
-              const count = irregularByStaff[s.id] ?? 0;
+              const count = currentIrregularByStaff[s.id] ?? 0;
               const active = selectedStaffId === s.id;
               return (
                 <li key={s.id}>
@@ -451,8 +520,8 @@ export function AttendanceGrid({
           staff={staffById.get(openCell.staffId)!}
           ymd={openCell.ymd}
           timeZone={timeZone}
-          expected={expectedByCell[cellKey(openCell.staffId, openCell.ymd)] ?? null}
-          cell={cells[cellKey(openCell.staffId, openCell.ymd)] ?? null}
+          expected={currentExpectedByCell[cellKey(openCell.staffId, openCell.ymd)] ?? null}
+          cell={currentCells[cellKey(openCell.staffId, openCell.ymd)] ?? null}
           punches={punchesByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? []}
           override={overrideByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? null}
           pending={pending}

@@ -6,6 +6,11 @@ import { getDefaultLocation, type DefaultLocation } from "@/lib/location";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
 import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import {
+  DEFAULT_ATTENDANCE_LOG_WINDOW_DAYS,
+  getAttendanceLogWindowDays,
+  isExpandedAttendanceLog,
+} from "@/lib/attendance-log-window";
+import {
   currentWeekStartYmd,
   shiftYmd,
   weekStartFromYmd,
@@ -20,7 +25,6 @@ export const metadata = {
 };
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
-const LOG_WINDOW_DAYS = 7;
 
 type ViewName = "log" | "week";
 type SearchParams = { view?: string; week?: string; all?: string; staff?: string };
@@ -44,7 +48,7 @@ export default async function AttendancePage({
 
   const params = await searchParams;
   const view: ViewName = params.view === "week" ? "week" : "log";
-  const showAll = params.all === "1";
+  const expandedLogWindow = isExpandedAttendanceLog(params.all);
 
   return (
     <div>
@@ -72,7 +76,7 @@ export default async function AttendancePage({
           org={org}
           location={location}
           tz={effectiveTimeZone}
-          showAll={showAll}
+          expandedLogWindow={expandedLogWindow}
         />
       )}
     </div>
@@ -104,19 +108,17 @@ async function LogTab({
   org,
   location,
   tz,
-  showAll,
+  expandedLogWindow,
 }: {
   org: { id: string; name: string; timeZone: string };
   location: DefaultLocation;
   tz: string;
-  showAll: boolean;
+  expandedLogWindow: boolean;
 }) {
-  // "Active" punches in the v1 sense — any punch in the rolling window. When the pay
-  // period workflow lands, swap the SQL filter to `extractedAt: null` so "Show more" can
-  // truly reveal "every punch we haven't paid out yet" rather than "every punch ever."
+  const logWindowDays = getAttendanceLogWindowDays(expandedLogWindow ? "1" : null);
   const todayYmd = formatYmdInZone(new Date(), tz);
-  const windowStartYmd = shiftYmd(todayYmd, -(LOG_WINDOW_DAYS - 1));
-  const sinceDate = showAll ? null : startOfLocalDayUtc(windowStartYmd, tz);
+  const windowStartYmd = shiftYmd(todayYmd, -(logWindowDays - 1));
+  const sinceDate = startOfLocalDayUtc(windowStartYmd, tz);
 
   const data = await getAttendanceLogData({
     organizationId: org.id,
@@ -127,15 +129,19 @@ async function LogTab({
 
   return (
     <AttendanceLog
+      key={`${windowStartYmd}:${expandedLogWindow ? "extended" : "default"}`}
       timeZone={tz}
       todayYmd={todayYmd}
       windowStartYmd={windowStartYmd}
-      showAll={showAll}
-      windowDays={LOG_WINDOW_DAYS}
+      defaultWindowDays={DEFAULT_ATTENDANCE_LOG_WINDOW_DAYS}
+      expandedWindow={expandedLogWindow}
+      windowDays={logWindowDays}
       graceMinutes={data.graceMinutes}
       staff={data.staff}
       rows={data.rows}
       kpis={data.kpis}
+      hasMoreRows={data.hasMoreRows}
+      rowLimit={data.rowLimit}
     />
   );
 }
@@ -176,6 +182,7 @@ async function WeekTab({
 
   return (
     <AttendanceGrid
+      key={`${weekStartYmd}:${selectedStaffId ?? "all"}`}
       weekStartYmd={weekStartYmd}
       days={data.days}
       timeZone={tz}

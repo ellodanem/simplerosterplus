@@ -63,7 +63,7 @@ export function TimeZoneCombobox(props: {
 }) {
   const { id, label, value, onChange, help, placeholder, required } = props;
   const listId = useId();
-  const timezones = useMemo(getTimezones, []);
+  const timezones = useMemo(() => getTimezones(), []);
   return (
     <div>
       <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
