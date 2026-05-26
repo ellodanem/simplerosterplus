@@ -6,6 +6,8 @@ import {
   OVERTIME_APPROACHING_BUFFER_HOURS,
   OVERTIME_WEEKLY_THRESHOLD_MAX,
   OVERTIME_WEEKLY_THRESHOLD_MIN,
+  OVERTIME_WEEKLY_THRESHOLD_STEP,
+  isValidOvertimeThresholdHours,
   type OvertimeSettings,
 } from "@/lib/overtime";
 
@@ -25,13 +27,9 @@ export function OvertimeSettingsModal({
 
   async function save() {
     const parsed = Number(threshold);
-    if (!Number.isInteger(parsed)) {
-      setError("Weekly overtime threshold must be a whole number of hours.");
-      return;
-    }
-    if (parsed < OVERTIME_WEEKLY_THRESHOLD_MIN || parsed > OVERTIME_WEEKLY_THRESHOLD_MAX) {
+    if (!isValidOvertimeThresholdHours(parsed)) {
       setError(
-        `Weekly overtime threshold must be between ${OVERTIME_WEEKLY_THRESHOLD_MIN} and ${OVERTIME_WEEKLY_THRESHOLD_MAX} hours.`,
+        `Weekly overtime threshold must be between ${OVERTIME_WEEKLY_THRESHOLD_MIN} and ${OVERTIME_WEEKLY_THRESHOLD_MAX} hours in ${OVERTIME_WEEKLY_THRESHOLD_STEP}-hour increments.`,
       );
       return;
     }
@@ -121,7 +119,7 @@ export function OvertimeSettingsModal({
               type="number"
               min={OVERTIME_WEEKLY_THRESHOLD_MIN}
               max={OVERTIME_WEEKLY_THRESHOLD_MAX}
-              step={1}
+              step={OVERTIME_WEEKLY_THRESHOLD_STEP}
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
               disabled={!enabled}
@@ -130,7 +128,7 @@ export function OvertimeSettingsModal({
             <span className="text-sm text-zinc-500">hours</span>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
-            Approaching OT appears within{" "}
+            Use whole, half, or quarter hours. Approaching OT appears within{" "}
             <span className="font-mono">{OVERTIME_APPROACHING_BUFFER_HOURS}</span> hours of the
             weekly limit.
           </p>

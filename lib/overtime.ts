@@ -5,6 +5,7 @@ export const OVERTIME_ENABLED_DEFAULT = true;
 export const OVERTIME_WEEKLY_THRESHOLD_DEFAULT = 40;
 export const OVERTIME_WEEKLY_THRESHOLD_MIN = 1;
 export const OVERTIME_WEEKLY_THRESHOLD_MAX = 168;
+export const OVERTIME_WEEKLY_THRESHOLD_STEP = 0.25;
 export const OVERTIME_APPROACHING_BUFFER_HOURS = 4;
 
 export type OvertimeStatus = "normal" | "approaching" | "over";
@@ -35,11 +36,21 @@ export function parseOvertimeEnabled(value: string | null | undefined): boolean 
 
 export function clampOvertimeThresholdHours(hours: number): number {
   if (!Number.isFinite(hours)) return OVERTIME_WEEKLY_THRESHOLD_DEFAULT;
-  const rounded = Math.round(hours);
+  const rounded =
+    Math.round(hours / OVERTIME_WEEKLY_THRESHOLD_STEP) * OVERTIME_WEEKLY_THRESHOLD_STEP;
   return Math.min(
     OVERTIME_WEEKLY_THRESHOLD_MAX,
     Math.max(OVERTIME_WEEKLY_THRESHOLD_MIN, rounded),
   );
+}
+
+export function isValidOvertimeThresholdHours(hours: number): boolean {
+  if (!Number.isFinite(hours)) return false;
+  if (hours < OVERTIME_WEEKLY_THRESHOLD_MIN || hours > OVERTIME_WEEKLY_THRESHOLD_MAX) {
+    return false;
+  }
+  const steps = hours / OVERTIME_WEEKLY_THRESHOLD_STEP;
+  return Math.abs(steps - Math.round(steps)) < 1e-9;
 }
 
 export function parseOvertimeThresholdHours(value: string | null | undefined): number {
@@ -90,7 +101,7 @@ export function countOvertimeAlerts(
 
 export function formatOvertimeHours(totalMinutes: number): string {
   const hours = Math.max(0, totalMinutes) / 60;
-  const rounded = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+  const rounded = Number(hours.toFixed(2)).toString();
   return `${rounded}h`;
 }
 

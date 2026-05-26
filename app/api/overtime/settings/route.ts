@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
   clampOvertimeThresholdHours,
+  isValidOvertimeThresholdHours,
+  OVERTIME_WEEKLY_THRESHOLD_STEP,
   type OvertimeSettings,
 } from "@/lib/overtime";
 import {
@@ -54,10 +56,10 @@ export async function PUT(request: Request) {
   }
 
   const weeklyThresholdHours = clampOvertimeThresholdHours(parsedThreshold);
-  if (Math.round(parsedThreshold) !== weeklyThresholdHours) {
+  if (!isValidOvertimeThresholdHours(parsedThreshold)) {
     return NextResponse.json(
       {
-        error: `weeklyThresholdHours must be between 1 and 168`,
+        error: `weeklyThresholdHours must be between 1 and 168 in ${OVERTIME_WEEKLY_THRESHOLD_STEP}-hour increments`,
       },
       { status: 400 },
     );
