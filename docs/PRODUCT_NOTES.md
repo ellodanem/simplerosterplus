@@ -1,5 +1,16 @@
 # Simple Roster Plus — product notes
 
+## Product positioning
+
+Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.
+
+Use this as the product filter for new features and UX decisions:
+
+- Favor work that helps a manager schedule faster, review attendance faster, or handle exceptions faster.
+- Keep configuration lightweight and easy to understand.
+- Prefer alerts, summaries, and AI guidance over heavy workflows.
+- Avoid turning the app into payroll, compliance, or enterprise policy software unless that direction is explicitly chosen later.
+
 ## Timezone (not fixed to one region)
 
 - Each **organization** has `Organization.timeZone` (IANA string, e.g. `America/Toronto`, `Europe/London`, `UTC`).

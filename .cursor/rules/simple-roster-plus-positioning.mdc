@@ -1,0 +1,17 @@
+---
+description: Keep Simple Roster Plus fast and simple
+alwaysApply: true
+---
+
+# Simple Roster Plus Positioning
+
+Use this positioning statement as the product lens for feature and UX decisions:
+
+> Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.
+
+- Prefer features that help managers schedule a week faster, review attendance faster, or fix exceptions faster.
+- Keep setup light. Favor one clear default over many settings, tiers, or policy branches.
+- Treat complexity as a cost. If a feature starts to feel like payroll, compliance, or enterprise configuration software, simplify it or split it out.
+- Prefer summaries, alerts, and AI-assisted suggestions over heavy workflows.
+- Use language and UI that are easy to scan and understand in under a minute.
+- When proposing new work, ask whether it keeps the core experience fast and simple for a manager using the app weekly.
