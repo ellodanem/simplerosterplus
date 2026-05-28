@@ -95,7 +95,11 @@ export default async function RosterPage({
     select: { id: true, weekStart: true, status: true, notes: true },
   });
 
-  const [staffRows, templates, entries, holidays, pendingCounts] = await Promise.all([
+  const prevWeekStartYmd = shiftYmd(weekStartYmd, -7);
+  const prevWeekStartDate = utcDateFromYmd(prevWeekStartYmd);
+
+  const [staffRows, templates, entries, holidays, pendingCounts, previousWeekRow] =
+    await Promise.all([
     prisma.staff.findMany({
       where: { organizationId: org.id, locationId: location.id },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -147,6 +151,19 @@ export default async function RosterPage({
         },
       }),
     ]),
+    prisma.rosterWeek.findUnique({
+      where: {
+        locationId_weekStart: {
+          locationId: location.id,
+          weekStart: prevWeekStartDate,
+        },
+      },
+      select: {
+        rosterEntries: {
+          select: { staffId: true, date: true, shiftTemplateId: true },
+        },
+      },
+    }),
   ]);
 
   const staffIdsWithEntries = staffIdsWithRosterEntries(entries);
@@ -161,6 +178,11 @@ export default async function RosterPage({
     if (e.shiftTemplateId) {
       initialEntries[`${e.staffId}__${ymdForDbDate(e.date)}`] = e.shiftTemplateId;
     }
+  }
+
+  const initialPreviousWeekEntries: Record<string, string | null> = {};
+  for (const e of previousWeekRow?.rosterEntries ?? []) {
+    initialPreviousWeekEntries[`${e.staffId}__${ymdForDbDate(e.date)}`] = e.shiftTemplateId;
   }
 
   const holidayMap: Record<string, { name: string; stationClosed: boolean }> = {};
@@ -223,6 +245,7 @@ export default async function RosterPage({
         staff={staffForClient}
         templates={templates}
         initialEntries={initialEntries}
+        initialPreviousWeekEntries={initialPreviousWeekEntries}
         holidays={holidayMap}
         blockMap={blockMap}
         initialPendingCount={pendingRequestsCount}

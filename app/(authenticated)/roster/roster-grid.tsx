@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
-import { dayHeaderLabel } from "@/lib/roster-week";
+import { dayHeaderLabel, shiftYmd } from "@/lib/roster-week";
 import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
 import {
   countOvertimeAlerts,
@@ -65,6 +65,7 @@ export function RosterGrid({
   staff,
   templates: initialTemplates,
   initialEntries,
+  initialPreviousWeekEntries,
   holidays,
   blockMap: initialBlockMap,
   initialPendingCount,
@@ -85,6 +86,7 @@ export function RosterGrid({
   staff: Staff[];
   templates: Template[];
   initialEntries: Record<string, string>;
+  initialPreviousWeekEntries: Record<string, string | null>;
   holidays: Record<string, Holiday>;
   blockMap: Record<string, "vacation" | "dayOff">;
   initialPendingCount: number;
@@ -192,6 +194,19 @@ export function RosterGrid({
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
+  }
+
+  function lastWeekHoverText(staffId: string, ymd: string): string {
+    const prevKey = cellKey(staffId, shiftYmd(ymd, -7));
+    if (!(prevKey in initialPreviousWeekEntries)) {
+      return "Last week: Not scheduled";
+    }
+    const templateId = initialPreviousWeekEntries[prevKey];
+    if (!templateId) {
+      return "Last week: Off";
+    }
+    const tpl = templateById.get(templateId);
+    return tpl ? `Last week: ${tpl.name}` : "Last week: Off";
   }
 
   function blockedReason(s: Staff, ymd: string): BlockReason | null {
@@ -883,6 +898,7 @@ export function RosterGrid({
                           holidayName={holidays[d]?.name ?? null}
                           pending={isPending}
                           readOnly={weekLocked}
+                          lastWeekTitle={lastWeekHoverText(s.id, d)}
                           onClick={(e) => openCellPopover(e, s, d)}
                         />
                       </td>
@@ -1029,6 +1045,7 @@ function CellButton({
   holidayName,
   pending,
   readOnly,
+  lastWeekTitle,
   onClick,
 }: {
   tpl: Template | undefined;
@@ -1036,6 +1053,7 @@ function CellButton({
   holidayName: string | null;
   pending: boolean;
   readOnly: boolean;
+  lastWeekTitle: string;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   if (blocked) {
@@ -1055,6 +1073,7 @@ function CellButton({
       <div
         className="flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"
         aria-label={ariaLabel}
+        title={lastWeekTitle}
       >
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
@@ -1072,6 +1091,7 @@ function CellButton({
         <div
           className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400"
           aria-label="Off"
+          title={lastWeekTitle}
         >
           {holidayName ? (
             <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
@@ -1088,6 +1108,7 @@ function CellButton({
         onClick={onClick}
         className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
         aria-label="Assign shift"
+        title={lastWeekTitle}
       >
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
@@ -1126,6 +1147,7 @@ function CellButton({
         className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm"
         style={{ background: bg }}
         aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
+        title={lastWeekTitle}
       >
         {inner}
       </div>
@@ -1139,6 +1161,7 @@ function CellButton({
       className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-1"
       style={{ background: bg }}
       aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
+      title={lastWeekTitle}
     >
       {inner}
     </button>
