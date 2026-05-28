@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isApprovedBlocked } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
-import { isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { isRosterDayLocked, isRosterWeekLocked } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
@@ -39,6 +39,7 @@ export async function PUT(request: Request, { params }: Ctx) {
 
   const anchorYmd = ymdForDbDate(week.weekStart);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
+  const todayYmd = formatYmdInZone(new Date(), timeZone);
   if (isRosterWeekLocked(anchorYmd, timeZone)) {
     return NextResponse.json(
       { error: "This roster week is locked (read-only)." },
@@ -82,6 +83,13 @@ export async function PUT(request: Request, { params }: Ctx) {
     );
   }
 
+  if (isRosterDayLocked(date, anchorYmd, todayYmd)) {
+    return NextResponse.json(
+      { error: "This day is locked (read-only)." },
+      { status: 403 },
+    );
+  }
+
   const staff = await prisma.staff.findFirst({
     where: { id: staffId, organizationId: session.orgId },
     select: {
@@ -107,7 +115,6 @@ export async function PUT(request: Request, { params }: Ctx) {
     select: { staffId: true, shiftTemplateId: true },
   });
   const staffIdsWithEntries = staffIdsWithRosterEntries(weekEntries);
-  const todayYmd = formatYmdInZone(new Date(), timeZone);
   if (
     !staffEligibleForRosterWeek(staff, {
       weekEndYmd: weekEndYmd(anchorYmd),

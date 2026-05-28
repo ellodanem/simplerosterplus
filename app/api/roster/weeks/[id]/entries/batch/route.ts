@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
-import { isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { isRosterDayLocked, isRosterWeekLocked } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
@@ -38,6 +38,7 @@ export async function POST(request: Request, { params }: Ctx) {
 
   const anchorYmd = ymdForDbDate(week.weekStart);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
+  const todayYmd = formatYmdInZone(new Date(), timeZone);
   if (isRosterWeekLocked(anchorYmd, timeZone)) {
     return NextResponse.json(
       { error: "This roster week is locked (read-only)." },
@@ -89,6 +90,16 @@ export async function POST(request: Request, { params }: Ctx) {
     );
   }
 
+  const datesToApply = uniqueDates.filter(
+    (date) => !isRosterDayLocked(date, anchorYmd, todayYmd),
+  );
+  if (datesToApply.length === 0) {
+    return NextResponse.json(
+      { error: "All requested dates are locked (read-only)." },
+      { status: 403 },
+    );
+  }
+
   const staff = await prisma.staff.findFirst({
     where: { id: staffId, organizationId: session.orgId },
     select: {
@@ -113,7 +124,6 @@ export async function POST(request: Request, { params }: Ctx) {
     where: { rosterWeekId: week.id },
     select: { staffId: true, shiftTemplateId: true },
   });
-  const todayYmd = formatYmdInZone(new Date(), timeZone);
   if (
     !staffEligibleForRosterWeek(staff, {
       weekEndYmd: weekEndYmd(anchorYmd),
@@ -127,7 +137,7 @@ export async function POST(request: Request, { params }: Ctx) {
     );
   }
 
-  const dateByYmd = new Map(uniqueDates.map((date) => [date, utcDateFromYmd(date)]));
+  const dateByYmd = new Map(datesToApply.map((date) => [date, utcDateFromYmd(date)]));
 
   if (shiftTemplateId !== null) {
     const [template, holidays, blockMap] = await Promise.all([
@@ -140,14 +150,14 @@ export async function POST(request: Request, { params }: Ctx) {
           organizationId: session.orgId,
           locationId: week.locationId,
           stationClosed: true,
-          date: { in: uniqueDates.map((date) => dateByYmd.get(date)!) },
+          date: { in: datesToApply.map((date) => dateByYmd.get(date)!) },
         },
         select: { date: true, name: true },
       }),
       getApprovedBlockMap({
         staffIds: [staff.id],
-        rangeStartDate: dateByYmd.get(uniqueDates[0])!,
-        rangeEndDate: dateByYmd.get(uniqueDates[uniqueDates.length - 1])!,
+        rangeStartDate: dateByYmd.get(datesToApply[0])!,
+        rangeEndDate: dateByYmd.get(datesToApply[datesToApply.length - 1])!,
       }),
     ]);
     if (!template) {
@@ -155,7 +165,7 @@ export async function POST(request: Request, { params }: Ctx) {
     }
 
     const holidayByYmd = new Map(holidays.map((holiday) => [ymdForDbDate(holiday.date), holiday.name]));
-    for (const date of uniqueDates) {
+    for (const date of datesToApply) {
       const holidayName = holidayByYmd.get(date);
       if (holidayName) {
         return NextResponse.json(
@@ -179,7 +189,7 @@ export async function POST(request: Request, { params }: Ctx) {
     }
 
     await prisma.$transaction(
-      uniqueDates.map((date) =>
+      datesToApply.map((date) =>
         prisma.rosterEntry.upsert({
           where: {
             rosterWeekId_staffId_date: {
@@ -203,13 +213,13 @@ export async function POST(request: Request, { params }: Ctx) {
       where: {
         rosterWeekId: week.id,
         staffId,
-        date: { in: uniqueDates.map((date) => dateByYmd.get(date)!) },
+        date: { in: datesToApply.map((date) => dateByYmd.get(date)!) },
       },
     });
   }
 
   return NextResponse.json({
-    entries: uniqueDates.map((date) => ({
+    entries: datesToApply.map((date) => ({
       staffId,
       date,
       shiftTemplateId,

@@ -3,8 +3,12 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
-import { isRosterWeekLocked } from "@/lib/roster-week-lock";
-import { formatYmdInZone } from "@/lib/datetime-policy";
+import {
+  isRosterDayLocked,
+  isRosterWeekLocked,
+  rosterUnlockedDays,
+} from "@/lib/roster-week-lock";
+import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -18,9 +22,8 @@ function addDaysUtc(d: Date, days: number): Date {
 
 /**
  * POST /api/roster/weeks/[id]/copy-previous
- * Replaces the target week with shifts copied from the prior week (same org).
- * Skips target cells that fall on a closed holiday or inside the staff's vacation.
- * Returns the resulting entries so the client can refresh without a round-trip.
+ * Copies shifts from the prior week into unlocked days of the target week.
+ * Preserves locked days, closed holidays, and approved leave blocks.
  */
 export async function POST(_request: Request, { params }: Ctx) {
   const session = await getSession();
@@ -51,6 +54,8 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const todayYmd = formatYmdInZone(new Date(), timeZone);
   const targetWeekEndYmd = weekEndYmd(anchorYmd);
+  const unlockedYmds = rosterUnlockedDays(anchorYmd, todayYmd);
+  const unlockedDateUtc = unlockedYmds.map((ymd) => utcDateFromYmd(ymd));
   const emptyEntries = new Set<string>();
 
   const prevWeekStart = new Date(target.weekStart.getTime() - SEVEN_DAYS_MS);
@@ -80,7 +85,7 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   if (sourceEntries.length === 0) {
     const existing = await prisma.rosterEntry.findMany({
-      where: { rosterWeekId: target.id },
+      where: { rosterWeekId: target.id, shiftTemplateId: { not: null } },
       select: { staffId: true, date: true, shiftTemplateId: true },
     });
     return NextResponse.json({
@@ -147,6 +152,12 @@ export async function POST(_request: Request, { params }: Ctx) {
       continue;
     }
     const targetDate = addDaysUtc(e.date, 7);
+    const targetYmd = ymdForDbDate(targetDate);
+
+    if (isRosterDayLocked(targetYmd, anchorYmd, todayYmd)) {
+      skipped++;
+      continue;
+    }
 
     if (closedDateMs.has(targetDate.getTime())) {
       skipped++;
@@ -159,7 +170,7 @@ export async function POST(_request: Request, { params }: Ctx) {
       continue;
     }
 
-    if (blockMap[`${e.staffId}__${ymdForDbDate(targetDate)}`]) {
+    if (blockMap[`${e.staffId}__${targetYmd}`]) {
       skipped++;
       continue;
     }
@@ -174,7 +185,16 @@ export async function POST(_request: Request, { params }: Ctx) {
   }
 
   await prisma.$transaction([
-    prisma.rosterEntry.deleteMany({ where: { rosterWeekId: target.id } }),
+    ...(unlockedDateUtc.length > 0
+      ? [
+          prisma.rosterEntry.deleteMany({
+            where: {
+              rosterWeekId: target.id,
+              date: { in: unlockedDateUtc },
+            },
+          }),
+        ]
+      : []),
     ...(toInsert.length > 0
       ? [
           prisma.rosterEntry.createMany({
@@ -184,10 +204,15 @@ export async function POST(_request: Request, { params }: Ctx) {
       : []),
   ]);
 
+  const allEntries = await prisma.rosterEntry.findMany({
+    where: { rosterWeekId: target.id, shiftTemplateId: { not: null } },
+    select: { staffId: true, date: true, shiftTemplateId: true },
+  });
+
   return NextResponse.json({
     copied: toInsert.length,
     skipped,
-    entries: toInsert.map((e) => ({
+    entries: allEntries.map((e) => ({
       staffId: e.staffId,
       date: ymdForDbDate(e.date),
       shiftTemplateId: e.shiftTemplateId,

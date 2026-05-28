@@ -5,7 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
+import {
+  isCurrentRosterWeek,
+  isRosterDayLocked,
+  rosterLockedDays,
+  rosterUnlockedDays,
+} from "@/lib/roster-week-lock";
 import { dayHeaderLabel, shiftYmd } from "@/lib/roster-week";
+import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
 import {
   countOvertimeAlerts,
@@ -50,6 +57,21 @@ type RowAnchor = { type: "row"; staffId: string; top: number; left: number };
 type Anchor = CellAnchor | RowAnchor;
 
 const FALLBACK_COLOR = "#475569";
+
+function formatRosterDayList(ymds: string[], timeZone: string): string {
+  if (ymds.length === 0) return "";
+  const labels = ymds.map((ymd) => {
+    const header = dayHeaderLabel(ymd, timeZone);
+    return `${header.weekday} ${header.date}`;
+  });
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+function isDayLocked(ymd: string, weekStartYmd: string, todayYmd: string): boolean {
+  return isRosterDayLocked(ymd, weekStartYmd, todayYmd);
+}
 
 export function RosterGrid({
   weekId,
@@ -101,6 +123,10 @@ export function RosterGrid({
   initialHolidayCalendar: HolidayCalendarConfig;
 }) {
   const router = useRouter();
+  const weekStartPretty = useMemo(
+    () => dayHeaderLabel(weekStartYmd, timeZone).date,
+    [weekStartYmd, timeZone],
+  );
   const [staffRows, setStaffRows] = useState<Staff[]>(staff);
   const [entries, setEntries] = useState<Record<string, string>>(initialEntries);
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -117,6 +143,7 @@ export function RosterGrid({
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     if (initialOpenRequests) setShowRequests(true);
@@ -198,6 +225,29 @@ export function RosterGrid({
     [overtimeByStaff],
   );
 
+  const lockedDays = useMemo(
+    () => rosterLockedDays(weekStartYmd, todayYmd),
+    [weekStartYmd, todayYmd],
+  );
+  const unlockedDays = useMemo(
+    () => rosterUnlockedDays(weekStartYmd, todayYmd),
+    [weekStartYmd, todayYmd],
+  );
+  const partialWeekLock = useMemo(
+    () => !weekLocked && isCurrentRosterWeek(weekStartYmd, todayYmd) && lockedDays.length > 0,
+    [weekLocked, weekStartYmd, todayYmd, lockedDays.length],
+  );
+  const clearableShiftCount = useMemo(() => {
+    let count = 0;
+    for (const ymd of unlockedDays) {
+      for (const s of staffRows) {
+        if (blockMap[`${s.id}__${ymd}`]) continue;
+        if (entries[`${s.id}__${ymd}`]) count++;
+      }
+    }
+    return count;
+  }, [unlockedDays, staffRows, blockMap, entries]);
+
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
   }
@@ -229,6 +279,7 @@ export function RosterGrid({
     ymd: string,
   ) {
     if (weekLocked) return;
+    if (isDayLocked(ymd, weekStartYmd, todayYmd)) return;
     if (blockedReason(s, ymd)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchor({
@@ -277,6 +328,7 @@ export function RosterGrid({
 
   async function setCell(staffId: string, ymd: string, templateId: string | null) {
     if (weekLocked) return;
+    if (isDayLocked(ymd, weekStartYmd, todayYmd)) return;
     const key = cellKey(staffId, ymd);
     const previous = entries[key];
     setEntries((s) => {
@@ -314,6 +366,7 @@ export function RosterGrid({
     const targets: string[] = [];
     const previousByKey: Record<string, string | undefined> = {};
     for (const ymd of days) {
+      if (isDayLocked(ymd, weekStartYmd, todayYmd)) continue;
       if (blockedReason(s, ymd)) continue;
       targets.push(ymd);
       previousByKey[cellKey(staffId, ymd)] = entries[cellKey(staffId, ymd)];
@@ -421,9 +474,12 @@ export function RosterGrid({
 
   async function copyPreviousWeek() {
     if (weekLocked) return;
+    const lockedLabel = lockedDays.length > 0 ? formatRosterDayList(lockedDays, timeZone) : null;
     if (Object.keys(entries).length > 0) {
       const ok = window.confirm(
-        "Replace this week's roster with the previous week's shifts? Existing entries will be overwritten.",
+        lockedLabel
+          ? `Replace unlocked days with the previous week's shifts? ${lockedLabel} ${lockedDays.length === 1 ? "is" : "are"} locked and will not change. Approved vacation and days off will not change.`
+          : "Replace this week's roster with the previous week's shifts? Existing entries will be overwritten.",
       );
       if (!ok) return;
     }
@@ -456,13 +512,67 @@ export function RosterGrid({
       } else {
         const word = copied === 1 ? "shift" : "shifts";
         setNotice(
-          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to holidays, vacation, or approved days off)` : ""}.`,
+          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to locked days, holidays, vacation, or approved days off)` : ""}.`,
         );
       }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setCopying(false);
+    }
+  }
+
+  async function clearWeek() {
+    if (weekLocked || unlockedDays.length === 0 || clearableShiftCount === 0) return;
+
+    const unlockedLabel = formatRosterDayList(unlockedDays, timeZone);
+    const lockedLabel =
+      lockedDays.length > 0 ? formatRosterDayList(lockedDays, timeZone) : null;
+    const shiftWord = clearableShiftCount === 1 ? "shift" : "shifts";
+
+    let message = `Clear all ${clearableShiftCount} ${shiftWord} on ${unlockedLabel}?`;
+    if (lockedLabel) {
+      message += `\n\n${lockedLabel} ${lockedDays.length === 1 ? "is" : "are"} locked and will not change.`;
+    }
+    message += "\n\nApproved vacation and days off will not change.";
+
+    if (!window.confirm(message)) return;
+
+    setClearing(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(
+        `/api/roster/weeks/${encodeURIComponent(weekId)}/clear-unlocked`,
+        { method: "POST" },
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        cleared?: number;
+        skipped?: number;
+        entries?: { staffId: string; date: string; shiftTemplateId: string | null }[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "Could not clear week");
+
+      const next: Record<string, string> = {};
+      for (const e of data.entries ?? []) {
+        if (e.shiftTemplateId) next[cellKey(e.staffId, e.date)] = e.shiftTemplateId;
+      }
+      setEntries(next);
+
+      const cleared = data.cleared ?? 0;
+      if (cleared === 0) {
+        setNotice("No shifts to clear on unlocked days.");
+      } else {
+        const word = cleared === 1 ? "shift" : "shifts";
+        setNotice(
+          `Cleared ${cleared} ${word} on ${unlockedLabel}${lockedLabel ? `. Locked days (${lockedLabel}) were not changed` : ""}.`,
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -473,7 +583,8 @@ export function RosterGrid({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
             <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
-              Week starting {weekStartLabel} {weekStartYmd}
+              Week starting {weekStartLabel}{" "}
+              <span style={{ color: dateTextColorFromYmd(weekStartYmd) }}>{weekStartPretty}</span>
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-600">
@@ -628,11 +739,20 @@ export function RosterGrid({
         </div>
         <button
           type="button"
-          disabled
-          title="Coming soon"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800"
+          onClick={() => void clearWeek()}
+          disabled={weekLocked || clearing || unlockedDays.length === 0 || clearableShiftCount === 0}
+          title={
+            weekLocked
+              ? "Past weeks are read-only"
+              : clearableShiftCount === 0
+                ? "No shifts on unlocked days"
+                : lockedDays.length > 0
+                  ? `Clears shifts on ${formatRosterDayList(unlockedDays, timeZone)} only`
+                  : "Clear all shifts this week"
+          }
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Clear week
+          {clearing ? "Clearing…" : "Clear week"}
         </button>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-zinc-600">
@@ -690,6 +810,15 @@ export function RosterGrid({
         >
           This week has ended and is locked. Shifts are read-only; you can still review and use
           Requests.
+        </div>
+      ) : partialWeekLock ? (
+        <div
+          className="mb-3 rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-700"
+          role="status"
+        >
+          {formatRosterDayList(lockedDays, timeZone)}{" "}
+          {lockedDays.length === 1 ? "is" : "are"} locked (read-only). You can still edit{" "}
+          {formatRosterDayList(unlockedDays, timeZone)}.
         </div>
       ) : null}
 
@@ -756,6 +885,7 @@ export function RosterGrid({
                 const h = dayHeaderLabel(d, timeZone);
                 const isToday = d === todayYmd;
                 const closed = holidays[d]?.stationClosed;
+                const dayLocked = !weekLocked && isDayLocked(d, weekStartYmd, todayYmd);
                 return (
                   <th
                     key={d}
@@ -763,22 +893,32 @@ export function RosterGrid({
                     className={`min-w-[7rem] px-2 py-2 text-left ${
                       isToday
                         ? "bg-emerald-50"
-                        : closed
+                        : dayLocked
                           ? "bg-zinc-100"
-                          : ""
+                          : closed
+                            ? "bg-zinc-100"
+                            : ""
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span
-                        className={`text-xs font-semibold ${isToday ? "text-emerald-700" : "text-zinc-500"}`}
+                        className={`text-xs font-semibold ${
+                          isToday ? "text-emerald-700" : dayLocked ? "text-zinc-400" : "text-zinc-500"
+                        }`}
                       >
                         {h.weekday}
                       </span>
                       <span
-                        className={`text-sm font-medium normal-case ${isToday ? "text-emerald-900" : "text-zinc-800"}`}
+                        className={`text-sm font-medium normal-case ${dayLocked ? "opacity-70" : ""}`}
+                        style={{ color: dateTextColorFromYmd(d) }}
                       >
                         {h.date}
                       </span>
+                      {dayLocked ? (
+                        <span className="rounded bg-zinc-200 px-1 py-0.5 text-[10px] font-semibold normal-case text-zinc-600">
+                          Locked
+                        </span>
+                      ) : null}
                     </div>
                     {holidays[d] ? (
                       <div
@@ -938,6 +1078,7 @@ export function RosterGrid({
                     const tpl = templateId ? templateById.get(templateId) : undefined;
                     const blocked = blockedReason(s, d);
                     const isPending = !!pending[key];
+                    const dayLocked = weekLocked || isDayLocked(d, weekStartYmd, todayYmd);
                     return (
                       <td key={d} className="p-1 align-top">
                         <CellButton
@@ -945,7 +1086,7 @@ export function RosterGrid({
                           blocked={blocked}
                           holidayName={holidays[d]?.name ?? null}
                           pending={isPending}
-                          readOnly={weekLocked}
+                          readOnly={dayLocked}
                           lastWeekTitle={lastWeekHoverText(s.id, d)}
                           onClick={(e) => openCellPopover(e, s, d)}
                         />
