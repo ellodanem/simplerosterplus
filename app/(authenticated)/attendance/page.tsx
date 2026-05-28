@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { getDefaultLocation, type DefaultLocation } from "@/lib/location";
+import {
+  getOrgLocations,
+  resolveLocation,
+  type DefaultLocation,
+} from "@/lib/location";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
 import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import {
@@ -20,6 +25,8 @@ import { getAttendanceWeekData } from "@/lib/attendance-week";
 import { getAttendanceLogData } from "@/lib/attendance-log-data";
 import { AttendanceGrid } from "./attendance-grid";
 import { AttendanceLog } from "./attendance-log";
+import { AttendanceFilterProvider } from "./attendance-filter-context";
+import { AttendanceFilters } from "./attendance-filters";
 
 export const metadata = {
   title: "Attendance | Simple Roster Plus",
@@ -28,7 +35,13 @@ export const metadata = {
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type ViewName = "log" | "week";
-type SearchParams = { view?: string; week?: string; all?: string; staff?: string };
+type SearchParams = {
+  view?: string;
+  week?: string;
+  all?: string;
+  staff?: string;
+  location?: string;
+};
 
 export default async function AttendancePage({
   searchParams,
@@ -44,10 +57,22 @@ export default async function AttendancePage({
   });
   if (!org) redirect("/login");
 
-  const location = await getDefaultLocation(org.id);
-  const effectiveTimeZone = location.timeZone ?? org.timeZone;
-
   const params = await searchParams;
+  const location = await resolveLocation(org.id, params.location);
+  const effectiveTimeZone = location.timeZone ?? org.timeZone;
+  const [locations, departmentRows] = await Promise.all([
+    getOrgLocations(org.id),
+    prisma.staff.findMany({
+      where: { organizationId: org.id, locationId: location.id, role: { not: null } },
+      select: { role: true },
+      distinct: ["role"],
+      orderBy: { role: "asc" },
+    }),
+  ]);
+  const departments = departmentRows
+    .map((row) => row.role)
+    .filter((role): role is string => Boolean(role));
+
   const view: ViewName = params.view === "week" ? "week" : "log";
   const expandedLogWindow = isExpandedAttendanceLog(params.all);
 
@@ -62,42 +87,54 @@ export default async function AttendancePage({
         </div>
       </div>
 
-      <Tabs view={view} />
+      <Tabs view={view} locationId={location.id} />
 
-      {view === "week" ? (
-        <WeekTab
-          org={org}
-          location={location}
-          tz={effectiveTimeZone}
-          requestedWeek={params.week ?? null}
-          staffId={params.staff ?? null}
-        />
-      ) : (
-        <LogTab
-          org={org}
-          location={location}
-          tz={effectiveTimeZone}
-          expandedLogWindow={expandedLogWindow}
-        />
-      )}
+      <AttendanceFilterProvider>
+        <Suspense fallback={null}>
+          <AttendanceFilters
+            locations={locations}
+            currentLocationId={location.id}
+            departments={departments}
+          />
+        </Suspense>
+
+        {view === "week" ? (
+          <WeekTab
+            org={org}
+            location={location}
+            tz={effectiveTimeZone}
+            requestedWeek={params.week ?? null}
+            staffId={params.staff ?? null}
+          />
+        ) : (
+          <LogTab
+            org={org}
+            location={location}
+            tz={effectiveTimeZone}
+            expandedLogWindow={expandedLogWindow}
+          />
+        )}
+      </AttendanceFilterProvider>
     </div>
   );
 }
 
-function Tabs({ view }: { view: ViewName }) {
+function Tabs({ view, locationId }: { view: ViewName; locationId: string }) {
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium ${
       active
         ? "border-emerald-700 text-emerald-900"
         : "border-transparent text-zinc-500 hover:text-zinc-900"
     }`;
+  const logHref = `/attendance?view=log&location=${encodeURIComponent(locationId)}`;
+  const weekHref = `/attendance?view=week&location=${encodeURIComponent(locationId)}`;
   return (
     <div className="mb-4 border-b border-zinc-200">
       <nav className="flex gap-1" aria-label="Attendance views">
-        <Link href="/attendance?view=log" className={tabClass(view === "log")}>
+        <Link href={logHref} className={tabClass(view === "log")}>
           Log
         </Link>
-        <Link href="/attendance?view=week" className={tabClass(view === "week")}>
+        <Link href={weekHref} className={tabClass(view === "week")}>
           Week view
         </Link>
       </nav>
@@ -143,6 +180,7 @@ async function LogTab({
       kpis={data.kpis}
       hasMoreRows={data.hasMoreRows}
       rowLimit={data.rowLimit}
+      locationId={location.id}
     />
   );
 }
@@ -206,6 +244,7 @@ async function WeekTab({
       irregularCount={data.irregularCount}
       irregularByStaff={data.irregularByStaff}
       initialOvertimeSettings={overtimeSettings}
+      locationId={location.id}
     />
   );
 }

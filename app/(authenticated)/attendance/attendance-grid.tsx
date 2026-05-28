@@ -28,6 +28,7 @@ import {
   type OvertimeStatus,
 } from "@/lib/overtime";
 import { methodGlyph, methodFullLabel } from "./punch-method-badge";
+import { useAttendanceFilters } from "./attendance-filter-context";
 
 type Holiday = { name: string; stationClosed: boolean };
 type BlockReason = "vacation" | "dayOff";
@@ -67,6 +68,7 @@ export function AttendanceGrid({
   irregularCount,
   irregularByStaff,
   initialOvertimeSettings,
+  locationId,
 }: {
   weekStartYmd: string;
   days: string[];
@@ -88,8 +90,10 @@ export function AttendanceGrid({
   irregularCount: number;
   irregularByStaff: Record<string, number>;
   initialOvertimeSettings: OvertimeSettings;
+  locationId: string;
 }) {
   const router = useRouter();
+  const { matchesStaff } = useAttendanceFilters();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [openCell, setOpenCell] = useState<{ staffId: string; ymd: string } | null>(null);
@@ -110,7 +114,11 @@ export function AttendanceGrid({
   });
 
   const reloadWeek = useCallback(async () => {
-    const res = await fetch(`/api/attendance/week?week=${encodeURIComponent(weekStartYmd)}`);
+    const params = new URLSearchParams({
+      week: weekStartYmd,
+      location: locationId,
+    });
+    const res = await fetch(`/api/attendance/week?${params.toString()}`);
     const body = (await res.json().catch(() => ({}))) as Partial<AttendanceWeekViewState> & {
       error?: string;
     };
@@ -129,6 +137,7 @@ export function AttendanceGrid({
     });
   }, [
     weekStartYmd,
+    locationId,
     staff,
     holidays,
     blockMap,
@@ -190,10 +199,17 @@ export function AttendanceGrid({
     return currentBlockMap[cellKey(s.id, ymd)] ?? null;
   }
 
+  const filteredStaff = useMemo(
+    () => currentStaff.filter(matchesStaff),
+    [currentStaff, matchesStaff],
+  );
+
   const visibleStaff = useMemo(() => {
-    if (!selectedStaffId) return currentStaff;
-    return currentStaff.filter((s) => s.id === selectedStaffId);
-  }, [currentStaff, selectedStaffId]);
+    const base = selectedStaffId
+      ? filteredStaff.filter((s) => s.id === selectedStaffId)
+      : filteredStaff;
+    return base;
+  }, [filteredStaff, selectedStaffId]);
 
   const selectedStaff = selectedStaffId
     ? currentStaff.find((s) => s.id === selectedStaffId)
@@ -234,7 +250,11 @@ export function AttendanceGrid({
   );
 
   function weekUrl(weekYmd: string, staffId: string | null): string {
-    const params = new URLSearchParams({ view: "week", week: weekYmd });
+    const params = new URLSearchParams({
+      view: "week",
+      week: weekYmd,
+      location: locationId,
+    });
     if (staffId) params.set("staff", staffId);
     return `/attendance?${params.toString()}`;
   }
@@ -250,7 +270,7 @@ export function AttendanceGrid({
   const orderedStaff = useMemo(() => {
     // Right rail wants issues-first; main grid keeps the natural sort. Done as a separate
     // array so the grid is undisturbed.
-    return [...currentStaff].sort((a, b) => {
+    return [...filteredStaff].sort((a, b) => {
       const ai = currentIrregularByStaff[a.id] ?? 0;
       const bi = currentIrregularByStaff[b.id] ?? 0;
       if (ai !== bi) return bi - ai;
@@ -258,7 +278,7 @@ export function AttendanceGrid({
       const bn = `${b.lastName} ${b.firstName}`;
       return an.localeCompare(bn);
     });
-  }, [currentStaff, currentIrregularByStaff]);
+  }, [filteredStaff, currentIrregularByStaff]);
 
   async function refresh() {
     await reloadWeek();

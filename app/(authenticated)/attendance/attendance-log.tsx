@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StaffAvatar } from "@/app/components/staff-avatar";
@@ -15,6 +15,7 @@ import { LogRowEditor } from "./log-row-editor";
 import { AddPunchModal } from "./add-punch-modal";
 import { GraceSettingsModal } from "./grace-settings-modal";
 import { PunchMethodBadge } from "./punch-method-badge";
+import { useAttendanceFilters } from "./attendance-filter-context";
 
 type FilterKey = "all" | "late" | "corrected" | "manual" | "device" | "in" | "out";
 type LogViewState = Pick<
@@ -35,6 +36,7 @@ export function AttendanceLog({
   kpis,
   hasMoreRows,
   rowLimit,
+  locationId,
 }: {
   timeZone: string;
   todayYmd: string;
@@ -48,9 +50,10 @@ export function AttendanceLog({
   kpis: LogKpis;
   hasMoreRows: boolean;
   rowLimit: number;
+  locationId: string;
 }) {
   const router = useRouter();
-  const [search, setSearch] = useState("");
+  const { matchesStaff } = useAttendanceFilters();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [staffFilter, setStaffFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,13 +70,11 @@ export function AttendanceLog({
     rowLimit,
   });
 
-  // Deferred search lets us keep the typing responsive while filtering ~hundreds of rows
-  // without manual debouncing — React batches the heavy work into the lower-priority
-  // update.
-  const deferredSearch = useDeferredValue(search);
-
+  // Deferred search is handled in AttendanceFilterProvider via useDeferredValue.
   const reloadLog = useCallback(async () => {
-    const res = await fetch(`/api/attendance/log${expandedWindow ? "?all=1" : ""}`);
+    const params = new URLSearchParams({ location: locationId });
+    if (expandedWindow) params.set("all", "1");
+    const res = await fetch(`/api/attendance/log?${params.toString()}`);
     const body = (await res.json().catch(() => ({}))) as Partial<LogViewState> & { error?: string };
     if (!res.ok) throw new Error(body.error || "Could not refresh attendance log");
     setLogData({
@@ -84,7 +85,7 @@ export function AttendanceLog({
       hasMoreRows: body.hasMoreRows ?? hasMoreRows,
       rowLimit: body.rowLimit ?? rowLimit,
     });
-  }, [expandedWindow, graceMinutes, staff, rows, kpis, hasMoreRows, rowLimit]);
+  }, [expandedWindow, graceMinutes, staff, rows, kpis, hasMoreRows, rowLimit, locationId]);
 
   const staffById = useMemo(() => {
     const m = new Map<string, AttendanceStaff>();
@@ -93,9 +94,12 @@ export function AttendanceLog({
   }, [logData.staff]);
 
   const filteredRows = useMemo(() => {
-    const q = deferredSearch.trim().toLowerCase();
     return logData.rows.filter((r) => {
       if (staffFilter && r.punch.staffId !== staffFilter) return false;
+      if (r.punch.staffId) {
+        const s = staffById.get(r.punch.staffId);
+        if (s && !matchesStaff(s)) return false;
+      }
       if (filter === "in" && r.punch.punchType !== "in") return false;
       if (filter === "out" && r.punch.punchType !== "out") return false;
       if (filter === "manual" && r.punch.source !== "manual") return false;
@@ -105,16 +109,9 @@ export function AttendanceLog({
         if (r.punch.punchType !== "in") return false;
         if (r.dayStatus !== "late") return false;
       }
-      if (q) {
-        const s = r.punch.staffId ? staffById.get(r.punch.staffId) : null;
-        const hay = s
-          ? `${s.firstName} ${s.lastName} ${s.role ?? ""}`.toLowerCase()
-          : "";
-        if (!hay.includes(q)) return false;
-      }
       return true;
     });
-  }, [logData.rows, filter, staffFilter, deferredSearch, staffById]);
+  }, [logData.rows, filter, staffFilter, matchesStaff, staffById]);
 
   // Per-staff punch counts for the right rail. Always computed from the unfiltered `rows`
   // (the full window) so the badge numbers don't blink to zero when a user clicks one row.
@@ -140,8 +137,9 @@ export function AttendanceLog({
   }, [filteredRows]);
 
   function toggleWindowSize() {
-    const url = expandedWindow ? "/attendance?view=log" : "/attendance?view=log&all=1";
-    router.push(url);
+    const params = new URLSearchParams({ view: "log", location: locationId });
+    if (!expandedWindow) params.set("all", "1");
+    router.push(`/attendance?${params.toString()}`);
   }
 
   const editing = editingId ? logData.rows.find((r) => r.punch.id === editingId) ?? null : null;
@@ -173,16 +171,6 @@ export function AttendanceLog({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-            <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-zinc-700">
-              <span aria-hidden="true">🔍</span>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search staff…"
-                className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
-              />
-            </label>
             <FilterPills active={filter} onPick={setFilter} />
           </div>
 
@@ -259,7 +247,10 @@ export function AttendanceLog({
               Change
             </button>
             . Click any row to edit, delete, or override the day. The{" "}
-            <Link className="text-emerald-700 hover:underline" href="/attendance?view=week">
+            <Link
+              className="text-emerald-700 hover:underline"
+              href={`/attendance?view=week&location=${encodeURIComponent(locationId)}`}
+            >
               Week view
             </Link>{" "}
             shows the same data as a Mon–Sun grid.
@@ -267,7 +258,7 @@ export function AttendanceLog({
         </div>
 
         <StaffFilterRail
-          staff={logData.staff}
+          staff={logData.staff.filter(matchesStaff)}
           counts={staffCounts}
           activeStaffId={staffFilter}
           onPick={(id) => setStaffFilter(id)}

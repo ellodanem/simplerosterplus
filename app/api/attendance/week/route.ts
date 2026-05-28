@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { getDefaultLocation } from "@/lib/location";
+import { resolveLocation } from "@/lib/location";
 import { getAttendanceWeekData } from "@/lib/attendance-week";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -15,13 +15,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "week must be YYYY-MM-DD" }, { status: 400 });
   }
 
+  const url = new URL(request.url);
   const org = await prisma.organization.findUnique({
     where: { id: session.orgId },
     select: { id: true, timeZone: true },
   });
   if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
-  const location = await getDefaultLocation(org.id);
+  const location = await resolveLocation(org.id, url.searchParams.get("location"));
   const timeZone = location.timeZone ?? org.timeZone;
   const data = await getAttendanceWeekData({
     organizationId: org.id,

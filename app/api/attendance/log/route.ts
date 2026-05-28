@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { getDefaultLocation } from "@/lib/location";
+import { resolveLocation } from "@/lib/location";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
 import { shiftYmd } from "@/lib/roster-week";
 import { getAttendanceLogWindowDays } from "@/lib/attendance-log-window";
@@ -17,9 +17,9 @@ export async function GET(request: Request) {
   });
   if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
-  const location = await getDefaultLocation(org.id);
-  const timeZone = location.timeZone ?? org.timeZone;
   const url = new URL(request.url);
+  const location = await resolveLocation(org.id, url.searchParams.get("location"));
+  const timeZone = location.timeZone ?? org.timeZone;
   const windowDays = getAttendanceLogWindowDays(url.searchParams.get("all"));
   const todayYmd = formatYmdInZone(new Date(), timeZone);
   const windowStartYmd = shiftYmd(todayYmd, -(windowDays - 1));
