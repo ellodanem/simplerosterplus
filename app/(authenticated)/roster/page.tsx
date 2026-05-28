@@ -14,10 +14,7 @@ import {
   listHolidayCountries,
   listHolidaySubdivisions,
 } from "@/lib/holiday-calendar";
-import {
-  getRosterWeekStartWeekday,
-  weekStartWeekdayLabel,
-} from "@/lib/roster-week-settings";
+import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
@@ -60,7 +57,6 @@ export default async function RosterPage({
     getOvertimeSettings(org.id),
   ]);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
-  const weekStartLabel = weekStartWeekdayLabel(weekStartWeekday);
   const holidayCountries = listHolidayCountries();
   const holidaySubdivisions = location.holidayCountryCode
     ? listHolidaySubdivisions(location.holidayCountryCode)
@@ -219,7 +215,6 @@ export default async function RosterPage({
         weekId={week.id}
         weekStartYmd={weekStartYmd}
         weekStartWeekday={weekStartWeekday}
-        weekStartLabel={weekStartLabel}
         orgName={org.name}
         weekPublished={week.status === "published"}
         days={days}

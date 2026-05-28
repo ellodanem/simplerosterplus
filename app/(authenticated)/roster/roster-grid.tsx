@@ -96,7 +96,6 @@ export function RosterGrid({
   weekId,
   weekStartYmd,
   weekStartWeekday,
-  weekStartLabel,
   orgName,
   weekPublished,
   days,
@@ -120,7 +119,6 @@ export function RosterGrid({
   weekId: string;
   weekStartYmd: string;
   weekStartWeekday: number;
-  weekStartLabel: string;
   orgName: string;
   weekPublished: boolean;
   days: string[];
@@ -594,7 +592,7 @@ export function RosterGrid({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
             <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
-              Week starting {weekStartLabel}{" "}
+              Week starting{" "}
               <span style={{ color: dateTextColorFromYmd(weekStartYmd) }}>
                 {dayHeaderLabel(weekStartYmd, timeZone).date}
               </span>
