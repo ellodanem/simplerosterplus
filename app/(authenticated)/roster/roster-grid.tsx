@@ -55,6 +55,9 @@ export function RosterGrid({
   weekId,
   weekStartYmd,
   weekStartWeekday,
+  weekStartLabel,
+  orgName,
+  weekPublished,
   days,
   timeZone,
   prevWeek,
@@ -76,6 +79,9 @@ export function RosterGrid({
   weekId: string;
   weekStartYmd: string;
   weekStartWeekday: number;
+  weekStartLabel: string;
+  orgName: string;
+  weekPublished: boolean;
   days: string[];
   timeZone: string;
   prevWeek: string;
@@ -462,64 +468,29 @@ export function RosterGrid({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => goToWeek(prevWeek)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            ← Prev
-          </button>
-          <button
-            type="button"
-            onClick={() => goToWeek(thisWeek)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            disabled={thisWeek === weekStartYmd}
-          >
-            This week
-          </button>
-          <button
-            type="button"
-            onClick={() => goToWeek(nextWeek)}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            Next →
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-zinc-600">
-            Jump to week:
-            <input
-              type="date"
-              value={weekStartYmd}
-              onChange={(e) => {
-                if (e.target.value) goToWeek(e.target.value);
-              }}
-              className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
-              title="Pick any day in the week; the roster snaps to that week's start date."
-            />
-          </label>
-          {overtimeSettings.enabled &&
-          (overtimeAlertCounts.approaching > 0 || overtimeAlertCounts.over > 0) ? (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium ${
-                overtimeAlertCounts.over > 0
-                  ? "border border-rose-200 bg-rose-50 text-rose-800"
-                  : "border border-amber-200 bg-amber-50 text-amber-800"
-              }`}
-            >
-              OT:{" "}
-              {[
-                overtimeAlertCounts.approaching > 0
-                  ? `${overtimeAlertCounts.approaching} approaching`
-                  : null,
-                overtimeAlertCounts.over > 0 ? `${overtimeAlertCounts.over} over` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
+            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
+              Week starting {weekStartLabel} {weekStartYmd}
             </span>
-          ) : null}
+          </div>
+          <p className="mt-1 text-sm text-zinc-600">
+            {orgName} · <span className="font-mono">{timeZone}</span>
+            {weekPublished ? (
+              <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
+                Published
+              </span>
+            ) : null}
+            {weekLocked ? (
+              <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700">
+                Locked
+              </span>
+            ) : null}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={copyPreviousWeek}
@@ -627,6 +598,75 @@ export function RosterGrid({
               </>
             ) : null}
           </div>
+        </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => goToWeek(prevWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            ← Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => goToWeek(thisWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            disabled={thisWeek === weekStartYmd}
+          >
+            This week
+          </button>
+          <button
+            type="button"
+            onClick={() => goToWeek(nextWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Next →
+          </button>
+        </div>
+        <button
+          type="button"
+          disabled
+          title="Coming soon"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800"
+        >
+          Clear week
+        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-zinc-600">
+            Jump to week:
+            <input
+              type="date"
+              value={weekStartYmd}
+              onChange={(e) => {
+                if (e.target.value) goToWeek(e.target.value);
+              }}
+              className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              title="Pick any day in the week; the roster snaps to that week's start date."
+            />
+          </label>
+          {overtimeSettings.enabled &&
+          (overtimeAlertCounts.approaching > 0 || overtimeAlertCounts.over > 0) ? (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium ${
+                overtimeAlertCounts.over > 0
+                  ? "border border-rose-200 bg-rose-50 text-rose-800"
+                  : "border border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              OT:{" "}
+              {[
+                overtimeAlertCounts.approaching > 0
+                  ? `${overtimeAlertCounts.approaching} approaching`
+                  : null,
+                overtimeAlertCounts.over > 0 ? `${overtimeAlertCounts.over} over` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          ) : null}
         </div>
       </div>
 

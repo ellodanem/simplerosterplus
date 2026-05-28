@@ -214,30 +214,14 @@ export default async function RosterPage({
 
   return (
     <div>
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
-        <p className="mt-0.5 text-sm text-zinc-600">
-          {org.name} · <span className="font-mono">{effectiveTimeZone}</span> · Week starting{" "}
-          {weekStartLabel}{" "}
-          <span className="font-medium">{weekStartYmd}</span>
-          {week.status === "published" ? (
-            <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
-              Published
-            </span>
-          ) : null}
-          {weekLocked ? (
-            <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700">
-              Locked
-            </span>
-          ) : null}
-        </p>
-      </div>
-
       <RosterGrid
         key={week.id}
         weekId={week.id}
         weekStartYmd={weekStartYmd}
         weekStartWeekday={weekStartWeekday}
+        weekStartLabel={weekStartLabel}
+        orgName={org.name}
+        weekPublished={week.status === "published"}
         days={days}
         timeZone={effectiveTimeZone}
         prevWeek={prevWeek}
