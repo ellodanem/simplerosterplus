@@ -553,7 +553,53 @@ export function RosterGrid({
                   onClick={() => setShowSettingsMenu(false)}
                   className="fixed inset-0 z-30 cursor-default bg-transparent"
                 />
-                <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+                <div className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      void copyPreviousWeek();
+                    }}
+                    disabled={copying || weekLocked}
+                    title={weekLocked ? "Past weeks are read-only" : undefined}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-sky-800 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span>{copying ? "Copying…" : "Copy previous week"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowRequests(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-rose-800 hover:bg-rose-50"
+                  >
+                    <span>Requests</span>
+                    {pendingRequests > 0 ? (
+                      <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
+                        {pendingRequests}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowPresets(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-violet-800 hover:bg-violet-50"
+                  >
+                    <span>Shift presets</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-400"
+                  >
+                    <span>AI scheduler</span>
+                    <span className="text-[11px] text-zinc-400">Soon</span>
+                  </button>
+                  <div className="my-1 border-t border-zinc-100" role="separator" />
                   <button
                     type="button"
                     onClick={() => {
@@ -591,34 +637,6 @@ export function RosterGrid({
               </>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={copyPreviousWeek}
-            disabled={copying || weekLocked}
-            title={weekLocked ? "Past weeks are read-only" : undefined}
-            className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-sm font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {copying ? "Copying…" : "Copy previous week"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowRequests(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800 hover:bg-rose-100"
-          >
-            Requests
-            {pendingRequests > 0 ? (
-              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
-                {pendingRequests}
-              </span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowPresets(true)}
-            className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-sm font-medium text-violet-800 hover:bg-violet-100"
-          >
-            Shift presets
-          </button>
         </div>
       </div>
 
