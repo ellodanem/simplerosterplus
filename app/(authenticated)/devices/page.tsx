@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { DeviceEnabledToggle } from "@/app/components/device-enabled-toggle";
 import { AddDeviceButton } from "@/app/components/add-device-drawer";
 import { DeviceStatusCells } from "@/app/components/device-status-cells";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 
 export const metadata = {
   title: "Devices | Simple Roster Plus",
@@ -13,6 +14,8 @@ export const metadata = {
 export default async function DevicesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 
   const [devices, locations] = await Promise.all([
     prisma.device.findMany({

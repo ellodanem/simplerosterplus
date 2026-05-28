@@ -7,6 +7,7 @@ import {
   type DeviceEditValues,
   type LocationOption,
 } from "@/app/components/device-edit-form";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 
 export const metadata = {
   title: "Edit device | Simple Roster Plus",
@@ -17,6 +18,8 @@ type Params = Promise<{ id: string }>;
 export default async function EditDevicePage({ params }: { params: Params }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 
   const { id } = await params;
 

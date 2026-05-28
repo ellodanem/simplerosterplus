@@ -19,6 +19,7 @@ import {
   weekStartWeekdayLabel,
 } from "@/lib/roster-week-settings";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
   currentWeekStartYmd,
   daysOfWeek,
@@ -44,6 +45,8 @@ export default async function RosterPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/roster" });
 
   const org = await prisma.organization.findUnique({
     where: { id: session.orgId },

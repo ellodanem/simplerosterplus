@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { StaffList, type StaffRow } from "@/app/components/staff-list";
 import { getStaffDeleteEligibilityMap } from "@/lib/staff-archive";
 import { ymdFromDate } from "@/lib/staff-input";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 
 export const metadata = {
   title: "Staff | Simple Roster Plus",
@@ -12,6 +13,8 @@ export const metadata = {
 export default async function StaffPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/staff" });
 
   const staff = await prisma.staff.findMany({
     where: { organizationId: session.orgId },

@@ -16,6 +16,7 @@ import {
   isExpandedAttendanceLog,
 } from "@/lib/attendance-log-window";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
   currentWeekStartYmd,
   shiftYmd,
@@ -50,6 +51,11 @@ export default async function AttendancePage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({
+    organizationId: session.orgId,
+    nextPath: "/attendance",
+  });
 
   const org = await prisma.organization.findUnique({
     where: { id: session.orgId },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getHomeWeekSummary, homeGreetingName } from "@/lib/home-week-summary";
 import { getSession } from "@/lib/session";
+import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 
 export const metadata = {
   title: "Home | Simple Roster Plus",
@@ -17,6 +18,8 @@ function timeGreeting(): string {
 export default async function HomePage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/" });
 
   const summary = await getHomeWeekSummary(session.orgId);
   const name = homeGreetingName(session.email);
