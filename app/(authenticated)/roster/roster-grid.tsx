@@ -6,7 +6,6 @@ import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import {
-  isCurrentRosterWeek,
   isRosterDayLocked,
   rosterLockedDays,
   rosterUnlockedDays,
@@ -228,10 +227,6 @@ export function RosterGrid({
   const unlockedDays = useMemo(
     () => rosterUnlockedDays(weekStartYmd, todayYmd),
     [weekStartYmd, todayYmd],
-  );
-  const partialWeekLock = useMemo(
-    () => !weekLocked && isCurrentRosterWeek(weekStartYmd, todayYmd) && lockedDays.length > 0,
-    [weekLocked, weekStartYmd, todayYmd, lockedDays.length],
   );
   const clearableShiftCount = useMemo(() => {
     let count = 0;
@@ -808,15 +803,6 @@ export function RosterGrid({
         >
           This week has ended and is locked. Shifts are read-only; you can still review and use
           Requests.
-        </div>
-      ) : partialWeekLock ? (
-        <div
-          className="mb-3 rounded-xl border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-700"
-          role="status"
-        >
-          {formatRosterDayList(lockedDays, timeZone)}{" "}
-          {lockedDays.length === 1 ? "is" : "are"} locked (read-only). You can still edit{" "}
-          {formatRosterDayList(unlockedDays, timeZone)}.
         </div>
       ) : null}
 
