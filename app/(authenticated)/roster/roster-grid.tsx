@@ -11,7 +11,8 @@ import {
   rosterLockedDays,
   rosterUnlockedDays,
 } from "@/lib/roster-week-lock";
-import { dayHeaderLabel, shiftYmd } from "@/lib/roster-week";
+import { dayHeaderLabel, dayHeaderLabelCompact, shiftYmd } from "@/lib/roster-week";
+import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
 import {
   countOvertimeAlerts,
@@ -578,7 +579,10 @@ export function RosterGrid({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
             <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
-              Week starting {weekStartLabel} {dayHeaderLabel(weekStartYmd, timeZone).date}
+              Week starting {weekStartLabel}{" "}
+              <span style={{ color: dateTextColorFromYmd(weekStartYmd) }}>
+                {dayHeaderLabel(weekStartYmd, timeZone).date}
+              </span>
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-600">
@@ -876,7 +880,7 @@ export function RosterGrid({
                 </div>
               </th>
               {days.map((d) => {
-                const h = dayHeaderLabel(d, timeZone);
+                const h = dayHeaderLabelCompact(d, timeZone);
                 const isToday = d === todayYmd;
                 const closed = holidays[d]?.stationClosed;
                 const dayLocked = !weekLocked && isDayLocked(d, weekStartYmd, todayYmd);
