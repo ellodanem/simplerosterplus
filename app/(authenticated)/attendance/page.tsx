@@ -91,6 +91,17 @@ export default async function AttendancePage({
             {org.name} · <span className="font-mono">{effectiveTimeZone}</span> · {location.name}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Coming soon"
+            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-400 shadow-sm"
+          >
+            Extract Pay Period
+          </button>
+        </div>
       </div>
 
       <Tabs view={view} locationId={location.id} />
