@@ -463,11 +463,43 @@ export function RosterGrid({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-zinc-600">
-          <span>
-            Week starting{" "}
-            <span className="font-medium text-zinc-900">{weekStartYmd}</span>
-          </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => goToWeek(prevWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            ← Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => goToWeek(thisWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            disabled={thisWeek === weekStartYmd}
+          >
+            This week
+          </button>
+          <button
+            type="button"
+            onClick={() => goToWeek(nextWeek)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Next →
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-zinc-600">
+            Jump to week:
+            <input
+              type="date"
+              value={weekStartYmd}
+              onChange={(e) => {
+                if (e.target.value) goToWeek(e.target.value);
+              }}
+              className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              title="Pick any day in the week; the roster snaps to that week's start date."
+            />
+          </label>
           {overtimeSettings.enabled &&
           (overtimeAlertCounts.approaching > 0 || overtimeAlertCounts.over > 0) ? (
             <span
@@ -488,174 +520,113 @@ export function RosterGrid({
                 .join(" · ")}
             </span>
           ) : null}
-        </div>
-        <div className="relative">
           <button
             type="button"
-            onClick={() => setShowSettingsMenu((current) => !current)}
-            aria-label="Open roster menu"
-            aria-haspopup="menu"
-            aria-expanded={showSettingsMenu}
-            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            onClick={copyPreviousWeek}
+            disabled={copying || weekLocked}
+            title={weekLocked ? "Past weeks are read-only" : undefined}
+            className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-sm font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Menu
+            {copying ? "Copying…" : "Copy previous week"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRequests(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800 hover:bg-rose-100"
+          >
+            Requests
             {pendingRequests > 0 ? (
               <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
                 {pendingRequests}
               </span>
             ) : null}
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
           </button>
-          {showSettingsMenu ? (
-            <>
-              <button
-                type="button"
-                aria-label="Close roster menu"
-                onClick={() => setShowSettingsMenu(false)}
-                className="fixed inset-0 z-30 cursor-default bg-transparent"
-              />
-              <div className="absolute right-0 top-full z-40 mt-2 w-60 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+          <button
+            type="button"
+            onClick={() => setShowPresets(true)}
+            className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-sm font-medium text-violet-800 hover:bg-violet-100"
+          >
+            Shift presets
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Coming soon"
+            className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm font-medium text-zinc-400"
+          >
+            AI scheduler
+          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSettingsMenu((current) => !current)}
+              aria-label="Open roster settings"
+              aria-haspopup="menu"
+              aria-expanded={showSettingsMenu}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+              title="Roster settings"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-.33-1 1.65 1.65 0 0 0-1-.6 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1-.33H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1-.33 1.65 1.65 0 0 0 .6-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6c.36-.16.74-.24 1.13-.24H10a1.65 1.65 0 0 0 1-.33 1.65 1.65 0 0 0 .33-1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 .33 1 1.65 1.65 0 0 0 1 .6 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.16.36.24.74.24 1.13V10a1.65 1.65 0 0 0 .33 1 1.65 1.65 0 0 0 1 .33H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1 .33 1.65 1.65 0 0 0-.51.34Z" />
+              </svg>
+            </button>
+            {showSettingsMenu ? (
+              <>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    goToWeek(prevWeek);
-                  }}
-                  className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  ← Previous week
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    goToWeek(thisWeek);
-                  }}
-                  disabled={thisWeek === weekStartYmd}
-                  className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  This week
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    goToWeek(nextWeek);
-                  }}
-                  className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  Next week →
-                </button>
-                <label className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50">
-                  <span className="shrink-0">Jump to week</span>
-                  <input
-                    type="date"
-                    value={weekStartYmd}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setShowSettingsMenu(false);
-                        goToWeek(e.target.value);
-                      }
+                  aria-label="Close roster settings"
+                  onClick={() => setShowSettingsMenu(false)}
+                  className="fixed inset-0 z-30 cursor-default bg-transparent"
+                />
+                <div className="absolute right-0 top-full z-40 mt-2 w-48 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowWeekStartSettings(true);
                     }}
-                    className="min-w-0 flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                    title="Pick any day in the week; the roster snaps to that week's start date."
-                  />
-                </label>
-                <div className="my-1 border-t border-zinc-100" role="separator" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    void copyPreviousWeek();
-                  }}
-                  disabled={copying || weekLocked}
-                  title={weekLocked ? "Past weeks are read-only" : undefined}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-sky-800 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span>{copying ? "Copying…" : "Copy previous week"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowRequests(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-rose-800 hover:bg-rose-50"
-                >
-                  <span>Requests</span>
-                  {pendingRequests > 0 ? (
-                    <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
-                      {pendingRequests}
-                    </span>
-                  ) : null}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowPresets(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-violet-800 hover:bg-violet-50"
-                >
-                  <span>Shift presets</span>
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-400"
-                >
-                  <span>AI scheduler</span>
-                  <span className="text-[11px] text-zinc-400">Soon</span>
-                </button>
-                <div className="my-1 border-t border-zinc-100" role="separator" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowWeekStartSettings(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  <span>Week start</span>
-                  <span className="text-[11px] text-zinc-400">Calendar</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowHolidaySettings(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  <span>Holiday calendar</span>
-                  <span className="text-[11px] text-zinc-400">Sync</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowOvertimeSettings(true);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
-                >
-                  <span>OT alerts</span>
-                  <span className="text-[11px] text-zinc-400">Rules</span>
-                </button>
-              </div>
-            </>
-          ) : null}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Week start</span>
+                    <span className="text-[11px] text-zinc-400">Calendar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowHolidaySettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Holiday calendar</span>
+                    <span className="text-[11px] text-zinc-400">Sync</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowOvertimeSettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>OT alerts</span>
+                    <span className="text-[11px] text-zinc-400">Rules</span>
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 
