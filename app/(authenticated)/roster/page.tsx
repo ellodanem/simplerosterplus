@@ -159,7 +159,7 @@ export default async function RosterPage({
         },
       },
       select: {
-        rosterEntries: {
+        entries: {
           select: { staffId: true, date: true, shiftTemplateId: true },
         },
       },
@@ -181,7 +181,7 @@ export default async function RosterPage({
   }
 
   const initialPreviousWeekEntries: Record<string, string | null> = {};
-  for (const e of previousWeekRow?.rosterEntries ?? []) {
+  for (const e of previousWeekRow?.entries ?? []) {
     initialPreviousWeekEntries[`${e.staffId}__${ymdForDbDate(e.date)}`] = e.shiftTemplateId;
   }
 
