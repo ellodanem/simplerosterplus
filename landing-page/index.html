@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers</title>
+  <meta name="description" content="Simple Roster Plus helps managers create weekly schedules and track attendance in minutes—with AI keeping the process fast and simple.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent-blue: #2563eb;
+      --accent-blue-dark: #1d4ed8;
+      --accent-blue-soft: #eff6ff;
+      --accent-green: #059669;
+      --accent-green-soft: #ecfdf5;
+      --accent-amber: #d97706;
+      --accent-amber-soft: #fffbeb;
+      --accent-rose: #e11d48;
+      --accent-rose-soft: #fff1f2;
+      --border: #e2e8f0;
+      --border-light: #f1f5f9;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 8px 30px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.1);
+      --shadow-xl: 0 24px 60px rgba(37, 99, 235, 0.12);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --max: 1140px;
+      --prose: 40rem;
+      --section-y: 4.5rem;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    img { max-width: 100%; height: auto; }
+    a { color: var(--accent-blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--accent-blue-dark); }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+    .skip-link:focus {
+      left: 1rem;
+      top: 1rem;
+      width: auto;
+      height: auto;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: 2px solid var(--accent-blue);
+      border-radius: var(--radius-sm);
+      z-index: 1000;
+    }
+
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 1.25rem; }
+    .prose-narrow { max-width: var(--prose); margin: 0 auto; }
+    .text-center { text-align: center; }
+
+    header {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 4px 24px rgba(15, 23, 42, 0.04);
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .header-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      line-height: 0;
+      --logo-ink: #0f172a;
+      --logo-green: #166534;
+      --logo-soft: #cbd5e1;
+    }
+    .logo svg { height: clamp(28px, 5.5vw, 36px); width: auto; display: block; }
+    .logo:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 3px;
+      border-radius: 8px;
+    }
+    footer .logo {
+      --logo-ink: #f8fafc;
+      --logo-green: #4ade80;
+      --logo-soft: #64748b;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.7rem 1.45rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .btn-primary {
+      background: linear-gradient(180deg, #3b82f6 0%, var(--accent-blue) 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3), 0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(180deg, var(--accent-blue) 0%, var(--accent-blue-dark) 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.6rem 1.05rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .btn-ghost:hover {
+      color: var(--accent-blue);
+      background: var(--accent-blue-soft);
+      border-color: rgba(37, 99, 235, 0.25);
+      transform: translateY(-1px);
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem 0.65rem;
+      flex-shrink: 0;
+    }
+
+    section { padding: var(--section-y) 0; }
+    .section-kicker {
+      display: block;
+      margin: 0 0 0.5rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+    }
+    .section-head-center .section-kicker { text-align: center; }
+    #hero {
+      position: relative;
+      padding: 4rem 0 3.25rem;
+      background: linear-gradient(165deg, var(--surface) 0%, var(--accent-blue-soft) 48%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    #hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
+      pointer-events: none;
+    }
+    #hero .wrap { position: relative; z-index: 1; }
+    #trust {
+      padding: 2.25rem 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+    #pain, #how-it-works, #faq { background: var(--bg); }
+    #dream, #solution, #social-proof, #get-started { background: var(--surface); }
+    #pain { border-top: 1px solid var(--border-light); }
+    #pain .pain-head { max-width: none; }
+    #pain .section-lead { max-width: none; }
+    #solution { border-top: 1px solid var(--border-light); }
+    #solution .section-lead { max-width: none; }
+
+    .section-title {
+      font-size: clamp(1.5rem, 3.2vw, 1.85rem);
+      margin: 0 0 0.55rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+    }
+    .section-lead {
+      color: var(--text-muted);
+      margin: 0 0 1.75rem;
+      max-width: 42em;
+      font-size: 1.05rem;
+    }
+    .section-head-center {
+      text-align: center;
+      max-width: 36rem;
+      margin: 0 auto 2rem;
+    }
+    .section-head-center .section-lead { margin-left: auto; margin-right: auto; }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2.25rem;
+      align-items: start;
+    }
+    @media (min-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr 1.02fr; gap: 2.75rem; }
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 4.5vw, 2.85rem);
+      line-height: 1.1;
+      margin: 0 0 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    .lead {
+      font-size: 1.08rem;
+      color: var(--text-muted);
+      margin: 0 0 1.35rem;
+      max-width: 34em;
+      line-height: 1.55;
+    }
+    .lead strong { color: var(--text); font-weight: 600; }
+    .hero-cta { margin: 0 0 1rem; }
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .hero-badges li {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--border);
+      padding: 0.38rem 0.75rem;
+      border-radius: 999px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .hero-visual .media-placeholder {
+      min-height: 280px;
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      box-shadow: var(--shadow-xl);
+    }
+    @media (min-width: 900px) {
+      .hero-visual .media-placeholder { min-height: 320px; }
+    }
+
+    .media-placeholder {
+      border: 2px dashed #cbd5e1;
+      border-radius: calc(var(--radius) + 2px);
+      background: linear-gradient(165deg, #f8fafc 0%, var(--surface) 55%, var(--accent-blue-soft) 100%);
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      transition: box-shadow 0.2s;
+    }
+    .media-placeholder--compact { min-height: 180px; }
+    .media-placeholder-badge {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+    }
+    .media-placeholder-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      max-width: 22em;
+    }
+    .media-placeholder-desc {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 30em;
+      line-height: 1.5;
+    }
+    .media-placeholder-hint {
+      margin: 0.35rem 0 0;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .media-shot {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: calc(var(--radius) + 2px);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      box-shadow: var(--shadow-md);
+      background: var(--surface);
+    }
+    .hero-visual .media-shot { box-shadow: var(--shadow-xl); }
+    .pain-visual .media-shot { aspect-ratio: 4 / 3; object-fit: cover; }
+    .solution-block .media-shot { aspect-ratio: 16 / 10; object-fit: cover; }
+
+    .trust-eyebrow {
+      margin: 0 0 0.75rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .trust-chips {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem 0.65rem;
+    }
+    .trust-chips li {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.5rem 0.95rem;
+      border-radius: 999px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+
+    .pain-familiar {
+      margin: 1.5rem 0 0;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+    .pain-split {
+      display: grid;
+      gap: 2rem;
+      align-items: center;
+      margin-top: 2.25rem;
+    }
+    @media (min-width: 768px) {
+      .pain-split { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+    }
+    .pain-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.85rem;
+      color: var(--text-muted);
+    }
+    .pain-list li {
+      margin: 0;
+      padding-left: 1.35rem;
+      position: relative;
+      line-height: 1.55;
+    }
+    .pain-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.6em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      opacity: 0.75;
+    }
+    .pain-visual .media-placeholder {
+      min-height: 260px;
+      margin: 0;
+    }
+    .pain-visual .media-shot { margin: 0; }
+    @media (min-width: 768px) {
+      .pain-visual .media-placeholder { min-height: 300px; }
+    }
+    .bridge-line {
+      margin: 2.5rem auto 0;
+      max-width: 36rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    .outcomes {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 720px) { .outcomes { grid-template-columns: repeat(3, 1fr); } }
+    .outcome {
+      padding: 1.35rem 1.25rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    }
+    .outcome:hover {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(37, 99, 235, 0.15);
+      transform: translateY(-2px);
+    }
+    .outcome .check {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent-green-soft);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      margin-bottom: 0.65rem;
+    }
+    .outcome h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .outcome p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+
+    .solution-stack { display: grid; gap: 2.75rem; margin-top: 2.25rem; }
+    .solution-block {
+      padding-bottom: 2.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .solution-block:last-child { padding-bottom: 0; border-bottom: none; }
+    .solution-block-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .solution-block-head > div:not(.solution-icon) {
+      flex: 1;
+      min-width: 0;
+    }
+    .solution-icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue);
+    }
+    .solution-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .solution-block h3 { margin: 0 0 0.35rem; font-size: 1.15rem; }
+    .solution-block-head p { margin: 0; color: var(--text-muted); }
+    .solution-block p { margin: 0 0 1.15rem; color: var(--text-muted); max-width: 42em; }
+    .scope-aside {
+      margin-top: 2.5rem;
+      padding: 1.25rem 1.35rem;
+      background: var(--accent-blue-soft);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    .scope-aside strong { color: var(--text); }
+    .scope-aside ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+
+    .features-list {
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+      padding: 1.5rem 1.5rem;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+    }
+    .features-list h2 { margin: 0 0 0.75rem; font-size: 1.15rem; }
+    .features-list ul { margin: 0; padding-left: 1.2rem; color: var(--text-muted); }
+    .features-list li { margin-bottom: 0.4rem; }
+
+    .testimonials {
+      display: grid;
+      gap: 1.25rem;
+      max-width: 52rem;
+      margin: 0 auto 2rem;
+    }
+    @media (min-width: 700px) { .testimonials { grid-template-columns: 1fr 1fr; } }
+    .testimonial-placeholder {
+      margin: 0;
+      padding: 1.5rem 1.35rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      text-align: center;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .testimonial-placeholder::before {
+      content: "“";
+      position: absolute;
+      top: 0.5rem;
+      left: 1rem;
+      font-size: 2.5rem;
+      line-height: 1;
+      color: var(--accent-blue-soft);
+      font-weight: 800;
+    }
+    .testimonial-placeholder blockquote {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      font-style: italic;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .testimonial-placeholder figcaption {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .testimonial-placeholder .placeholder-note {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+    .logo-placeholder {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 1.25rem;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      background: var(--bg);
+    }
+    .logo-placeholder p { margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+    .logo-slots {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.65rem;
+      margin-top: 0.85rem;
+    }
+    .logo-slot {
+      width: 88px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px dashed #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .get-started-panel {
+      max-width: 34rem;
+      margin: 0 auto;
+      text-align: center;
+      padding: 2.5rem 2rem;
+      background: var(--surface);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow-xl);
+    }
+    .get-started-panel .section-lead { margin-left: auto; margin-right: auto; }
+    .get-started-note { margin: 1.25rem 0 0; font-size: 0.9rem; color: var(--text-muted); }
+
+    .steps {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 800px) { .steps { grid-template-columns: repeat(4, 1fr); } }
+    .step {
+      padding: 1.35rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .step:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .step::before {
+      content: attr(data-step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      background: linear-gradient(180deg, #3b82f6 0%, var(--accent-blue) 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      margin-bottom: 0.85rem;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+    .step h3 { margin: 0 0 0.35rem; font-size: 1rem; }
+    .step p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+
+    .faq-list { max-width: 720px; margin: 0 auto; }
+    .faq-list details {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.65rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .faq-list details[open] {
+      border-color: rgba(37, 99, 235, 0.2);
+      box-shadow: var(--shadow-md);
+    }
+    .faq-list summary {
+      cursor: pointer;
+      padding: 1.05rem 2.75rem 1.05rem 1.15rem;
+      font-weight: 600;
+      list-style: none;
+      position: relative;
+    }
+    .faq-list summary::after {
+      content: "+";
+      position: absolute;
+      right: 1.15rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      line-height: 1;
+    }
+    .faq-list details[open] summary::after { content: "−"; }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list .faq-a {
+      padding: 0 1.1rem 1.05rem;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+    }
+
+    #cta-close {
+      background: linear-gradient(115deg, var(--accent-blue) 0%, #1e40af 52%, #0f766e 130%);
+      color: #fff;
+      padding: 4rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #cta-close::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    #cta-close .wrap { position: relative; z-index: 1; }
+    #cta-close h2 {
+      margin: 0 0 0.65rem;
+      font-size: clamp(1.45rem, 3vw, 1.85rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    #cta-close p { margin: 0 0 1.35rem; opacity: 0.95; max-width: 28em; margin-left: auto; margin-right: auto; }
+    #cta-close .btn-primary {
+      background: #fff;
+      color: var(--accent-blue);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    #cta-close .btn-primary:hover { background: #f0f7ff; color: var(--accent-blue-dark); }
+
+    footer {
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 2.5rem 1.25rem 1.5rem;
+      font-size: 0.9rem;
+    }
+    .footer-inner { max-width: var(--max); margin: 0 auto; text-align: center; }
+    .footer-mission {
+      margin: 0.75rem auto 0;
+      color: #e2e8f0;
+      max-width: 32em;
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+    .footer-links {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem 1.25rem;
+    }
+    .footer-links a { color: #94a3b8; text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+    .footer-copy { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
+  </style>
+</head>
+<body>
+  <!-- App URLs — update when custom domain or Clerk signup route is live -->
+  <script>
+    window.SRP_APP_ORIGIN = "https://simplerosterplus.vercel.app";
+    window.SRP_APP_LOGIN_URL = "https://simplerosterplus.vercel.app/login";
+    window.SRP_APP_SIGNUP_URL = "https://simplerosterplus.vercel.app/login";
+  </script>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="#hero" aria-label="Simple Roster Plus, home">
+        <svg viewBox="0 0 196 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <rect x="8" y="6" width="84" height="52" rx="8" stroke="var(--logo-ink)" stroke-width="1.75"/>
+          <path stroke="var(--logo-ink)" stroke-width="1.75" d="M8 20h84"/>
+          <path stroke="var(--logo-ink)" stroke-width="2" stroke-linecap="round" d="M28 12V6M64 12V6"/>
+          <text x="24.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">S</text>
+          <text x="50" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">R</text>
+          <text x="75.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">P</text>
+          <rect x="14" y="24" width="26" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
+          <rect x="44" y="23" width="18" height="7" rx="3" fill="var(--logo-green)" opacity="0.4"/>
+          <rect x="66" y="23" width="20" height="7" rx="3" fill="var(--logo-green)"/>
+          <rect x="14" y="35" width="22" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
+          <rect x="40" y="34" width="24" height="7" rx="3" fill="var(--logo-green)"/>
+          <circle cx="78" cy="50" r="11" fill="var(--logo-green)"/>
+          <path stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M72 50l4 4 9-11"/>
+          <text x="118" y="30" font-size="12.5" font-weight="700" fill="var(--logo-ink)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Simple Roster</text>
+          <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
+        </svg>
+      </a>
+      <div class="header-actions">
+        <a class="btn btn-ghost" id="app-login" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
+        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="hero" aria-labelledby="hero-heading">
+      <div class="wrap hero-grid">
+        <div>
+          <h1 id="hero-heading">Build the weekly schedule and track attendance—in minutes.</h1>
+          <p class="lead"><strong>Simple Roster Plus</strong> helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.</p>
+          <p class="hero-cta">
+            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          </p>
+          <ul class="hero-badges" aria-label="Highlights">
+            <li>AI-assisted scheduling</li>
+            <li>Attendance beside the roster</li>
+            <li>Built for managers</li>
+          </ul>
+        </div>
+        <div class="hero-visual">
+          <img class="media-shot" src="images/hero-weekly-schedule-attendance.png" width="1200" height="800" alt="Weekly schedule grid with attendance status indicators showing who is scheduled and who has clocked in.">
+        </div>
+      </div>
+    </section>
+
+    <section id="trust" aria-labelledby="trust-heading">
+      <div class="wrap text-center">
+        <h2 id="trust-heading" class="visually-hidden">Who it is for</h2>
+        <p class="trust-eyebrow">For managers running shift teams in retail, food service, clinics, security, and other multi-shift workplaces.</p>
+        <ul class="trust-chips" aria-label="Example workplaces">
+          <li>Retail &amp; gas</li>
+          <li>Restaurants</li>
+          <li>Clinics</li>
+          <li>Security</li>
+          <li>Cleaning teams</li>
+          <li>Multi-shift sites</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="pain" aria-labelledby="pain-heading">
+      <div class="wrap">
+        <div class="section-head-center pain-head">
+          <p class="section-kicker">The problem</p>
+          <h2 id="pain-heading" class="section-title">Scheduling the week shouldn’t eat your Monday</h2>
+          <p class="section-lead">Many managers still build rosters in spreadsheets or group chats, then check attendance somewhere else. Small tasks pile up—copying last week, filling gaps, chasing who’s late—and the floor waits.</p>
+          <p class="pain-familiar">Sound familiar?</p>
+        </div>
+        <div class="pain-split">
+          <ul class="pain-list">
+            <li>Does building next week’s schedule take longer than it should?</li>
+            <li>Do you check attendance in a different place than where you planned shifts?</li>
+            <li>When someone’s late or missing, do you find out late—or only when payroll asks?</li>
+            <li>Are you retyping hours instead of reviewing exceptions quickly?</li>
+            <li>Would a simpler weekly routine free you to run the shift, not the spreadsheet?</li>
+          </ul>
+          <div class="pain-visual">
+            <img class="media-shot" src="images/pain-before-workflow.png" width="800" height="600" alt="Desk with spreadsheet roster on laptop and shift messages on phone, showing a split scheduling workflow.">
+          </div>
+        </div>
+        <p class="bridge-line">What if the whole week—schedule and attendance—took minutes, not hours?</p>
+      </div>
+    </section>
+
+    <section id="dream" aria-labelledby="dream-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">After</p>
+          <h2 id="dream-heading" class="section-title">A fast weekly rhythm managers can keep</h2>
+        </div>
+        <div class="outcomes">
+          <article class="outcome">
+            <div class="check" aria-hidden="true">✓</div>
+            <h3>Schedule the week quickly</h3>
+            <p>Build or adjust the roster in minutes—with AI helping you fill gaps and repeat what worked last week.</p>
+          </article>
+          <article class="outcome">
+            <div class="check" aria-hidden="true">✓</div>
+            <h3>See attendance next to the plan</h3>
+            <p>Know who was scheduled, who showed up, and who needs a nudge—without switching tools.</p>
+          </article>
+          <article class="outcome">
+            <div class="check" aria-hidden="true">✓</div>
+            <h3>Stay on top of exceptions</h3>
+            <p>Review late arrivals, no-shows, and hour totals in a view made for a quick manager scan.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="solution" aria-labelledby="solution-heading">
+      <div class="wrap">
+        <p class="section-kicker">How it works</p>
+        <h2 id="solution-heading" class="section-title">One app for the week: schedule, attendance, clarity</h2>
+        <p class="section-lead">Simple Roster Plus keeps managers in one lightweight flow—create the weekly schedule, track attendance as people clock in, and use AI to cut the busywork. <a href="#how-it-works">See how it works</a></p>
+
+        <div class="solution-stack">
+          <article class="solution-block">
+            <div class="solution-block-head">
+              <div class="solution-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+              </div>
+              <div>
+                <h3>Create the weekly schedule in minutes</h3>
+                <p>Start from last week, drop in shifts, and let AI suggest fills and adjustments so you’re not rebuilding from scratch every time.</p>
+              </div>
+            </div>
+            <img class="media-shot" src="images/solution-schedule-builder.png" width="1280" height="800" alt="Simple Roster Plus weekly roster grid with shift blocks, staff rows, and week navigation.">
+          </article>
+          <article class="solution-block">
+            <div class="solution-block-head">
+              <div class="solution-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+              </div>
+              <div>
+                <h3>Track attendance beside the roster</h3>
+                <p>See planned shifts next to real clock-ins—on time, late, or missing—so you can fix issues while the week is still running.</p>
+              </div>
+            </div>
+            <img class="media-shot" src="images/solution-attendance.png" width="1280" height="800" alt="Simple Roster Plus attendance week view with planned shifts, absences, and vacation status.">
+          </article>
+          <article class="solution-block">
+            <div class="solution-block-head">
+              <div class="solution-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z"/><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+              <div>
+                <h3>AI keeps it fast and simple</h3>
+                <p>Smart suggestions and clear summaries surface what needs attention—without turning rostering into enterprise configuration software.</p>
+              </div>
+            </div>
+            <img class="media-shot" src="images/solution-ai-assist.png" width="1280" height="800" alt="Simple Roster Plus home dashboard with weekly exception summary for late arrivals, open slots, and coverage.">
+          </article>
+        </div>
+
+        <aside class="scope-aside" aria-labelledby="scope-heading">
+          <p id="scope-heading"><strong>Focused on managers, not mega-HR:</strong></p>
+          <ul>
+            <li>Weekly scheduling and attendance—not hiring, benefits, or performance reviews.</li>
+            <li>Light setup and sensible defaults—not endless policy branches.</li>
+            <li>Practical summaries and exports—not running payroll or filing taxes.</li>
+            <li>Built to stay scannable in under a minute when you open it each week.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section id="social-proof" aria-labelledby="social-proof-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">Social proof</p>
+          <h2 id="social-proof-heading" class="section-title">Built for managers who run the week</h2>
+        </div>
+        <div class="features-list">
+          <h2 class="visually-hidden">Product highlights</h2>
+          <ul>
+            <li>Weekly schedule builder with AI-assisted fills and adjustments</li>
+            <li>Attendance view tied to the roster—see plan vs. actual at a glance</li>
+            <li>Exception highlights (late, absent, hour gaps) without digging through sheets</li>
+            <li>Simple exports when you need to hand hours to payroll or admin</li>
+          </ul>
+        </div>
+        <div class="testimonials" aria-label="Customer testimonials">
+          <figure class="testimonial-placeholder">
+            <blockquote>“[Short quote about saving time on weekly scheduling—replace with a real manager testimonial.]”</blockquote>
+            <figcaption>
+              [Name], [Role]
+              <span class="placeholder-note">Testimonial placeholder 1</span>
+            </figcaption>
+          </figure>
+          <figure class="testimonial-placeholder">
+            <blockquote>“[Short quote about attendance clarity or fewer payroll disputes—replace when available.]”</blockquote>
+            <figcaption>
+              [Name], [Role]
+              <span class="placeholder-note">Testimonial placeholder 2</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="logo-placeholder" aria-label="Customer logos">
+          <p><strong>Logo row placeholder</strong> — add 3–6 customer or partner logos when you have permission.</p>
+          <div class="logo-slots" aria-hidden="true">
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" aria-labelledby="how-it-works-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">Simple setup</p>
+          <h2 id="how-it-works-heading" class="section-title">How it works</h2>
+          <p class="section-lead">A short weekly loop—set up once, then stay fast every week.</p>
+        </div>
+        <div class="steps">
+          <div class="step" data-step="1">
+            <h3>Add your team</h3>
+            <p>Light setup: staff, roles, and how they clock in—no heavy HR onboarding.</p>
+          </div>
+          <div class="step" data-step="2">
+            <h3>Build this week’s schedule</h3>
+            <p>Create or tweak shifts in minutes; AI helps with repeats, gaps, and quick edits.</p>
+          </div>
+          <div class="step" data-step="3">
+            <h3>Track attendance as people work</h3>
+            <p>See clock-ins against the plan so late and missing shifts stand out early.</p>
+          </div>
+          <div class="step" data-step="4">
+            <h3>Review and close the week</h3>
+            <p>Scan exceptions, adjust if needed, and export or hand off hours in a few clicks.</p>
+          </div>
+        </div>
+        <p class="text-center" style="margin-top:1.75rem;">
+          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-heading">
+      <div class="wrap">
+        <p class="section-kicker text-center">Questions</p>
+        <h2 id="faq-heading" class="section-title text-center">Common questions</h2>
+        <p class="section-lead text-center" style="margin-left:auto;margin-right:auto;">Short answers before you start your trial.</p>
+        <div class="faq-list">
+          <details open>
+            <summary>Who is Simple Roster Plus for?</summary>
+            <p class="faq-a">Managers at shift-based small businesses who need to publish a weekly schedule and track attendance without a bloated HR system. If you want payroll, hiring, and benefits in one suite, this isn’t that—and that’s intentional.</p>
+          </details>
+          <details>
+            <summary>How does AI help?</summary>
+            <p class="faq-a">AI speeds up the repetitive parts—suggesting shift fills, surfacing exceptions, and keeping the UI focused on what to do next—so you spend less time clicking and more time running the floor.</p>
+          </details>
+          <details>
+            <summary>How long does setup take?</summary>
+            <p class="faq-a">We keep onboarding light: add your team, set how clock-ins work, and you’re ready to build the first week. Most managers should be scheduling within minutes, not days of configuration.</p>
+          </details>
+          <details>
+            <summary>Will this replace our HR or payroll software?</summary>
+            <p class="faq-a">No. Simple Roster Plus is for weekly scheduling and attendance. You can export hours for whoever runs payroll; we don’t process pay or file taxes.</p>
+          </details>
+          <details>
+            <summary>Can we connect clock-in hardware?</summary>
+            <p class="faq-a">Yes—many teams use terminals (including ZKTeco) alongside the app. The goal is one clear manager view of plan vs. actual, not another disconnected spreadsheet.</p>
+          </details>
+          <details>
+            <summary>How much does it cost?</summary>
+            <p class="faq-a">Pricing is still being finalized. Start a free trial to use the product; we’ll publish simple plans before paid launch. No payroll or enterprise HR bundles—just roster and attendance for managers.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="get-started" aria-labelledby="get-started-heading">
+      <div class="wrap">
+        <div class="get-started-panel">
+          <h2 id="get-started-heading" class="section-title">Start your free trial</h2>
+          <p class="section-lead">Create your account in the app, add your team, and build this week’s schedule—most managers are up and running in minutes.</p>
+          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          <p class="get-started-note">Already have an account? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>. Questions? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="cta-close" aria-labelledby="cta-close-heading">
+      <div class="wrap">
+        <h2 id="cta-close-heading">Your week’s schedule and attendance—fast, simple, in one place.</h2>
+        <p>Join managers who want AI-assisted scheduling without the HR bloat.</p>
+        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <a class="logo" href="#hero" aria-label="Simple Roster Plus, home">
+        <svg viewBox="0 0 196 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <rect x="8" y="6" width="84" height="52" rx="8" stroke="var(--logo-ink)" stroke-width="1.75"/>
+          <path stroke="var(--logo-ink)" stroke-width="1.75" d="M8 20h84"/>
+          <path stroke="var(--logo-ink)" stroke-width="2" stroke-linecap="round" d="M28 12V6M64 12V6"/>
+          <text x="24.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">S</text>
+          <text x="50" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">R</text>
+          <text x="75.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">P</text>
+          <rect x="14" y="24" width="26" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
+          <rect x="44" y="23" width="18" height="7" rx="3" fill="var(--logo-green)" opacity="0.4"/>
+          <rect x="66" y="23" width="20" height="7" rx="3" fill="var(--logo-green)"/>
+          <circle cx="78" cy="50" r="11" fill="var(--logo-green)"/>
+          <path stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M72 50l4 4 9-11"/>
+          <text x="118" y="30" font-size="12.5" font-weight="700" fill="var(--logo-ink)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Simple Roster</text>
+          <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
+        </svg>
+      </a>
+      <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.</p>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="#faq">FAQ</a>
+        <a class="app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <a href="privacy.html">Privacy policy</a>
+        <a href="terms.html">Terms of service</a>
+        <a id="app-login-footer" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
+      </nav>
+      <p class="footer-copy">© <span id="y"></span> Simple Roster Plus. All rights reserved.</p>
+    </div>
+  </footer>
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+    (function () {
+      var origin = (window.SRP_APP_ORIGIN || "https://simplerosterplus.vercel.app").replace(/\/$/, "");
+      var loginUrl = window.SRP_APP_LOGIN_URL || origin + "/login";
+      var signupUrl = window.SRP_APP_SIGNUP_URL || loginUrl;
+      document.querySelectorAll(".app-cta").forEach(function (el) {
+        el.href = signupUrl;
+      });
+      ["app-login", "app-login-inline", "app-login-footer"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.href = loginUrl;
+      });
+    })();
+  </script>
+</body>
+</html>
