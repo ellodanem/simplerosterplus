@@ -72,6 +72,26 @@ function isDayLocked(ymd: string, weekStartYmd: string, todayYmd: string): boole
   return isRosterDayLocked(ymd, weekStartYmd, todayYmd);
 }
 
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
 export function RosterGrid({
   weekId,
   weekStartYmd,
@@ -588,8 +608,12 @@ export function RosterGrid({
               </span>
             ) : null}
             {weekLocked ? (
-              <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700">
-                Locked
+              <span
+                className="ml-2 inline-flex items-center rounded bg-zinc-200 px-1.5 py-0.5 text-zinc-600"
+                title="Locked (read-only)"
+                aria-label="Locked"
+              >
+                <LockIcon />
               </span>
             ) : null}
           </p>
@@ -900,8 +924,12 @@ export function RosterGrid({
                         {h.date}
                       </span>
                       {dayLocked ? (
-                        <span className="rounded bg-zinc-200 px-1 py-0.5 text-[10px] font-semibold normal-case text-zinc-600">
-                          Locked
+                        <span
+                          className="inline-flex text-zinc-500"
+                          title="Locked (read-only)"
+                          aria-label="Locked"
+                        >
+                          <LockIcon />
                         </span>
                       ) : null}
                     </div>
