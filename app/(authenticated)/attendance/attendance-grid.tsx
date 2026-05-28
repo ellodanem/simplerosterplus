@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { StaffAvatar } from "@/app/components/staff-avatar";
 import { dayHeaderLabel } from "@/lib/roster-week";
+import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
 import {
   presenceClasses,
@@ -451,7 +452,8 @@ export function AttendanceGrid({
                           {h.weekday}
                         </span>
                         <span
-                          className={`text-sm font-medium normal-case ${isToday ? "text-emerald-900" : "text-zinc-800"}`}
+                          className="text-sm font-medium normal-case"
+                          style={{ color: dateTextColorFromYmd(d) }}
                         >
                           {h.date}
                         </span>
@@ -909,7 +911,7 @@ function CellEditorModal({
               <h2 className="text-base font-semibold text-zinc-900">
                 {staff.firstName} {staff.lastName}
               </h2>
-              <p className="text-xs text-zinc-500">{ymd}</p>
+              <p className="text-xs text-zinc-500">{dayHeaderLabel(ymd, timeZone).date}</p>
             </div>
           </div>
           <button
