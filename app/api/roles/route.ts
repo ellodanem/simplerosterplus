@@ -11,7 +11,7 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const departments = await prisma.department.findMany({
+  const roles = await prisma.staffRole.findMany({
     where: { organizationId: session.orgId },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: {
@@ -23,8 +23,8 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    departments: departments.map(({ _count, ...department }) => ({
-      ...department,
+    roles: roles.map(({ _count, ...role }) => ({
+      ...role,
       staffCount: _count.staff,
     })),
   });
@@ -44,24 +44,24 @@ export async function POST(request: Request) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
 
-  const maxSort = await prisma.department.aggregate({
+  const maxSort = await prisma.staffRole.aggregate({
     where: { organizationId: session.orgId },
     _max: { sortOrder: true },
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
 
-  const collision = await findTaxonomyNameCollision(session.orgId, name, "department");
-  const warning = collision ? taxonomyCollisionWarning(collision, "department") : null;
+  const collision = await findTaxonomyNameCollision(session.orgId, name, "role");
+  const warning = collision ? taxonomyCollisionWarning(collision, "role") : null;
 
   try {
-    const department = await prisma.department.create({
+    const role = await prisma.staffRole.create({
       data: { organizationId: session.orgId, name, sortOrder },
       select: { id: true, name: true, sortOrder: true },
     });
-    return NextResponse.json({ department, warning }, { status: 201 });
+    return NextResponse.json({ role, warning }, { status: 201 });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      return NextResponse.json({ error: "That department already exists." }, { status: 409 });
+      return NextResponse.json({ error: "That role already exists." }, { status: 409 });
     }
     throw err;
   }

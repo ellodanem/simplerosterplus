@@ -51,10 +51,21 @@ export default async function RosterPage({
   });
   if (!org) redirect("/login");
 
-  const [location, weekStartWeekday, overtimeSettings] = await Promise.all([
+  const [location, weekStartWeekday, overtimeSettings, addStaffLocations, addStaffRoles] =
+    await Promise.all([
     getDefaultLocation(org.id),
     getRosterWeekStartWeekday(org.id),
     getOvertimeSettings(org.id),
+    prisma.location.findMany({
+      where: { organizationId: org.id },
+      orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+    prisma.staffRole.findMany({
+      where: { organizationId: org.id },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
   const holidayCountries = listHolidayCountries();
@@ -240,6 +251,8 @@ export default async function RosterPage({
           countries: holidayCountries,
           subdivisions: holidaySubdivisions,
         }}
+        addStaffLocations={addStaffLocations}
+        addStaffRoles={addStaffRoles}
       />
     </div>
   );

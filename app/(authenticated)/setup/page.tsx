@@ -15,20 +15,31 @@ export default async function SetupPage() {
   const state = await getSetupState(session.orgId);
   const completeness = getSetupCompleteness(state);
 
-  const templates = await prisma.shiftTemplate.findMany({
-    where: { organizationId: session.orgId },
-    orderBy: [{ name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      startTime: true,
-      endTime: true,
-      unpaidBreakMinutes: true,
-      color: true,
-    },
-  });
-
-  const staffCount = await prisma.staff.count({ where: { organizationId: session.orgId } });
+  const [templates, staffCount, roles, locations] = await Promise.all([
+    prisma.shiftTemplate.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        startTime: true,
+        endTime: true,
+        unpaidBreakMinutes: true,
+        color: true,
+      },
+    }),
+    prisma.staff.count({ where: { organizationId: session.orgId } }),
+    prisma.staffRole.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, sortOrder: true },
+    }),
+    prisma.location.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -43,9 +54,10 @@ export default async function SetupPage() {
         initialState={state}
         initialCompleteness={completeness}
         initialTemplates={templates}
+        initialRoles={roles.map((r) => ({ ...r, staffCount: 0 }))}
+        initialLocations={locations}
         initialStaffCount={staffCount}
       />
     </div>
   );
 }
-

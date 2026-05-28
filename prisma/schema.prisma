@@ -21,6 +21,7 @@ model Organization {
 
   users          AppUser[]
   staff          Staff[]
+  departments    Department[]
   staffRoles     StaffRole[]
   shiftTemplates ShiftTemplate[]
   rosterWeeks    RosterWeek[]
@@ -149,6 +150,20 @@ model AppUser {
   @@index([organizationId])
 }
 
+/// Org-wide reporting group (HR, Accounting, Front of House). Not the same as job role.
+model Department {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  sortOrder      Int          @default(0)
+  staff          Staff[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+/// Job title / function (Accountant, Server, HR Manager). Org-wide list for consistency.
 model StaffRole {
   id             String       @id @default(cuid())
   organizationId String
@@ -157,6 +172,7 @@ model StaffRole {
   sortOrder      Int          @default(0)
   staff          Staff[]
 
+  @@unique([organizationId, name])
   @@index([organizationId])
 }
 
@@ -174,6 +190,8 @@ model Staff {
   role           String?
   roleId         String?
   staffRole      StaffRole?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  departmentId   String?
+  department     Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   /// User id on the location's attendance device. Unique within a location, not across the org,
   /// so two locations with separate devices can each have a "5".
   deviceUserId   String?

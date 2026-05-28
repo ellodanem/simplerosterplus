@@ -87,6 +87,7 @@ export async function getAttendanceLogData(args: {
         firstName: true,
         lastName: true,
         role: true,
+        department: { select: { name: true } },
         punchExempt: true,
         archivedAt: true,
       },
@@ -320,6 +321,7 @@ export async function getAttendanceLogData(args: {
     firstName: s.firstName,
     lastName: s.lastName,
     role: s.role,
+    departmentName: s.department?.name ?? null,
     punchExempt: s.punchExempt,
     archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
   }));

@@ -23,9 +23,10 @@ export function AttendanceFilterProvider({ children }: { children: ReactNode }) 
     const q = deferredSearch.trim().toLowerCase();
 
     function matchesStaff(staff: AttendanceStaff): boolean {
-      if (department && (staff.role ?? "") !== department) return false;
+      if (department && (staff.departmentName ?? "") !== department) return false;
       if (q) {
-        const hay = `${staff.firstName} ${staff.lastName} ${staff.role ?? ""}`.toLowerCase();
+        const hay =
+          `${staff.firstName} ${staff.lastName} ${staff.role ?? ""} ${staff.departmentName ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;

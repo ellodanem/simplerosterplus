@@ -7,20 +7,29 @@ import { TimeZoneCombobox } from "@/app/components/timezone-combobox";
 import { WEEKDAY_OPTIONS, weekStartWeekdayLabel } from "@/lib/roster-week-settings";
 import { TemplatesManager, type Template } from "@/app/(authenticated)/roster/templates-manager";
 import { AddStaffForm } from "@/app/components/add-staff-form";
+import {
+  TaxonomyListManager,
+  type TaxonomyItem,
+} from "@/app/components/taxonomy-list-manager";
 import type { SetupCompleteness, SetupState } from "@/lib/onboarding";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
+import { ROLE_PRESETS } from "@/lib/role-presets";
 
-type StepId = "business" | "shifts" | "staff" | "attendance" | "go-live";
+type StepId = "business" | "shifts" | "roles" | "staff" | "attendance" | "go-live";
 
 export function SetupWizard({
   initialState,
   initialCompleteness,
   initialTemplates,
+  initialRoles,
+  initialLocations,
   initialStaffCount,
 }: {
   initialState: SetupState;
   initialCompleteness: SetupCompleteness;
   initialTemplates: Template[];
+  initialRoles: TaxonomyItem[];
+  initialLocations: Array<{ id: string; name: string }>;
   initialStaffCount: number;
 }) {
   const router = useRouter();
@@ -29,6 +38,7 @@ export function SetupWizard({
   const [state, setState] = useState<SetupState>(initialState);
   const [completeness, setCompleteness] = useState<SetupCompleteness>(initialCompleteness);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const [roles, setRoles] = useState<TaxonomyItem[]>(initialRoles);
   const [staffCount, setStaffCount] = useState<number>(initialStaffCount);
 
   const [orgName, setOrgName] = useState(state.organization.name);
@@ -46,7 +56,7 @@ export function SetupWizard({
   const [toast, setToast] = useState<string | null>(null);
 
   const progress = useMemo(() => {
-    const order: StepId[] = ["business", "shifts", "staff", "attendance", "go-live"];
+    const order: StepId[] = ["business", "shifts", "roles", "staff", "attendance", "go-live"];
     return { order, index: order.indexOf(step) };
   }, [step]);
 
@@ -236,7 +246,7 @@ export function SetupWizard({
                 type="button"
                 onClick={async () => {
                   await refreshState();
-                  setStep("staff");
+                  setStep("roles");
                 }}
                 className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
               >
@@ -263,19 +273,66 @@ export function SetupWizard({
         </section>
       ) : null}
 
-      {step === "staff" ? (
+      {step === "roles" ? (
         <section className="rounded-xl border border-zinc-200 bg-white p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Staff</h2>
+              <h2 className="text-lg font-semibold text-zinc-900">Roles</h2>
               <p className="mt-1 text-sm text-zinc-600">
-                Add a few people so you can start building the week.
+                Job titles for your team. Click common roles or type your own.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setStep("shifts")}
+                className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await refreshState();
+                  setStep("staff");
+                }}
+                disabled={roles.length === 0}
+                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <TaxonomyListManager
+              kind="role"
+              apiBase="/api/roles"
+              initial={roles}
+              presets={ROLE_PRESETS}
+              onChange={setRoles}
+            />
+          </div>
+
+          {roles.length === 0 ? (
+            <p className="mt-3 text-sm text-amber-700">Add at least one role to continue.</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {step === "staff" ? (
+        <section className="rounded-xl border border-zinc-200 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900">Staff</h2>
+              <p className="mt-1 text-sm text-zinc-600">
+                Add a few people so you can start building the week. Location and role are required.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStep("roles")}
                 className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
               >
                 Back
@@ -308,6 +365,11 @@ export function SetupWizard({
             <AddStaffForm
               requiredOnly
               variant="page"
+              locations={initialLocations}
+              roles={roles.map(({ id, name }) => ({ id, name }))}
+              onRolesChange={(next) =>
+                setRoles(next.map((r) => ({ ...r, sortOrder: 0, staffCount: 0 })))
+              }
               onSuccess={() => {
                 setStaffCount((n) => n + 1);
                 setTimeout(refreshState, 0);
@@ -413,7 +475,7 @@ export function SetupWizard({
         <section className="rounded-xl border border-zinc-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-zinc-900">Go live</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            You’re ready once you have at least one location, shift preset, and staff member.
+            You’re ready once you have a location, shift presets, roles, and at least one staff member.
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -428,6 +490,7 @@ export function SetupWizard({
               ok={Boolean(state.defaultLocation)}
             />
             <SummaryRow label="Shift presets" value={String(templates.length)} ok={templates.length > 0} />
+            <SummaryRow label="Roles" value={String(roles.length)} ok={roles.length > 0} />
             <SummaryRow label="Staff" value={String(staffCount)} ok={staffCount > 0} />
           </div>
 
@@ -472,6 +535,7 @@ function ProgressBar({ steps, current }: { steps: StepId[]; current: StepId }) {
   const labels: Record<StepId, string> = {
     business: "Business",
     shifts: "Shifts",
+    roles: "Roles",
     staff: "Staff",
     attendance: "Attendance",
     "go-live": "Go live",

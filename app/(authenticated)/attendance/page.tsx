@@ -66,18 +66,15 @@ export default async function AttendancePage({
   const params = await searchParams;
   const location = await resolveLocation(org.id, params.location);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
-  const [locations, departmentRows] = await Promise.all([
+  const [locations, departments] = await Promise.all([
     getOrgLocations(org.id),
-    prisma.staff.findMany({
-      where: { organizationId: org.id, locationId: location.id, role: { not: null } },
-      select: { role: true },
-      distinct: ["role"],
-      orderBy: { role: "asc" },
+    prisma.department.findMany({
+      where: { organizationId: org.id },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { name: true },
     }),
   ]);
-  const departments = departmentRows
-    .map((row) => row.role)
-    .filter((role): role is string => Boolean(role));
+  const departmentNames = departments.map((d) => d.name);
 
   const view: ViewName = params.view === "week" ? "week" : "log";
   const expandedLogWindow = isExpandedAttendanceLog(params.all);
@@ -111,7 +108,7 @@ export default async function AttendancePage({
           <AttendanceFilters
             locations={locations}
             currentLocationId={location.id}
-            departments={departments}
+            departments={departmentNames}
           />
         </Suspense>
 

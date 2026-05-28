@@ -10,6 +10,7 @@ export type StaffEditValues = {
   email: string;
   role: string;
   roleId?: string | null;
+  departmentId?: string | null;
   departmentName?: string | null;
   locationId?: string;
   locationName?: string;
@@ -38,6 +39,7 @@ export function StaffEditForm({
 }) {
   const router = useRouter();
   const [v, setV] = useState<StaffEditValues>(initial);
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
@@ -53,16 +55,21 @@ export function StaffEditForm({
   }
 
   async function loadOptions() {
-    const [deptRes, locRes] = await Promise.all([
+    const [roleRes, deptRes, locRes] = await Promise.all([
+      fetch("/api/roles"),
       fetch("/api/departments"),
       fetch("/api/locations"),
     ]);
+    const roleBody = (await roleRes.json().catch(() => ({}))) as {
+      roles?: Array<{ id: string; name: string }>;
+    };
     const deptBody = (await deptRes.json().catch(() => ({}))) as {
       departments?: Array<{ id: string; name: string }>;
     };
     const locBody = (await locRes.json().catch(() => ({}))) as {
       locations?: Array<{ id: string; name: string }>;
     };
+    if (Array.isArray(roleBody.roles)) setRoles(roleBody.roles);
     if (Array.isArray(deptBody.departments)) setDepartments(deptBody.departments);
     if (Array.isArray(locBody.locations)) setLocations(locBody.locations);
   }
@@ -74,6 +81,16 @@ export function StaffEditForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!v.roleId) {
+      setError("Role is required");
+      return;
+    }
+    if (!v.locationId) {
+      setError("Location is required");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`/api/staff/${encodeURIComponent(v.id)}`, {
@@ -83,9 +100,8 @@ export function StaffEditForm({
           firstName: v.firstName,
           lastName: v.lastName,
           email: v.email,
-          roleId: v.roleId ?? null,
-          // keep `role` for now for back-compat; API will sync to department if roleId is set
-          role: v.role,
+          roleId: v.roleId,
+          departmentId: v.departmentId ?? null,
           locationId: v.locationId,
           deviceUserId: v.deviceUserId,
           contactNumber: v.contactNumber,
@@ -96,13 +112,34 @@ export function StaffEditForm({
           sortOrder: Number.isFinite(v.sortOrder) ? v.sortOrder : 0,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        staff?: StaffEditValues & {
+          staffRole?: { id: string; name: string };
+          department?: { id: string; name: string } | null;
+          location?: { id: string; name: string };
+        };
+      };
       if (!res.ok) {
         setError(data.error || "Could not save changes");
         return;
       }
+
+      const saved: StaffEditValues = data.staff
+        ? {
+            ...v,
+            role: data.staff.staffRole?.name ?? data.staff.role ?? v.role,
+            roleId: data.staff.roleId ?? v.roleId,
+            departmentId: data.staff.departmentId ?? null,
+            departmentName: data.staff.department?.name ?? null,
+            locationId: data.staff.location?.id ?? v.locationId,
+            locationName: data.staff.location?.name ?? v.locationName,
+          }
+        : v;
+
+      setV(saved);
       if (onSaved) {
-        onSaved(v);
+        onSaved(saved);
       } else {
         router.refresh();
       }
@@ -243,25 +280,45 @@ export function StaffEditForm({
           onChange={(x) => update("email", x)}
         />
         <SelectField
-          id="dept"
-          label="Department"
+          id="loc"
+          label="Location"
+          required
+          value={v.locationId ?? ""}
+          onChange={(x) => {
+            update("locationId", x);
+            const loc = locations.find((l) => l.id === x);
+            if (loc) update("locationName", loc.name);
+          }}
+          options={locations.map((l) => ({ value: l.id, label: l.name }))}
+        />
+        <SelectField
+          id="role"
+          label="Role"
+          required
           value={v.roleId ?? ""}
           onChange={(x) => {
             update("roleId", x || null);
-            const dept = departments.find((d) => d.id === x);
-            if (dept) update("role", dept.name);
+            const role = roles.find((r) => r.id === x);
+            if (role) update("role", role.name);
           }}
           options={[
-            { value: "", label: "Default / none" },
-            ...departments.map((d) => ({ value: d.id, label: d.name })),
+            { value: "", label: "Select role…" },
+            ...roles.map((r) => ({ value: r.id, label: r.name })),
           ]}
         />
         <SelectField
-          id="loc"
-          label="Location"
-          value={v.locationId ?? ""}
-          onChange={(x) => update("locationId", x)}
-          options={locations.map((l) => ({ value: l.id, label: l.name }))}
+          id="dept"
+          label="Department"
+          value={v.departmentId ?? ""}
+          onChange={(x) => {
+            update("departmentId", x || null);
+            const dept = departments.find((d) => d.id === x);
+            update("departmentName", dept?.name ?? null);
+          }}
+          options={[
+            { value: "", label: "None" },
+            ...departments.map((d) => ({ value: d.id, label: d.name })),
+          ]}
         />
         <Field
           id="ep"
@@ -275,7 +332,7 @@ export function StaffEditForm({
           label="Device user ID"
           value={v.deviceUserId}
           onChange={(x) => update("deviceUserId", x)}
-          help="ZKTeco enrolment ID. Unique within the organization."
+          help="ZKTeco enrolment ID. Unique within the location."
         />
         <Field
           id="edob"
@@ -418,21 +475,24 @@ function SelectField(props: {
   value: string;
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
+  required?: boolean;
 }) {
-  const { id, label, value, onChange, options } = props;
+  const { id, label, value, onChange, options, required } = props;
   return (
     <div>
       <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
         {label}
+        {required ? <span className="ml-0.5 text-red-600">*</span> : null}
       </label>
       <select
         id={id}
+        required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value || "__empty"} value={o.value}>
             {o.label}
           </option>
         ))}

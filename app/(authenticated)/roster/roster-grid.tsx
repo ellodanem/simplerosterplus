@@ -115,6 +115,8 @@ export function RosterGrid({
   initialOpenRequests = false,
   initialOvertimeSettings,
   initialHolidayCalendar,
+  addStaffLocations,
+  addStaffRoles,
 }: {
   weekId: string;
   weekStartYmd: string;
@@ -138,6 +140,8 @@ export function RosterGrid({
   initialOpenRequests?: boolean;
   initialOvertimeSettings: OvertimeSettings;
   initialHolidayCalendar: HolidayCalendarConfig;
+  addStaffLocations: Array<{ id: string; name: string }>;
+  addStaffRoles: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [staffRows, setStaffRows] = useState<Staff[]>(staff);
@@ -154,6 +158,7 @@ export function RosterGrid({
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(initialOpenRequests);
   const [showAddStaff, setShowAddStaff] = useState(false);
+  const [staffRoles, setStaffRoles] = useState(addStaffRoles);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -1208,6 +1213,9 @@ export function RosterGrid({
           <AddStaffForm
             requiredOnly
             variant="modal"
+            locations={addStaffLocations}
+            roles={staffRoles}
+            onRolesChange={setStaffRoles}
             onCancel={() => setShowAddStaff(false)}
             onSuccess={(added) => {
               setShowAddStaff(false);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { getRoleDeleteBlockReason } from "@/lib/role-delete-guard";
 import {
   findTaxonomyNameCollision,
   taxonomyCollisionWarning,
@@ -21,7 +22,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const data: Prisma.DepartmentUpdateInput = {};
+  const data: Prisma.StaffRoleUpdateInput = {};
 
   if ("name" in body) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -44,23 +45,31 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   let warning: string | null = null;
   if (typeof data.name === "string") {
-    const collision = await findTaxonomyNameCollision(session.orgId, data.name, "department");
-    warning = collision ? taxonomyCollisionWarning(collision, "department") : null;
+    const collision = await findTaxonomyNameCollision(session.orgId, data.name, "role");
+    warning = collision ? taxonomyCollisionWarning(collision, "role") : null;
   }
 
   try {
-    const department = await prisma.department.update({
+    const role = await prisma.staffRole.update({
       where: { id, organizationId: session.orgId },
       data,
       select: { id: true, name: true, sortOrder: true },
     });
-    return NextResponse.json({ department, warning });
+
+    if (typeof data.name === "string") {
+      await prisma.staff.updateMany({
+        where: { organizationId: session.orgId, roleId: id },
+        data: { role: data.name },
+      });
+    }
+
+    return NextResponse.json({ role, warning });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      return NextResponse.json({ error: "That department already exists." }, { status: 409 });
+      return NextResponse.json({ error: "That role already exists." }, { status: 409 });
     }
     throw err;
   }
@@ -71,20 +80,13 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const inUse = await prisma.staff.count({
-    where: { organizationId: session.orgId, departmentId: id },
-  });
-  if (inUse > 0) {
-    return NextResponse.json(
-      {
-        error: `This department is assigned to ${inUse} staff member${inUse === 1 ? "" : "s"} and cannot be deleted. Reassign them first.`,
-      },
-      { status: 409 },
-    );
+  const blockReason = await getRoleDeleteBlockReason(session.orgId, id);
+  if (blockReason) {
+    return NextResponse.json({ error: blockReason }, { status: 409 });
   }
 
   try {
-    await prisma.department.delete({ where: { id, organizationId: session.orgId } });
+    await prisma.staffRole.delete({ where: { id, organizationId: session.orgId } });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {

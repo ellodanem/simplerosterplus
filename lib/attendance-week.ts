@@ -35,6 +35,7 @@ export type AttendanceStaff = {
   firstName: string;
   lastName: string;
   role: string | null;
+  departmentName: string | null;
   punchExempt: boolean;
   /** ISO instant when archived, or null if active. */
   archivedAt: string | null;
@@ -147,6 +148,7 @@ export async function getAttendanceWeekData(args: {
         firstName: true,
         lastName: true,
         role: true,
+        department: { select: { name: true } },
         punchExempt: true,
         archivedAt: true,
       },
@@ -303,6 +305,7 @@ export async function getAttendanceWeekData(args: {
     firstName: s.firstName,
     lastName: s.lastName,
     role: s.role,
+    departmentName: s.department?.name ?? null,
     punchExempt: s.punchExempt,
     archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
   }));

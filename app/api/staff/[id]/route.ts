@@ -12,6 +12,7 @@ const STAFF_SELECT = {
   email: true,
   role: true,
   roleId: true,
+  departmentId: true,
   deviceUserId: true,
   punchExempt: true,
   isActive: true,
@@ -24,6 +25,7 @@ const STAFF_SELECT = {
   sortOrder: true,
   location: { select: { id: true, name: true } },
   staffRole: { select: { id: true, name: true } },
+  department: { select: { id: true, name: true } },
 } as const;
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -113,31 +115,41 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const v = parseOptionalString(body.email);
     if (v !== undefined) data.email = v;
   }
+
   const roleId =
     typeof body.roleId === "string" && body.roleId.trim() ? body.roleId.trim() : null;
   if ("roleId" in body) {
-    if (roleId) {
-      const dept = await prisma.staffRole.findFirst({
-        where: { id: roleId, organizationId: session.orgId },
-        select: { id: true, name: true },
+    if (!roleId) {
+      return NextResponse.json({ error: "role is required" }, { status: 400 });
+    }
+    const staffRole = await prisma.staffRole.findFirst({
+      where: { id: roleId, organizationId: session.orgId },
+      select: { id: true, name: true },
+    });
+    if (!staffRole) {
+      return NextResponse.json({ error: "Role not found" }, { status: 404 });
+    }
+    data.staffRole = { connect: { id: staffRole.id } };
+    data.role = staffRole.name;
+  }
+
+  if ("departmentId" in body) {
+    const deptId =
+      typeof body.departmentId === "string" && body.departmentId.trim()
+        ? body.departmentId.trim()
+        : null;
+    if (deptId) {
+      const dept = await prisma.department.findFirst({
+        where: { id: deptId, organizationId: session.orgId },
+        select: { id: true },
       });
       if (!dept) {
         return NextResponse.json({ error: "Department not found" }, { status: 404 });
       }
-      data.staffRole = { connect: { id: dept.id } };
-      // Keep legacy string in sync for existing UI and places that still use `role`.
-      data.role = dept.name;
+      data.department = { connect: { id: dept.id } };
     } else {
-      data.staffRole = { disconnect: true };
-      // Don't auto-clear role text unless explicitly provided.
+      data.department = { disconnect: true };
     }
-  }
-
-  if ("role" in body) {
-    if (typeof body.role !== "string") {
-      return NextResponse.json({ error: "role must be a string" }, { status: 400 });
-    }
-    data.role = body.role.trim();
   }
 
   if ("locationId" in body) {

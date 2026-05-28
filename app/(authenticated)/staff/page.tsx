@@ -16,13 +16,14 @@ export default async function StaffPage() {
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/staff" });
 
-  const [staff, locations, departments] = await Promise.all([
+  const [staff, locations, roles, departments] = await Promise.all([
     prisma.staff.findMany({
       where: { organizationId: session.orgId },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
       include: {
         location: { select: { id: true, name: true } },
         staffRole: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
       },
     }),
     prisma.location.findMany({
@@ -31,6 +32,11 @@ export default async function StaffPage() {
       select: { id: true, name: true },
     }),
     prisma.staffRole.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+    prisma.department.findMany({
       where: { organizationId: session.orgId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true },
@@ -48,6 +54,8 @@ export default async function StaffPage() {
     email: s.email ?? "",
     role: s.staffRole?.name ?? s.role ?? "",
     roleId: s.roleId ?? null,
+    departmentId: s.departmentId ?? null,
+    departmentName: s.department?.name ?? null,
     locationId: s.locationId,
     locationName: s.location?.name ?? "",
     deviceUserId: s.deviceUserId ?? "",
@@ -70,7 +78,7 @@ export default async function StaffPage() {
         trials.
       </p>
 
-      <StaffList staff={rows} locations={locations} departments={departments} />
+      <StaffList staff={rows} locations={locations} roles={roles} departments={departments} />
     </div>
   );
 }

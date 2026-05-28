@@ -7,6 +7,7 @@ export type SetupState = {
   organization: { id: string; name: string; timeZone: string };
   defaultLocation: { id: string; name: string; timeZone: string | null } | null;
   staffCount: number;
+  roleCount: number;
   shiftTemplateCount: number;
   rosterWeekStartWeekday: number;
   attendanceGraceMinutes: number;
@@ -15,11 +16,11 @@ export type SetupState = {
 
 export type SetupCompleteness = {
   complete: boolean;
-  missing: Array<"location" | "staff" | "shiftTemplates">;
+  missing: Array<"location" | "roles" | "staff" | "shiftTemplates">;
 };
 
 export async function getSetupState(organizationId: string): Promise<SetupState> {
-  const [org, defaultLocation, staffCount, shiftTemplateCount, rosterWeekStartWeekday, grace, ot] =
+  const [org, defaultLocation, staffCount, roleCount, shiftTemplateCount, rosterWeekStartWeekday, grace, ot] =
     await Promise.all([
       prisma.organization.findUnique({
         where: { id: organizationId },
@@ -31,6 +32,7 @@ export async function getSetupState(organizationId: string): Promise<SetupState>
         select: { id: true, name: true, timeZone: true },
       }),
       prisma.staff.count({ where: { organizationId } }),
+      prisma.staffRole.count({ where: { organizationId } }),
       prisma.shiftTemplate.count({ where: { organizationId } }),
       getRosterWeekStartWeekday(organizationId),
       getGraceMinutes(organizationId),
@@ -45,6 +47,7 @@ export async function getSetupState(organizationId: string): Promise<SetupState>
     organization: org,
     defaultLocation: defaultLocation ?? null,
     staffCount,
+    roleCount,
     shiftTemplateCount,
     rosterWeekStartWeekday,
     attendanceGraceMinutes: grace,
@@ -54,12 +57,12 @@ export async function getSetupState(organizationId: string): Promise<SetupState>
 
 export function getSetupCompleteness(state: Pick<
   SetupState,
-  "defaultLocation" | "staffCount" | "shiftTemplateCount"
+  "defaultLocation" | "roleCount" | "staffCount" | "shiftTemplateCount"
 >): SetupCompleteness {
   const missing: SetupCompleteness["missing"] = [];
   if (!state.defaultLocation) missing.push("location");
   if (state.shiftTemplateCount <= 0) missing.push("shiftTemplates");
+  if (state.roleCount <= 0) missing.push("roles");
   if (state.staffCount <= 0) missing.push("staff");
   return { complete: missing.length === 0, missing };
 }
-

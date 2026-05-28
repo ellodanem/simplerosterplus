@@ -2,8 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
+import {
+  ManageDepartmentsModal,
+  ManageRolesModal,
+} from "@/app/components/manage-taxonomy-modals";
 import { Modal } from "@/app/components/modal";
 import { StaffEditForm, type StaffEditValues } from "@/app/components/staff-edit-form";
+import type { TaxonomyItem } from "@/app/components/taxonomy-list-manager";
 
 export type StaffRow = StaffEditValues;
 
@@ -17,25 +22,55 @@ function staffStatusLabel(s: StaffRow): string {
 export function StaffList({
   staff,
   locations,
-  departments,
+  roles: initialRoles,
+  departments: initialDepartments,
 }: {
   staff: StaffRow[];
   locations: Array<{ id: string; name: string }>;
+  roles: Array<{ id: string; name: string }>;
   departments: Array<{ id: string; name: string }>;
 }) {
   const [rows, setRows] = useState<StaffRow[]>(sortRows(staff));
+  const [roles, setRoles] = useState(initialRoles);
+  const [departments, setDepartments] = useState(initialDepartments);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<StaffRow | null>(null);
+  const [manageRoles, setManageRoles] = useState(false);
+  const [manageDepartments, setManageDepartments] = useState(false);
   const [locationFilter, setLocationFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+
+  const roleItems: TaxonomyItem[] = useMemo(
+    () =>
+      roles.map((r) => ({
+        id: r.id,
+        name: r.name,
+        sortOrder: 0,
+        staffCount: rows.filter((row) => row.roleId === r.id).length,
+      })),
+    [roles, rows],
+  );
+
+  const departmentItems: TaxonomyItem[] = useMemo(
+    () =>
+      departments.map((d) => ({
+        id: d.id,
+        name: d.name,
+        sortOrder: 0,
+        staffCount: rows.filter((row) => row.departmentId === d.id).length,
+      })),
+    [departments, rows],
+  );
 
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
       if (locationFilter && r.locationId !== locationFilter) return false;
-      if (departmentFilter && r.roleId !== departmentFilter) return false;
+      if (roleFilter && r.roleId !== roleFilter) return false;
+      if (departmentFilter && r.departmentId !== departmentFilter) return false;
       return true;
     });
-  }, [rows, locationFilter, departmentFilter]);
+  }, [rows, locationFilter, roleFilter, departmentFilter]);
 
   function handleSaved(next: StaffRow) {
     setRows((curr) => sortRows(curr.map((row) => (row.id === next.id ? next : row))));
@@ -51,9 +86,31 @@ export function StaffList({
     setRows((curr) => sortRows([...curr, next]));
   }
 
+  function handleRolesChange(next: TaxonomyItem[]) {
+    setRoles(next.map(({ id, name }) => ({ id, name })));
+  }
+
+  function handleDepartmentsChange(next: TaxonomyItem[]) {
+    setDepartments(next.map(({ id, name }) => ({ id, name })));
+  }
+
   return (
     <>
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setManageRoles(true)}
+          className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Manage roles
+        </button>
+        <button
+          type="button"
+          onClick={() => setManageDepartments(true)}
+          className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Manage departments
+        </button>
         <button
           type="button"
           onClick={() => setAdding(true)}
@@ -64,7 +121,7 @@ export function StaffList({
       </div>
 
       <div className="mt-6 flex flex-wrap items-end justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <SelectField
             id="staff-filter-location"
             label="Location"
@@ -73,6 +130,16 @@ export function StaffList({
             options={[
               { value: "", label: "All locations" },
               ...locations.map((l) => ({ value: l.id, label: l.name })),
+            ]}
+          />
+          <SelectField
+            id="staff-filter-role"
+            label="Role"
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={[
+              { value: "", label: "All roles" },
+              ...roles.map((r) => ({ value: r.id, label: r.name })),
             ]}
           />
           <SelectField
@@ -98,6 +165,7 @@ export function StaffList({
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Department</th>
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Device ID</th>
@@ -109,7 +177,7 @@ export function StaffList({
           <tbody className="divide-y divide-zinc-100">
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
                   No staff yet. Use Add Staff or run{" "}
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
                 </td>
@@ -128,6 +196,7 @@ export function StaffList({
                   </td>
                   <td className="px-4 py-3 text-zinc-600">{s.email || "—"}</td>
                   <td className="px-4 py-3 text-zinc-600">{s.role || "—"}</td>
+                  <td className="px-4 py-3 text-zinc-600">{s.departmentName || "—"}</td>
                   <td className="px-4 py-3 text-zinc-600">{s.locationName ?? "—"}</td>
                   <td className="px-4 py-3 text-zinc-600">
                     {s.deviceUserId ? (
@@ -156,16 +225,13 @@ export function StaffList({
         </table>
       </div>
 
-      <Modal
-        open={adding}
-        onClose={() => setAdding(false)}
-        title="Add staff"
-        size="xl"
-      >
+      <Modal open={adding} onClose={() => setAdding(false)} title="Add staff" size="xl">
         <AddStaffForm
           variant="modal"
           locations={locations}
+          roles={roles}
           departments={departments}
+          onRolesChange={setRoles}
           onSuccess={handleAdded}
           onCancel={() => setAdding(false)}
         />
@@ -186,6 +252,20 @@ export function StaffList({
           />
         ) : null}
       </Modal>
+
+      <ManageRolesModal
+        open={manageRoles}
+        onClose={() => setManageRoles(false)}
+        initialRoles={roleItems}
+        onChange={handleRolesChange}
+      />
+
+      <ManageDepartmentsModal
+        open={manageDepartments}
+        onClose={() => setManageDepartments(false)}
+        initialDepartments={departmentItems}
+        onChange={handleDepartmentsChange}
+      />
     </>
   );
 }
@@ -217,7 +297,7 @@ function SelectField(props: {
         className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value || "__empty"} value={o.value}>
             {o.label}
           </option>
         ))}
