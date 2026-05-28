@@ -16,10 +16,26 @@ export default async function StaffPage() {
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/staff" });
 
-  const staff = await prisma.staff.findMany({
-    where: { organizationId: session.orgId },
-    orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [staff, locations, departments] = await Promise.all([
+    prisma.staff.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
+      include: {
+        location: { select: { id: true, name: true } },
+        staffRole: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.location.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+    prisma.staffRole.findMany({
+      where: { organizationId: session.orgId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+  ]);
 
   const deleteChecks = await getStaffDeleteEligibilityMap(
     staff.map((s) => ({ id: s.id, isTestUser: s.isTestUser })),
@@ -30,7 +46,10 @@ export default async function StaffPage() {
     firstName: s.firstName,
     lastName: s.lastName,
     email: s.email ?? "",
-    role: s.role ?? "",
+    role: s.staffRole?.name ?? s.role ?? "",
+    roleId: s.roleId ?? null,
+    locationId: s.locationId,
+    locationName: s.location?.name ?? "",
     deviceUserId: s.deviceUserId ?? "",
     contactNumber: s.contactNumber ?? "",
     dateOfBirth: ymdFromDate(s.dateOfBirth),
@@ -51,7 +70,7 @@ export default async function StaffPage() {
         trials.
       </p>
 
-      <StaffList staff={rows} />
+      <StaffList staff={rows} locations={locations} departments={departments} />
     </div>
   );
 }

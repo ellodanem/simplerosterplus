@@ -11,6 +11,7 @@ const STAFF_SELECT = {
   lastName: true,
   email: true,
   role: true,
+  roleId: true,
   deviceUserId: true,
   punchExempt: true,
   isActive: true,
@@ -21,6 +22,8 @@ const STAFF_SELECT = {
   startDate: true,
   contactNumber: true,
   sortOrder: true,
+  location: { select: { id: true, name: true } },
+  staffRole: { select: { id: true, name: true } },
 } as const;
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -110,11 +113,46 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const v = parseOptionalString(body.email);
     if (v !== undefined) data.email = v;
   }
+  const roleId =
+    typeof body.roleId === "string" && body.roleId.trim() ? body.roleId.trim() : null;
+  if ("roleId" in body) {
+    if (roleId) {
+      const dept = await prisma.staffRole.findFirst({
+        where: { id: roleId, organizationId: session.orgId },
+        select: { id: true, name: true },
+      });
+      if (!dept) {
+        return NextResponse.json({ error: "Department not found" }, { status: 404 });
+      }
+      data.staffRole = { connect: { id: dept.id } };
+      // Keep legacy string in sync for existing UI and places that still use `role`.
+      data.role = dept.name;
+    } else {
+      data.staffRole = { disconnect: true };
+      // Don't auto-clear role text unless explicitly provided.
+    }
+  }
+
   if ("role" in body) {
-    if (typeof body.role !== "string" || !body.role.trim()) {
-      return NextResponse.json({ error: "role is required" }, { status: 400 });
+    if (typeof body.role !== "string") {
+      return NextResponse.json({ error: "role must be a string" }, { status: 400 });
     }
     data.role = body.role.trim();
+  }
+
+  if ("locationId" in body) {
+    const raw = typeof body.locationId === "string" ? body.locationId.trim() : "";
+    if (!raw) {
+      return NextResponse.json({ error: "locationId cannot be empty" }, { status: 400 });
+    }
+    const loc = await prisma.location.findFirst({
+      where: { id: raw, organizationId: session.orgId },
+      select: { id: true },
+    });
+    if (!loc) {
+      return NextResponse.json({ error: "Location not found" }, { status: 404 });
+    }
+    data.location = { connect: { id: loc.id } };
   }
   if ("deviceUserId" in body) {
     const v = parseOptionalString(body.deviceUserId);

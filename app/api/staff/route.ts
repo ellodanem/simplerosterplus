@@ -12,6 +12,7 @@ const STAFF_SELECT = {
   lastName: true,
   email: true,
   role: true,
+  roleId: true,
   deviceUserId: true,
   punchExempt: true,
   isActive: true,
@@ -22,6 +23,8 @@ const STAFF_SELECT = {
   startDate: true,
   contactNumber: true,
   sortOrder: true,
+  location: { select: { id: true, name: true } },
+  staffRole: { select: { id: true, name: true } },
 } as const;
 
 export async function GET() {
@@ -60,9 +63,10 @@ export async function POST(request: Request) {
   const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
   const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
   const role = typeof body.role === "string" ? body.role.trim() : "";
-  if (!firstName || !lastName || !role) {
+  const roleId = typeof body.roleId === "string" ? body.roleId.trim() : "";
+  if (!firstName || !lastName) {
     return NextResponse.json(
-      { error: "firstName, lastName, and role are required" },
+      { error: "firstName and lastName are required" },
       { status: 400 },
     );
   }
@@ -80,10 +84,24 @@ export async function POST(request: Request) {
   const excludeFromRoster =
     typeof body.excludeFromRoster === "boolean" ? body.excludeFromRoster : false;
 
-  const location = await getDefaultLocation(session.orgId);
+  const requestedLocationId =
+    typeof body.locationId === "string" && body.locationId.trim() ? body.locationId.trim() : null;
+  const defaultLocation = await getDefaultLocation(session.orgId);
+  const locationId = requestedLocationId ?? defaultLocation.id;
+
+  const department =
+    roleId && roleId !== ""
+      ? await prisma.staffRole.findFirst({
+          where: { id: roleId, organizationId: session.orgId },
+          select: { id: true, name: true },
+        })
+      : null;
+  if (roleId && !department) {
+    return NextResponse.json({ error: "Department not found" }, { status: 404 });
+  }
 
   const maxSort = await prisma.staff.aggregate({
-    where: { organizationId: session.orgId, locationId: location.id },
+    where: { organizationId: session.orgId, locationId },
     _max: { sortOrder: true },
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
@@ -92,11 +110,12 @@ export async function POST(request: Request) {
     const staff = await prisma.staff.create({
       data: {
         organizationId: session.orgId,
-        locationId: location.id,
+        locationId,
         firstName,
         lastName,
         email: parseOptionalString(body.email) ?? null,
-        role,
+        role: role || department?.name || "",
+        roleId: department?.id ?? null,
         deviceUserId: parseOptionalString(body.deviceUserId) ?? null,
         contactNumber: parseOptionalString(body.contactNumber) ?? null,
         dateOfBirth: dateOfBirth ?? null,

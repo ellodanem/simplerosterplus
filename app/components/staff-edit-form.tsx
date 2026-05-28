@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type StaffEditValues = {
   id: string;
@@ -9,6 +9,10 @@ export type StaffEditValues = {
   lastName: string;
   email: string;
   role: string;
+  roleId?: string | null;
+  departmentName?: string | null;
+  locationId?: string;
+  locationName?: string;
   deviceUserId: string;
   contactNumber: string;
   dateOfBirth: string;
@@ -34,6 +38,8 @@ export function StaffEditForm({
 }) {
   const router = useRouter();
   const [v, setV] = useState<StaffEditValues>(initial);
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -45,6 +51,25 @@ export function StaffEditForm({
   function update<K extends keyof StaffEditValues>(key: K, value: StaffEditValues[K]) {
     setV((s) => ({ ...s, [key]: value }));
   }
+
+  async function loadOptions() {
+    const [deptRes, locRes] = await Promise.all([
+      fetch("/api/departments"),
+      fetch("/api/locations"),
+    ]);
+    const deptBody = (await deptRes.json().catch(() => ({}))) as {
+      departments?: Array<{ id: string; name: string }>;
+    };
+    const locBody = (await locRes.json().catch(() => ({}))) as {
+      locations?: Array<{ id: string; name: string }>;
+    };
+    if (Array.isArray(deptBody.departments)) setDepartments(deptBody.departments);
+    if (Array.isArray(locBody.locations)) setLocations(locBody.locations);
+  }
+
+  useEffect(() => {
+    void loadOptions();
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +83,10 @@ export function StaffEditForm({
           firstName: v.firstName,
           lastName: v.lastName,
           email: v.email,
+          roleId: v.roleId ?? null,
+          // keep `role` for now for back-compat; API will sync to department if roleId is set
           role: v.role,
+          locationId: v.locationId,
           deviceUserId: v.deviceUserId,
           contactNumber: v.contactNumber,
           dateOfBirth: v.dateOfBirth,
@@ -214,12 +242,26 @@ export function StaffEditForm({
           value={v.email}
           onChange={(x) => update("email", x)}
         />
-        <Field
-          id="er"
-          label="Role"
-          required
-          value={v.role}
-          onChange={(x) => update("role", x)}
+        <SelectField
+          id="dept"
+          label="Department"
+          value={v.roleId ?? ""}
+          onChange={(x) => {
+            update("roleId", x || null);
+            const dept = departments.find((d) => d.id === x);
+            if (dept) update("role", dept.name);
+          }}
+          options={[
+            { value: "", label: "Default / none" },
+            ...departments.map((d) => ({ value: d.id, label: d.name })),
+          ]}
+        />
+        <SelectField
+          id="loc"
+          label="Location"
+          value={v.locationId ?? ""}
+          onChange={(x) => update("locationId", x)}
+          options={locations.map((l) => ({ value: l.id, label: l.name }))}
         />
         <Field
           id="ep"
@@ -366,6 +408,35 @@ function Field(props: {
         className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
       />
       {help ? <p className="mt-1 text-xs text-zinc-500">{help}</p> : null}
+    </div>
+  );
+}
+
+function SelectField(props: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  const { id, label, value, onChange, options } = props;
+  return (
+    <div>
+      <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

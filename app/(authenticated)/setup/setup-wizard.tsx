@@ -124,6 +124,11 @@ export function SetupWizard({
   async function finishSetup() {
     const res = await fetch("/api/setup/complete", { method: "POST" });
     if (!res.ok) return;
+    try {
+      sessionStorage.setItem("srp_setup_incomplete", "0");
+    } catch {
+      // ignore
+    }
     router.push("/");
     router.refresh();
   }

@@ -7,6 +7,8 @@ import type { StaffEditValues } from "@/app/components/staff-edit-form";
 export function AddStaffForm({
   requiredOnly = false,
   variant = "page",
+  locations,
+  departments,
   onSuccess,
   onCancel,
 }: {
@@ -14,6 +16,8 @@ export function AddStaffForm({
   requiredOnly?: boolean;
   /** Page variant keeps the bordered section on /staff; modal variant is for dialogs. */
   variant?: "page" | "modal";
+  locations?: Array<{ id: string; name: string }>;
+  departments?: Array<{ id: string; name: string }>;
   /** Called after a successful add. If provided, the form will not call router.refresh itself. */
   onSuccess?: (staff: StaffEditValues) => void;
   onCancel?: () => void;
@@ -23,7 +27,9 @@ export function AddStaffForm({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [roleText, setRoleText] = useState("");
+  const [locationId, setLocationId] = useState(locations?.[0]?.id ?? "");
   const [deviceUserId, setDeviceUserId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -38,7 +44,9 @@ export function AddStaffForm({
     setFirstName("");
     setLastName("");
     setEmail("");
-    setRole("");
+    setDepartmentId("");
+    setRoleText("");
+    setLocationId(locations?.[0]?.id ?? "");
     setDeviceUserId("");
     setContactNumber("");
     setDateOfBirth("");
@@ -62,7 +70,9 @@ export function AddStaffForm({
           firstName,
           lastName,
           email: email.trim() || null,
-          role,
+          roleId: departmentId || null,
+          role: roleText,
+          locationId: locationId || null,
           deviceUserId: deviceUserId.trim() || null,
           contactNumber: contactNumber.trim() || null,
           dateOfBirth: dateOfBirth || null,
@@ -90,7 +100,7 @@ export function AddStaffForm({
               firstName: data.staff.firstName ?? firstName,
               lastName: data.staff.lastName ?? lastName,
               email: data.staff.email ?? email,
-              role: data.staff.role ?? role,
+              role: data.staff.role ?? roleText,
               deviceUserId: data.staff.deviceUserId ?? deviceUserId,
               contactNumber: data.staff.contactNumber ?? contactNumber,
               dateOfBirth: data.staff.dateOfBirth?.slice(0, 10) ?? dateOfBirth,
@@ -161,7 +171,34 @@ export function AddStaffForm({
         {requiredOnly ? null : (
           <Field id="ne" label="Email" type="email" value={email} onChange={setEmail} />
         )}
-        <Field id="nr" label="Role" required value={role} onChange={setRole} />
+        {departments && departments.length > 0 ? (
+          <SelectField
+            id="ndep"
+            label="Department"
+            value={departmentId}
+            onChange={(v) => {
+              setDepartmentId(v);
+              const dept = departments.find((d) => d.id === v);
+              if (dept) setRoleText(dept.name);
+              if (v === "") setRoleText("");
+            }}
+            options={[
+              { value: "", label: "Default / none" },
+              ...departments.map((d) => ({ value: d.id, label: d.name })),
+            ]}
+          />
+        ) : (
+          <Field id="nr" label="Department" value={roleText} onChange={setRoleText} />
+        )}
+        {locations && locations.length > 1 ? (
+          <SelectField
+            id="nloc"
+            label="Location"
+            value={locationId}
+            onChange={setLocationId}
+            options={locations.map((l) => ({ value: l.id, label: l.name }))}
+          />
+        ) : null}
         {requiredOnly ? null : (
           <>
             <Field
@@ -292,6 +329,35 @@ function Field(props: {
         className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
       />
       {help ? <p className="mt-1 text-xs text-zinc-500">{help}</p> : null}
+    </div>
+  );
+}
+
+function SelectField(props: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  const { id, label, value, onChange, options } = props;
+  return (
+    <div>
+      <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
