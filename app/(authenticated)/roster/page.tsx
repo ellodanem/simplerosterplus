@@ -35,7 +35,7 @@ export const metadata = {
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-type SearchParams = { week?: string };
+type SearchParams = { week?: string; requests?: string };
 
 export default async function RosterPage({
   searchParams,
@@ -65,6 +65,8 @@ export default async function RosterPage({
 
   const params = await searchParams;
   const requestedWeek = params.week && YMD_RE.test(params.week) ? params.week : null;
+  const openRequests =
+    params.requests === "open" || params.requests === "1" || params.requests === "true";
   const weekStartYmd = requestedWeek
     ? weekStartFromYmd(requestedWeek, effectiveTimeZone, weekStartWeekday)
     : currentWeekStartYmd(effectiveTimeZone, weekStartWeekday);
@@ -224,6 +226,7 @@ export default async function RosterPage({
         holidays={holidayMap}
         blockMap={blockMap}
         initialPendingCount={pendingRequestsCount}
+        initialOpenRequests={openRequests}
         initialOvertimeSettings={overtimeSettings}
         initialHolidayCalendar={{
           countryCode: location.holidayCountryCode,

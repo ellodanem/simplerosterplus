@@ -6,7 +6,7 @@ import { useState } from "react";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/staff";
+  const next = searchParams.get("next") || "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +28,7 @@ export function LoginForm() {
         setError(data.error || "Sign-in failed");
         return;
       }
-      router.push(next.startsWith("/") ? next : "/staff");
+      router.push(next.startsWith("/") ? next : "/");
       router.refresh();
     } finally {
       setPending(false);

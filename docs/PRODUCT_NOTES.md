@@ -11,6 +11,8 @@ Use this as the product filter for new features and UX decisions:
 - Prefer alerts, summaries, and AI guidance over heavy workflows.
 - Avoid turning the app into payroll, compliance, or enterprise policy software unless that direction is explicitly chosen later.
 
+**Home dashboard (planned):** See [DASHBOARD_RECOMMENDATIONS.md](./DASHBOARD_RECOMMENDATIONS.md) for the landing mock review, target “week at a glance” UX, visual alignment with the app, and implementation order.
+
 ## Timezone (not fixed to one region)
 
 - Each **organization** has `Organization.timeZone` (IANA string, e.g. `America/Toronto`, `Europe/London`, `UTC`).

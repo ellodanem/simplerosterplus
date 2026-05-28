@@ -18,7 +18,7 @@ export default async function AuthenticatedLayout({
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/" className="font-medium text-zinc-700 hover:text-zinc-950">
+            <Link href="/" className="font-medium text-emerald-800 hover:text-emerald-950">
               Home
             </Link>
             <Link href="/roster" className="font-medium text-emerald-800 hover:text-emerald-950">

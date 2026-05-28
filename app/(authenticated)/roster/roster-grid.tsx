@@ -68,6 +68,7 @@ export function RosterGrid({
   holidays,
   blockMap: initialBlockMap,
   initialPendingCount,
+  initialOpenRequests = false,
   initialOvertimeSettings,
   initialHolidayCalendar,
 }: {
@@ -87,6 +88,7 @@ export function RosterGrid({
   holidays: Record<string, Holiday>;
   blockMap: Record<string, "vacation" | "dayOff">;
   initialPendingCount: number;
+  initialOpenRequests?: boolean;
   initialOvertimeSettings: OvertimeSettings;
   initialHolidayCalendar: HolidayCalendarConfig;
 }) {
@@ -103,10 +105,14 @@ export function RosterGrid({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
-  const [showRequests, setShowRequests] = useState(false);
+  const [showRequests, setShowRequests] = useState(initialOpenRequests);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
+
+  useEffect(() => {
+    if (initialOpenRequests) setShowRequests(true);
+  }, [initialOpenRequests]);
   const [blockMap, setBlockMap] = useState(initialBlockMap);
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
 
