@@ -12,7 +12,6 @@ import {
   rosterUnlockedDays,
 } from "@/lib/roster-week-lock";
 import { dayHeaderLabel, shiftYmd } from "@/lib/roster-week";
-import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
 import {
   countOvertimeAlerts,
@@ -123,10 +122,6 @@ export function RosterGrid({
   initialHolidayCalendar: HolidayCalendarConfig;
 }) {
   const router = useRouter();
-  const weekStartPretty = useMemo(
-    () => dayHeaderLabel(weekStartYmd, timeZone).date,
-    [weekStartYmd, timeZone],
-  );
   const [staffRows, setStaffRows] = useState<Staff[]>(staff);
   const [entries, setEntries] = useState<Record<string, string>>(initialEntries);
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -583,8 +578,7 @@ export function RosterGrid({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Roster</h1>
             <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900">
-              Week starting {weekStartLabel}{" "}
-              <span style={{ color: dateTextColorFromYmd(weekStartYmd) }}>{weekStartPretty}</span>
+              Week starting {weekStartLabel} {dayHeaderLabel(weekStartYmd, timeZone).date}
             </span>
           </div>
           <p className="mt-1 text-sm text-zinc-600">
@@ -909,8 +903,9 @@ export function RosterGrid({
                         {h.weekday}
                       </span>
                       <span
-                        className={`text-sm font-medium normal-case ${dayLocked ? "opacity-70" : ""}`}
-                        style={{ color: dateTextColorFromYmd(d) }}
+                        className={`text-sm font-medium normal-case ${
+                          isToday ? "text-emerald-900" : dayLocked ? "text-zinc-500" : "text-zinc-800"
+                        }`}
                       >
                         {h.date}
                       </span>
