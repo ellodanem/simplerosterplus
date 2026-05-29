@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import {
   ManageDepartmentsModal,
@@ -17,6 +17,20 @@ function staffStatusLabel(s: StaffRow): string {
   if (s.archivedAt) return "Archived";
   if (s.excludeFromRoster) return "Attendance Only";
   return "Active";
+}
+
+function filterStaffRows(
+  list: StaffRow[],
+  locationFilter: string,
+  roleFilter: string,
+  departmentFilter: string,
+): StaffRow[] {
+  return list.filter((r) => {
+    if (locationFilter && r.locationId !== locationFilter) return false;
+    if (roleFilter && r.roleId !== roleFilter) return false;
+    if (departmentFilter && r.departmentId !== departmentFilter) return false;
+    return true;
+  });
 }
 
 export function StaffList({
@@ -40,6 +54,7 @@ export function StaffList({
   const [locationFilter, setLocationFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [archiveExpanded, setArchiveExpanded] = useState(false);
 
   const roleItems: TaxonomyItem[] = useMemo(
     () =>
@@ -63,14 +78,18 @@ export function StaffList({
     [departments, rows],
   );
 
-  const filteredRows = useMemo(() => {
-    return rows.filter((r) => {
-      if (locationFilter && r.locationId !== locationFilter) return false;
-      if (roleFilter && r.roleId !== roleFilter) return false;
-      if (departmentFilter && r.departmentId !== departmentFilter) return false;
-      return true;
-    });
-  }, [rows, locationFilter, roleFilter, departmentFilter]);
+  const activeRows = useMemo(() => rows.filter((r) => !r.archivedAt), [rows]);
+  const archivedRows = useMemo(() => rows.filter((r) => r.archivedAt), [rows]);
+
+  const filteredActiveRows = useMemo(
+    () => filterStaffRows(activeRows, locationFilter, roleFilter, departmentFilter),
+    [activeRows, locationFilter, roleFilter, departmentFilter],
+  );
+
+  const filteredArchivedRows = useMemo(
+    () => filterStaffRows(archivedRows, locationFilter, roleFilter, departmentFilter),
+    [archivedRows, locationFilter, roleFilter, departmentFilter],
+  );
 
   function handleSaved(next: StaffRow) {
     setRows((curr) => sortRows(curr.map((row) => (row.id === next.id ? next : row))));
@@ -154,76 +173,47 @@ export function StaffList({
           />
         </div>
         <div className="text-sm text-zinc-600">
-          Showing <span className="font-semibold text-zinc-900">{filteredRows.length}</span> of{" "}
-          <span className="font-semibold text-zinc-900">{rows.length}</span>
+          Showing <span className="font-semibold text-zinc-900">{filteredActiveRows.length}</span> of{" "}
+          <span className="font-semibold text-zinc-900">{activeRows.length}</span>
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Department</th>
-              <th className="px-4 py-3">Location</th>
-              <th className="px-4 py-3">Device ID</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Punch exempt</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
-                  No staff yet. Use Add Staff or run{" "}
-                  <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
-                </td>
-              </tr>
-            ) : (
-              filteredRows.map((s) => (
-                <tr key={s.id} className="hover:bg-zinc-50/80">
-                  <td className="px-4 py-3 font-medium text-zinc-900">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(s)}
-                      className="hover:underline"
-                    >
-                      {s.firstName} {s.lastName}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{s.email || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{s.role || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{s.departmentName || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{s.locationName ?? "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {s.deviceUserId ? (
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
-                        {s.deviceUserId}
-                      </span>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{staffStatusLabel(s)}</td>
-                  <td className="px-4 py-3 text-zinc-600">{s.punchExempt ? "Yes" : "No"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(s)}
-                      className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="mt-6">
+        <StaffTable
+          rows={filteredActiveRows}
+          emptyMessage={
+          rows.length === 0
+            ? emptyStaffMessage
+            : activeRows.length === 0
+              ? "No active staff."
+              : "No staff match these filters."
+        }
+          onEdit={setEditing}
+        />
       </div>
+
+      {archivedRows.length > 0 ? (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setArchiveExpanded((open) => !open)}
+            aria-expanded={archiveExpanded}
+            className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          >
+            <span>Archived staff ({archivedRows.length})</span>
+            <ChevronDown className={archiveExpanded ? "rotate-180" : ""} />
+          </button>
+          {archiveExpanded ? (
+            <div className="mt-2">
+              <StaffTable
+                rows={filteredArchivedRows}
+                emptyMessage="No archived staff match these filters."
+                onEdit={setEditing}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add staff" size="xl">
         <AddStaffForm
@@ -267,6 +257,103 @@ export function StaffList({
         onChange={handleDepartmentsChange}
       />
     </>
+  );
+}
+
+const emptyStaffMessage = (
+  <>
+    No staff yet. Use Add Staff or run{" "}
+    <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
+  </>
+);
+
+function StaffTable({
+  rows,
+  emptyMessage,
+  onEdit,
+}: {
+  rows: StaffRow[];
+  emptyMessage: ReactNode;
+  onEdit: (row: StaffRow) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <tr>
+            <th className="px-4 py-3">Name</th>
+            <th className="px-4 py-3">Email</th>
+            <th className="px-4 py-3">Role</th>
+            <th className="px-4 py-3">Department</th>
+            <th className="px-4 py-3">Location</th>
+            <th className="px-4 py-3">Device ID</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Punch exempt</th>
+            <th className="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            rows.map((s) => (
+              <tr key={s.id} className="hover:bg-zinc-50/80">
+                <td className="px-4 py-3 font-medium text-zinc-900">
+                  <button type="button" onClick={() => onEdit(s)} className="hover:underline">
+                    {s.firstName} {s.lastName}
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{s.email || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.role || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.departmentName || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.locationName ?? "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {s.deviceUserId ? (
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
+                      {s.deviceUserId}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{staffStatusLabel(s)}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.punchExempt ? "Yes" : "No"}</td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(s)}
+                    className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
+                  >
+                    Edit
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={`h-5 w-5 shrink-0 text-zinc-400 transition-transform ${className}`}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 }
 
