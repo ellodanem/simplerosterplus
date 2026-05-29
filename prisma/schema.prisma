@@ -28,8 +28,9 @@ model Organization {
   publicHolidays PublicHoliday[]
   appSettings    AppSetting[]
   locations      Location[]
-  devices        Device[]
-  attendanceLogs AttendanceLog[]
+  devices               Device[]
+  attendanceLogs        AttendanceLog[]
+  attendanceDeviceClocks AttendanceDeviceClock[]
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -448,6 +449,16 @@ model AttendanceLog {
   correctedByUserId String?
   correctedBy       AppUser?     @relation("PunchCorrectedBy", fields: [correctedByUserId], references: [id], onDelete: SetNull)
   correctedAt       DateTime?
+  /// Terminal user id when `staffId` is null (unmapped punch) or canonical id from staff match.
+  deviceUserId      String?
+  /// Raw ATTLOG timestamp string before clock normalization (support / audit).
+  deviceRawTimestamp String?
+  /// Server time when the ADMS ingest request was accepted.
+  ingestReceivedAt  DateTime?
+  /// Milliseconds added to naive device parse to form `punchAt` (median drift correction).
+  clockOffsetMsApplied Int?
+  /// warmup | learned_offset | apply_disabled | no_serial | parse_fallback | …
+  clockNormalizeReason String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -455,6 +466,22 @@ model AttendanceLog {
   @@index([staffId, punchAt])
   @@index([organizationId, punchAt])
   @@index([deviceId])
+  @@index([deviceUserId, punchAt])
+}
+
+/// Learned clock drift per ZKTeco serial within an organization (ADMS SN). Conservative ADMS-only learning.
+model AttendanceDeviceClock {
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deviceSerial       String
+  offsetMs           Int      @default(0)
+  isCalibrated       Boolean  @default(false)
+  pendingDeltasJson  String   @default("[]")
+  calibrationSamples Int      @default(0)
+  updatedAt          DateTime @updatedAt
+
+  @@id([organizationId, deviceSerial])
+  @@index([organizationId])
 }
 
 /// Manual supervisor call on a single calendar day for a single staff member when the

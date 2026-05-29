@@ -76,8 +76,8 @@ export default async function DevicesPage() {
             {devices.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-500">
-                  No devices yet. Once the Add device flow lands, paired ZKTeco terminals will
-                  appear here with their last-seen status.
+                  No devices yet. Use <span className="font-medium">Add device</span> to register a
+                  terminal; punches appear here once ADMS push reaches the server.
                 </td>
               </tr>
             ) : (
@@ -135,8 +135,9 @@ export default async function DevicesPage() {
       </div>
 
       <p className="mt-4 text-xs text-zinc-500">
-        Add device, edit, the enabled toggle, and soft-delete are live. The actual ADMS endpoint
-        and pull-sync that update the Last active column are the next pass.
+        ADMS push updates <span className="font-medium">Last active</span> when a registered,
+        enabled terminal contacts <span className="font-mono">/iclock/*</span>. Pull-sync from LAN
+        is not enabled from cloud yet.
       </p>
     </div>
   );

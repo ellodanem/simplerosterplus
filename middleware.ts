@@ -14,6 +14,11 @@ function secretKey(): Uint8Array {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ZKTeco ADMS device callbacks — no session; not in matcher below but documented for operators.
+  if (pathname.startsWith("/iclock")) {
+    return NextResponse.next();
+  }
+
   if (pathname === "/login") {
     return NextResponse.next();
   }

@@ -51,6 +51,18 @@ async function main() {
     update: { isDefault: true },
   });
 
+  // Demo device user id for ADMS smoke tests (matches docs/DEVICE_INGEST_SMOKE.md sample lines).
+  await prisma.staff.updateMany({
+    where: {
+      organizationId: org.id,
+      locationId: defaultLocation.id,
+      firstName: "Alex",
+      lastName: "Rivera",
+      deviceUserId: null,
+    },
+    data: { deviceUserId: "7" },
+  });
+
   const staffCount = await prisma.staff.count({ where: { organizationId: org.id } });
   if (staffCount === 0) {
     await prisma.staff.createMany({
@@ -62,6 +74,7 @@ async function main() {
           lastName: "Rivera",
           email: "alex@demo.local",
           role: "Supervisor",
+          deviceUserId: "7",
           sortOrder: 0,
         },
         {

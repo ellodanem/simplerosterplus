@@ -20,6 +20,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
+    "date-fns-tz": "^3.2.0",
     "date-holidays": "^3.30.2",
     "jose": "^6.2.3",
     "next": "16.2.6",

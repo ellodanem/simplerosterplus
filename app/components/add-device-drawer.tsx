@@ -302,9 +302,9 @@ function ModeHint({ mode }: { mode: ConnectionMode }) {
   if (mode === "adms_push") {
     return (
       <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-        We&apos;ll generate a one-time communication key after you add the device. Enter it (plus
-        the server address) on the terminal&apos;s network screen and the serial number will be
-        captured on the first callback.
+        We&apos;ll generate a one-time communication key after you add the device (optional on many
+        F22 units — ADMS v1 matches devices by serial number only). Enter the server address on the
+        terminal; the serial number is captured on the first callback.
       </div>
     );
   }
