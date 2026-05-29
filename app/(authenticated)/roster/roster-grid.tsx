@@ -25,6 +25,7 @@ import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
+import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 
 type Staff = {
   id: string;
@@ -1028,6 +1029,7 @@ export function RosterGrid({
                 </tr>
                 {staffRows.map((s) => {
                   const overtimeSummary = overtimeByStaff[s.id];
+                  const staffFullName = formatStaffFullName(s.firstName, s.lastName);
                   return (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
@@ -1035,9 +1037,9 @@ export function RosterGrid({
                       <div className="min-w-0">
                         <div
                           className="truncate font-medium text-zinc-900"
-                          title={`${s.firstName} ${s.lastName}`}
+                          title={staffFullName}
                         >
-                          {s.firstName} {s.lastName}
+                          {formatRosterStaffName(s.firstName, s.lastName)}
                         </div>
                         {s.role ? (
                           <div className="truncate text-xs text-zinc-500" title={s.role}>
@@ -1068,7 +1070,7 @@ export function RosterGrid({
                             ? "Past weeks are read-only"
                             : "Apply shift to all days this week"
                         }
-                        aria-label={`Apply shift to all days for ${s.firstName} ${s.lastName}`}
+                        aria-label={`Apply shift to all days for ${staffFullName}`}
                         className="shrink-0 rounded-md border border-zinc-300 bg-white p-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <svg
