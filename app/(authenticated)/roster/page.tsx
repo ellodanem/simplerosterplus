@@ -16,6 +16,7 @@ import {
 } from "@/lib/holiday-calendar";
 import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
+import { getMinimumOffDaysSettings } from "@/lib/minimum-off-days-settings";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
   currentWeekStartYmd,
@@ -51,11 +52,12 @@ export default async function RosterPage({
   });
   if (!org) redirect("/login");
 
-  const [location, weekStartWeekday, overtimeSettings, addStaffLocations, addStaffRoles] =
+  const [location, weekStartWeekday, overtimeSettings, minimumOffDaysSettings, addStaffLocations, addStaffRoles] =
     await Promise.all([
     getDefaultLocation(org.id),
     getRosterWeekStartWeekday(org.id),
     getOvertimeSettings(org.id),
+    getMinimumOffDaysSettings(org.id),
     prisma.location.findMany({
       where: { organizationId: org.id },
       orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -244,6 +246,7 @@ export default async function RosterPage({
         initialPendingCount={pendingRequestsCount}
         initialOpenRequests={openRequests}
         initialOvertimeSettings={overtimeSettings}
+        initialMinimumOffDaysSettings={minimumOffDaysSettings}
         initialHolidayCalendar={{
           countryCode: location.holidayCountryCode,
           subdivisionCode: location.holidaySubdivisionCode,

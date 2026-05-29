@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
+import { MinimumOffDaysSettingsModal } from "@/app/components/minimum-off-days-settings-modal";
 import {
   isRosterDayLocked,
   rosterLockedDays,
@@ -21,6 +22,13 @@ import {
   type OvertimeSettings,
   type OvertimeStatus,
 } from "@/lib/overtime";
+import {
+  countStaffBelowMinimumOffDays,
+  countStaffOffDaysInWeek,
+  minimumOffDaysShortfallMessage,
+  staffBelowMinimumOffDays,
+  type MinimumOffDaysSettings,
+} from "@/lib/minimum-off-days";
 import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
@@ -115,6 +123,7 @@ export function RosterGrid({
   initialPendingCount,
   initialOpenRequests = false,
   initialOvertimeSettings,
+  initialMinimumOffDaysSettings,
   initialHolidayCalendar,
   addStaffLocations,
   addStaffRoles,
@@ -140,6 +149,7 @@ export function RosterGrid({
   initialPendingCount: number;
   initialOpenRequests?: boolean;
   initialOvertimeSettings: OvertimeSettings;
+  initialMinimumOffDaysSettings: MinimumOffDaysSettings;
   initialHolidayCalendar: HolidayCalendarConfig;
   addStaffLocations: Array<{ id: string; name: string }>;
   addStaffRoles: Array<{ id: string; name: string }>;
@@ -157,6 +167,7 @@ export function RosterGrid({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
+  const [showMinimumOffDaysSettings, setShowMinimumOffDaysSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(initialOpenRequests);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [staffRoles, setStaffRoles] = useState(addStaffRoles);
@@ -169,6 +180,9 @@ export function RosterGrid({
   }, [initialOpenRequests]);
   const [blockMap, setBlockMap] = useState(initialBlockMap);
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
+  const [minimumOffDaysSettings, setMinimumOffDaysSettings] = useState(
+    initialMinimumOffDaysSettings,
+  );
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -242,6 +256,19 @@ export function RosterGrid({
   const overtimeAlertCounts = useMemo(
     () => countOvertimeAlerts(Object.values(overtimeByStaff)),
     [overtimeByStaff],
+  );
+
+  const staffBelowMinimumOffDaysCount = useMemo(
+    () =>
+      countStaffBelowMinimumOffDays(
+        staffRows.map((s) => s.id),
+        days,
+        entries,
+        blockMap,
+        holidays,
+        minimumOffDaysSettings,
+      ),
+    [staffRows, days, entries, blockMap, holidays, minimumOffDaysSettings],
   );
 
   const lockedDays = useMemo(
@@ -726,6 +753,17 @@ export function RosterGrid({
                     <span>OT alerts</span>
                     <span className="text-[11px] text-zinc-400">Rules</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowMinimumOffDaysSettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Minimum off days</span>
+                    <span className="text-[11px] text-zinc-400">Highlight</span>
+                  </button>
                 </div>
               </>
             ) : null}
@@ -806,6 +844,11 @@ export function RosterGrid({
               ]
                 .filter(Boolean)
                 .join(" · ")}
+            </span>
+          ) : null}
+          {minimumOffDaysSettings.enabled && staffBelowMinimumOffDaysCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800">
+              Off days: {staffBelowMinimumOffDaysCount} below minimum
             </span>
           ) : null}
         </div>
@@ -1030,14 +1073,40 @@ export function RosterGrid({
                 {staffRows.map((s) => {
                   const overtimeSummary = overtimeByStaff[s.id];
                   const staffFullName = formatStaffFullName(s.firstName, s.lastName);
+                  const belowMinimumOffDays = staffBelowMinimumOffDays(
+                    s.id,
+                    days,
+                    entries,
+                    blockMap,
+                    holidays,
+                    minimumOffDaysSettings,
+                  );
+                  const offDaysCount = countStaffOffDaysInWeek(
+                    s.id,
+                    days,
+                    entries,
+                    blockMap,
+                    holidays,
+                  );
+                  const offDaysTitle = belowMinimumOffDays
+                    ? `${staffFullName} — ${minimumOffDaysShortfallMessage(offDaysCount, minimumOffDaysSettings)}`
+                    : staffFullName;
                   return (
                 <tr key={s.id} className="hover:bg-zinc-50/40">
-                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
+                  <td
+                    className={`sticky left-0 z-10 border-r border-zinc-200 px-3 py-2 ${
+                      belowMinimumOffDays ? "bg-rose-50/60" : "bg-white"
+                    }`}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div
-                          className="truncate font-medium text-zinc-900"
-                          title={staffFullName}
+                          className={`truncate font-medium ${
+                            belowMinimumOffDays
+                              ? "animate-roster-off-days-blink"
+                              : "text-zinc-900"
+                          }`}
+                          title={offDaysTitle}
                         >
                           {formatRosterStaffName(s.firstName, s.lastName)}
                         </div>
@@ -1177,6 +1246,18 @@ export function RosterGrid({
           onSaved={(nextSettings, message) => {
             setShowOvertimeSettings(false);
             setOvertimeSettings(nextSettings);
+            setNotice(message);
+          }}
+        />
+      ) : null}
+
+      {showMinimumOffDaysSettings ? (
+        <MinimumOffDaysSettingsModal
+          initialSettings={minimumOffDaysSettings}
+          onClose={() => setShowMinimumOffDaysSettings(false)}
+          onSaved={(nextSettings, message) => {
+            setShowMinimumOffDaysSettings(false);
+            setMinimumOffDaysSettings(nextSettings);
             setNotice(message);
           }}
         />
