@@ -18,18 +18,31 @@ export function AttendanceFilters({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { department, setDepartment, search, setSearch } = useAttendanceFilters();
+  const { department, setDepartment, search, setSearch, showArchivedStaff } = useAttendanceFilters();
+
+  function pushParams(mutator: (params: URLSearchParams) => void) {
+    const params = new URLSearchParams(searchParams.toString());
+    mutator(params);
+    router.push(`/attendance?${params.toString()}`);
+  }
 
   function pushWithLocation(nextLocationId: string) {
-    const params = new URLSearchParams(searchParams.toString());
     if (nextLocationId === currentLocationId) return;
-    if (locations.some((l) => l.id === nextLocationId)) {
-      params.set("location", nextLocationId);
-    } else {
-      params.delete("location");
-    }
-    params.delete("staff");
-    router.push(`/attendance?${params.toString()}`);
+    pushParams((params) => {
+      if (locations.some((l) => l.id === nextLocationId)) {
+        params.set("location", nextLocationId);
+      } else {
+        params.delete("location");
+      }
+      params.delete("staff");
+    });
+  }
+
+  function toggleArchivedStaff() {
+    pushParams((params) => {
+      if (showArchivedStaff) params.delete("archived");
+      else params.set("archived", "1");
+    });
   }
 
   return (
@@ -97,6 +110,16 @@ export function AttendanceFilters({
           className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
         />
       </div>
+
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          checked={showArchivedStaff}
+          onChange={toggleArchivedStaff}
+          className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
+        />
+        Show archived staff
+      </label>
     </div>
   );
 }

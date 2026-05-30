@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     locationId: location.id,
     weekStartYmd,
     timeZone,
+    showArchivedStaff: url.searchParams.get("archived") === "1",
   });
 
   return NextResponse.json(data);

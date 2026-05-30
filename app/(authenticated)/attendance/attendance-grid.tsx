@@ -29,6 +29,10 @@ import {
 } from "@/lib/overtime";
 import { methodGlyph, methodFullLabel } from "./punch-method-badge";
 import { useAttendanceFilters } from "./attendance-filter-context";
+import {
+  filterStaffForAttendanceDisplay,
+  isArchivedAttendanceStaff,
+} from "@/lib/attendance-staff-display";
 
 type Holiday = { name: string; stationClosed: boolean };
 type BlockReason = "vacation" | "dayOff";
@@ -93,7 +97,7 @@ export function AttendanceGrid({
   locationId: string;
 }) {
   const router = useRouter();
-  const { matchesStaff } = useAttendanceFilters();
+  const { matchesStaff, showArchivedStaff } = useAttendanceFilters();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [openCell, setOpenCell] = useState<{ staffId: string; ymd: string } | null>(null);
@@ -118,6 +122,7 @@ export function AttendanceGrid({
       week: weekStartYmd,
       location: locationId,
     });
+    if (showArchivedStaff) params.set("archived", "1");
     const res = await fetch(`/api/attendance/week?${params.toString()}`);
     const body = (await res.json().catch(() => ({}))) as Partial<AttendanceWeekViewState> & {
       error?: string;
@@ -148,6 +153,7 @@ export function AttendanceGrid({
     graceMinutes,
     irregularCount,
     irregularByStaff,
+    showArchivedStaff,
   ]);
 
   const currentStaff = weekData.staff;
@@ -256,6 +262,7 @@ export function AttendanceGrid({
       location: locationId,
     });
     if (staffId) params.set("staff", staffId);
+    if (showArchivedStaff) params.set("archived", "1");
     return `/attendance?${params.toString()}`;
   }
 
@@ -268,17 +275,19 @@ export function AttendanceGrid({
   }
 
   const orderedStaff = useMemo(() => {
-    // Right rail wants issues-first; main grid keeps the natural sort. Done as a separate
-    // array so the grid is undisturbed.
-    return [...filteredStaff].sort((a, b) => {
+    const railStaff = filterStaffForAttendanceDisplay(filteredStaff, showArchivedStaff);
+    return [...railStaff].sort((a, b) => {
       const ai = currentIrregularByStaff[a.id] ?? 0;
       const bi = currentIrregularByStaff[b.id] ?? 0;
       if (ai !== bi) return bi - ai;
-      const an = `${a.lastName} ${a.firstName}`;
-      const bn = `${b.lastName} ${b.firstName}`;
-      return an.localeCompare(bn);
+      const aArchived = isArchivedAttendanceStaff(a);
+      const bArchived = isArchivedAttendanceStaff(b);
+      if (aArchived !== bArchived) return aArchived ? 1 : -1;
+      const ln = a.lastName.localeCompare(b.lastName);
+      if (ln !== 0) return ln;
+      return a.firstName.localeCompare(b.firstName);
     });
-  }, [filteredStaff, currentIrregularByStaff]);
+  }, [filteredStaff, showArchivedStaff, currentIrregularByStaff]);
 
   async function refresh() {
     await reloadWeek();
@@ -493,12 +502,19 @@ export function AttendanceGrid({
                               className={`truncate text-left text-sm font-medium hover:underline ${
                                 selectedStaffId === s.id
                                   ? "text-emerald-800"
-                                  : "text-zinc-900"
+                                  : isArchivedAttendanceStaff(s)
+                                    ? "text-zinc-500"
+                                    : "text-zinc-900"
                               }`}
                               title={`${s.firstName} ${s.lastName}`}
                             >
                               {s.firstName} {s.lastName}
                             </button>
+                            {isArchivedAttendanceStaff(s) ? (
+                              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                                Archived
+                              </div>
+                            ) : null}
                             {s.role ? (
                               <div className="truncate text-xs text-zinc-500" title={s.role}>
                                 {s.role}
@@ -576,6 +592,11 @@ export function AttendanceGrid({
             </button>
           ) : null}
         </div>
+        {showArchivedStaff ? (
+          <p className="mb-2 text-[11px] leading-snug text-zinc-500">
+            Archived staff are shown for audit. Days after their archive date stay blank.
+          </p>
+        ) : null}
         <ul className="divide-y divide-zinc-100">
           {orderedStaff.length === 0 ? (
             <li className="py-2 text-sm text-zinc-500">No staff yet.</li>
@@ -583,6 +604,7 @@ export function AttendanceGrid({
             orderedStaff.map((s) => {
               const count = currentIrregularByStaff[s.id] ?? 0;
               const active = selectedStaffId === s.id;
+              const archived = isArchivedAttendanceStaff(s);
               return (
                 <li key={s.id}>
                   <button
@@ -592,17 +614,24 @@ export function AttendanceGrid({
                     className={`flex w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-0.5 text-left text-sm transition ${
                       active
                         ? "bg-emerald-50 ring-1 ring-emerald-200"
-                        : "hover:bg-zinc-50"
+                        : archived
+                          ? "text-zinc-500 hover:bg-zinc-50"
+                          : "hover:bg-zinc-50"
                     }`}
                   >
                     <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
                     <span
                       className={`min-w-0 flex-1 truncate ${
-                        active ? "font-medium text-emerald-900" : "text-zinc-800"
+                        active ? "font-medium text-emerald-900" : archived ? "text-zinc-500" : "text-zinc-800"
                       }`}
                       title={`${s.firstName} ${s.lastName}`}
                     >
                       {s.firstName} {s.lastName}
+                      {archived ? (
+                        <span className="ml-1.5 inline-flex rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                          Archived
+                        </span>
+                      ) : null}
                     </span>
                     {count > 0 ? (
                       <span className="inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-rose-100 px-1.5 text-[11px] font-semibold text-rose-700">

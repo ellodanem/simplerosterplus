@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StaffAvatar } from "@/app/components/staff-avatar";
@@ -11,6 +11,11 @@ import {
 } from "@/lib/attendance-policy";
 import type { AttendanceStaff } from "@/lib/attendance-week";
 import type { AttendanceLogData, LogKpis, LogRow } from "@/lib/attendance-log-data";
+import {
+  filterStaffForAttendanceDisplay,
+  isArchivedAttendanceStaff,
+  sortStaffForAttendanceRail,
+} from "@/lib/attendance-staff-display";
 import { LogRowEditor } from "./log-row-editor";
 import { AddPunchModal } from "./add-punch-modal";
 import { GraceSettingsModal } from "./grace-settings-modal";
@@ -53,7 +58,7 @@ export function AttendanceLog({
   locationId: string;
 }) {
   const router = useRouter();
-  const { matchesStaff } = useAttendanceFilters();
+  const { matchesStaff, showArchivedStaff } = useAttendanceFilters();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [staffFilter, setStaffFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,6 +117,22 @@ export function AttendanceLog({
       return true;
     });
   }, [logData.rows, filter, staffFilter, matchesStaff, staffById]);
+
+  useEffect(() => {
+    if (!showArchivedStaff && staffFilter) {
+      const selected = staffById.get(staffFilter);
+      if (selected && isArchivedAttendanceStaff(selected)) {
+        setStaffFilter(null);
+      }
+    }
+  }, [showArchivedStaff, staffFilter, staffById]);
+
+  const railStaff = useMemo(() => {
+    const filtered = filterStaffForAttendanceDisplay(logData.staff, showArchivedStaff).filter(
+      matchesStaff,
+    );
+    return sortStaffForAttendanceRail(filtered);
+  }, [logData.staff, showArchivedStaff, matchesStaff]);
 
   // Per-staff punch counts for the right rail. Always computed from the unfiltered `rows`
   // (the full window) so the badge numbers don't blink to zero when a user clicks one row.
@@ -258,9 +279,10 @@ export function AttendanceLog({
         </div>
 
         <StaffFilterRail
-          staff={logData.staff.filter(matchesStaff)}
+          staff={railStaff}
           counts={staffCounts}
           activeStaffId={staffFilter}
+          showArchivedStaff={showArchivedStaff}
           onPick={(id) => setStaffFilter(id)}
         />
       </div>
@@ -549,25 +571,15 @@ function StaffFilterRail({
   staff,
   counts,
   activeStaffId,
+  showArchivedStaff,
   onPick,
 }: {
   staff: AttendanceStaff[];
   counts: Map<string, number>;
   activeStaffId: string | null;
+  showArchivedStaff: boolean;
   onPick: (id: string | null) => void;
 }) {
-  // Sort staff alphabetically by last name then first name so the rail order is stable
-  // across renders — we don't want it shuffling when filters change.
-  const ordered = useMemo(() => {
-    const copy = [...staff];
-    copy.sort((a, b) => {
-      const ln = a.lastName.localeCompare(b.lastName);
-      if (ln !== 0) return ln;
-      return a.firstName.localeCompare(b.firstName);
-    });
-    return copy;
-  }, [staff]);
-
   return (
     <aside className="w-full shrink-0 rounded-xl border border-zinc-200 bg-white p-3 lg:w-64">
       <div className="mb-2 flex items-center justify-between">
@@ -584,6 +596,13 @@ function StaffFilterRail({
           </button>
         ) : null}
       </div>
+
+      {showArchivedStaff ? (
+        <p className="mb-2 text-[11px] leading-snug text-zinc-500">
+          Archived staff are shown for audit. Punches before their archive date stay visible in
+          the log.
+        </p>
+      ) : null}
 
       <button
         type="button"
@@ -602,12 +621,13 @@ function StaffFilterRail({
       </button>
 
       <ul className="divide-y divide-zinc-100">
-        {ordered.length === 0 ? (
+        {staff.length === 0 ? (
           <li className="py-2 text-sm text-zinc-500">No staff yet.</li>
         ) : (
-          ordered.map((s) => {
+          staff.map((s) => {
             const count = counts.get(s.id) ?? 0;
             const isActive = activeStaffId === s.id;
+            const archived = isArchivedAttendanceStaff(s);
             return (
               <li key={s.id}>
                 <button
@@ -615,15 +635,21 @@ function StaffFilterRail({
                   onClick={() => onPick(s.id)}
                   aria-pressed={isActive}
                   className={`flex w-full items-center gap-2 py-1.5 pl-1 pr-2 text-left text-sm transition ${
-                    isActive ? "bg-emerald-50 text-emerald-900" : "hover:bg-zinc-50"
+                    isActive
+                      ? "bg-emerald-50 text-emerald-900"
+                      : archived
+                        ? "text-zinc-500 hover:bg-zinc-50"
+                        : "hover:bg-zinc-50"
                   }`}
                 >
                   <StaffAvatar firstName={s.firstName} lastName={s.lastName} size="sm" />
-                  <span
-                    className="min-w-0 flex-1 truncate"
-                    title={`${s.firstName} ${s.lastName}`}
-                  >
-                    {s.firstName} {s.lastName}
+                  <span className="min-w-0 flex-1 truncate" title={`${s.firstName} ${s.lastName}`}>
+                    <span>{s.firstName} {s.lastName}</span>
+                    {archived ? (
+                      <span className="ml-1.5 inline-flex rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                        Archived
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${

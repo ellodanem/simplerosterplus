@@ -43,6 +43,7 @@ type SearchParams = {
   all?: string;
   staff?: string;
   location?: string;
+  archived?: string;
 };
 
 export default async function AttendancePage({
@@ -110,14 +111,13 @@ export default async function AttendancePage({
 
       <Tabs view={view} locationId={location.id} />
 
+      <Suspense fallback={null}>
       <AttendanceFilterProvider>
-        <Suspense fallback={null}>
           <AttendanceFilters
             locations={locations}
             currentLocationId={location.id}
             departments={departmentNames}
           />
-        </Suspense>
 
         {view === "week" ? (
           <WeekTab
@@ -126,6 +126,7 @@ export default async function AttendancePage({
             tz={effectiveTimeZone}
             requestedWeek={params.week ?? null}
             staffId={params.staff ?? null}
+            showArchivedStaff={params.archived === "1"}
           />
         ) : (
           <LogTab
@@ -136,6 +137,7 @@ export default async function AttendancePage({
           />
         )}
       </AttendanceFilterProvider>
+      </Suspense>
     </div>
   );
 }
@@ -225,12 +227,14 @@ async function WeekTab({
   tz,
   requestedWeek,
   staffId,
+  showArchivedStaff,
 }: {
   org: { id: string; name: string; timeZone: string };
   location: DefaultLocation;
   tz: string;
   requestedWeek: string | null;
   staffId: string | null;
+  showArchivedStaff: boolean;
 }) {
   const weekStartWeekday = await getRosterWeekStartWeekday(org.id);
   const weekStartYmd =
@@ -244,6 +248,7 @@ async function WeekTab({
       locationId: location.id,
       weekStartYmd,
       timeZone: tz,
+      showArchivedStaff,
     }),
     getOvertimeSettings(org.id),
   ]);
@@ -258,7 +263,7 @@ async function WeekTab({
 
   return (
     <AttendanceGrid
-      key={`${weekStartYmd}:${selectedStaffId ?? "all"}`}
+      key={`${weekStartYmd}:${selectedStaffId ?? "all"}:${showArchivedStaff ? "archived" : "active"}`}
       weekStartYmd={weekStartYmd}
       days={data.days}
       timeZone={tz}

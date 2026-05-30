@@ -129,8 +129,10 @@ export async function getAttendanceWeekData(args: {
   locationId: string;
   weekStartYmd: string;
   timeZone: string;
+  /** When true, include archived staff even if the week starts after they left. */
+  showArchivedStaff?: boolean;
 }): Promise<AttendanceWeekData> {
-  const { organizationId, locationId, weekStartYmd, timeZone } = args;
+  const { organizationId, locationId, weekStartYmd, timeZone, showArchivedStaff = false } = args;
   const days = daysOfWeek(weekStartYmd);
   const weekStartDate = utcDateFromYmd(weekStartYmd);
   const weekEndDate = utcDateFromYmd(shiftYmd(weekStartYmd, 6));
@@ -212,9 +214,9 @@ export async function getAttendanceWeekData(args: {
     getGraceMinutes(organizationId),
   ]);
 
-  const visibleStaffRows = staffRows.filter((s) =>
-    includeStaffOnAttendanceWeek(s, weekStartYmd, timeZone),
-  );
+  const visibleStaffRows = showArchivedStaff
+    ? staffRows
+    : staffRows.filter((s) => includeStaffOnAttendanceWeek(s, weekStartYmd, timeZone));
   const staffById = new Map(visibleStaffRows.map((s) => [s.id, s] as const));
 
   const blockMap = await getApprovedBlockMap({

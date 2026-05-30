@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useDeferredValue,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { useSearchParams } from "next/navigation";
 import type { AttendanceStaff } from "@/lib/attendance-week";
 
 type AttendanceFilterContextValue = {
@@ -9,15 +17,18 @@ type AttendanceFilterContextValue = {
   search: string;
   setSearch: (value: string) => void;
   deferredSearch: string;
+  showArchivedStaff: boolean;
   matchesStaff: (staff: AttendanceStaff) => boolean;
 };
 
 const AttendanceFilterContext = createContext<AttendanceFilterContextValue | null>(null);
 
 export function AttendanceFilterProvider({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
   const [department, setDepartment] = useState("");
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
+  const showArchivedStaff = searchParams.get("archived") === "1";
 
   const value = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
@@ -38,9 +49,10 @@ export function AttendanceFilterProvider({ children }: { children: ReactNode }) 
       search,
       setSearch,
       deferredSearch,
+      showArchivedStaff,
       matchesStaff,
     };
-  }, [department, search, deferredSearch]);
+  }, [department, search, deferredSearch, showArchivedStaff]);
 
   return (
     <AttendanceFilterContext.Provider value={value}>{children}</AttendanceFilterContext.Provider>
