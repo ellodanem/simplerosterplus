@@ -40,4 +40,5 @@ Or:
 
 - `docs/SHIFT_CLOSE_DEVICE_INGEST_HANDOFF.md` — created in step 01 (audit from Shift Close).
 - `docs/DEVICE_INGEST_SMOKE.md` — created in step 01 (local/staging smoke test).
+- `docs/DEVICE_INGEST_FIELD_TEST.md` — partner / field test runbook (step 06).
 - `SIMPLE_ROSTER_PLUS_SOURCE_HANDOFF.md` — may be stale; prefer Shift Close code + handoff above.

@@ -63,8 +63,8 @@ Single doc for **you + ZKTeco partner** joint hardware session: private pre-test
 
 ## Definition of done
 
-- [ ] `docs/DEVICE_INGEST_FIELD_TEST.md` exists and is actionable
-- [ ] Link from `docs/device-ingest/README.md`
-- [ ] [STATUS.md](./STATUS.md) row **06** → `completed`
+- [x] `docs/DEVICE_INGEST_FIELD_TEST.md` exists and is actionable
+- [x] Link from `docs/device-ingest/README.md`
+- [x] [STATUS.md](./STATUS.md) row **06** → `completed`
 
 **Do not commit unless user asks.**
