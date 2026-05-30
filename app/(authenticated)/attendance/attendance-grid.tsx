@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { StaffAvatar } from "@/app/components/staff-avatar";
 import { dayHeaderLabel } from "@/lib/roster-week";
-import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatYmdInZone, startOfLocalDayUtc } from "@/lib/datetime-policy";
 import {
   presenceClasses,
@@ -442,19 +441,14 @@ export function AttendanceGrid({
                       key={d}
                       aria-current={isToday ? "date" : undefined}
                       className={`min-w-[7rem] px-2 py-2 text-left ${
-                        isToday ? "bg-emerald-50" : closed ? "bg-zinc-100" : ""
+                        closed ? "bg-zinc-100" : ""
                       }`}
                     >
                       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                        <span
-                          className={`text-xs font-semibold ${isToday ? "text-emerald-700" : "text-zinc-500"}`}
-                        >
+                        <span className="text-xs font-semibold text-zinc-500">
                           {h.weekday}
                         </span>
-                        <span
-                          className="text-sm font-medium normal-case"
-                          style={{ color: dateTextColorFromYmd(d) }}
-                        >
+                        <span className="text-sm font-medium normal-case text-zinc-800">
                           {h.date}
                         </span>
                       </div>
