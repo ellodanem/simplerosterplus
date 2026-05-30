@@ -320,14 +320,15 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 | Routing | ✅ | Console at **`/ops/*`**, APIs at `/api/ops/*`. Subdomain `admin.` maps to `/ops` via a deploy-time host rewrite (below). |
 | Operator auth | ✅ (custom) | Separate cookie (`srp_operator_session`), **separate secret** `OPERATOR_AUTH_SECRET`, audience-bound JWT. Mirrors the current pre-Clerk tenant auth; swaps to a dedicated operator Clerk app later without touching the allow-list. |
 | Allow-list (layer 2) | ✅ | `OperatorUser` row required + `disabledAt` check in `lib/ops/context.ts`. |
-| RBAC | ✅ (scaffold) | `OperatorRole` + `operatorCan()` capability check; enforced once write actions land. |
-| Audit log | ✅ (writes) | `OperatorAuditLog` + `recordOperatorAudit()`; login is audited. UI viewer pending. |
+| RBAC | ✅ | `OperatorRole` + `operatorCan()`; enforced in `lib/ops/api.ts` guard on every write route. |
+| Audit log | ✅ | `OperatorAuditLog` + `recordOperatorAudit()` (before/after + reason); **viewer at `/ops/audit`**. |
 | Cross-tenant data layer | ✅ | Isolated in `lib/ops/data.ts` — the only place org-scoping is bypassed. |
 | Overview / Orgs list / Org 360 / Device fleet / Billing | ✅ (read-only) | Server-rendered from the DB; emerald/zinc/amber + Geist. |
-| Stripe (live billing) | ⏳ | Schema mirror columns exist; billing pages read mirrored DB values. No Stripe calls/webhooks yet. |
-| Audited write actions (suspend, extend trial, refund, impersonate) | ⏳ | Buttons present but disabled. |
+| Audited write actions | ✅ (lifecycle) | **Suspend/reactivate** (superadmin), **extend trial**, **convert demo→trial** (billing+) — confirm dialog + reason, audited. |
+| Stripe (live billing + refunds) | ⏳ | Schema mirror columns exist; billing pages read mirrored DB values. No Stripe calls/webhooks yet. |
+| Impersonation | ⏳ | Deferred — needs a read-only mode in the tenant app first; button is a labeled stub. |
 | Operator Clerk app + MFA | ⏳ | Custom auth today; documented swap path above. |
-| Users (cross-tenant), Audit viewer, Feature flags, Comms | ⏳ | Nav shows them as "soon". |
+| Users (cross-tenant), Feature flags, Comms | ⏳ | Nav shows them as "soon". |
 
 **Key files:** `lib/ops/*` (auth, context, audit, billing, data, device-status),
 `app/ops/login/*`, `app/ops/(console)/*`, `app/api/ops/auth/*`, `middleware.ts` (operator

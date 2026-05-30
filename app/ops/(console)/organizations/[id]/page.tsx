@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireOperator } from "@/lib/ops/context";
 import { getOrganizationDetail } from "@/lib/ops/data";
+import { OrgActions } from "./org-actions";
 import {
   formatUsd,
   planLabel,
@@ -17,7 +19,7 @@ export default async function OrganizationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getOrganizationDetail(id);
+  const [operator, detail] = await Promise.all([requireOperator(), getOrganizationDetail(id)]);
   if (!detail) notFound();
 
   const { org, counts, ownerEmail, recentAudit, punchSeries, mrrUsd } = detail;
@@ -47,24 +49,12 @@ export default async function OrganizationDetailPage({
           </div>
           <p className="mt-1 font-mono text-xs text-zinc-500">{org.id}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled
-            title="Read-only impersonation — ships with audited write actions (see roadmap)"
-            className="cursor-not-allowed rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-400"
-          >
-            Impersonate
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Suspend — ships with audited write actions (see roadmap)"
-            className="cursor-not-allowed rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-300"
-          >
-            Suspend
-          </button>
-        </div>
+        <OrgActions
+          orgId={org.id}
+          suspended={org.suspendedAt !== null}
+          isDemo={org.isDemo}
+          role={operator.role}
+        />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">

@@ -383,6 +383,50 @@ export async function listDevicesForOps(): Promise<FleetResult> {
   return { devices: mapped, counts };
 }
 
+// --- Audit log -----------------------------------------------------------------
+
+export type AuditRow = {
+  id: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  organizationId: string | null;
+  metadata: string | null;
+  createdAt: Date;
+  operatorEmail: string;
+  organizationName: string | null;
+};
+
+export async function listAuditLog(opts?: { action?: string; limit?: number }): Promise<AuditRow[]> {
+  const rows = await prisma.operatorAuditLog.findMany({
+    where: opts?.action ? { action: opts.action } : undefined,
+    orderBy: { createdAt: "desc" },
+    take: Math.min(opts?.limit ?? 100, 300),
+    include: { operator: { select: { email: true } } },
+  });
+
+  const orgIds = [...new Set(rows.map((r) => r.organizationId).filter((x): x is string => !!x))];
+  const orgs = orgIds.length
+    ? await prisma.organization.findMany({
+        where: { id: { in: orgIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const orgName = new Map(orgs.map((o) => [o.id, o.name]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    action: r.action,
+    targetType: r.targetType,
+    targetId: r.targetId,
+    organizationId: r.organizationId,
+    metadata: r.metadata,
+    createdAt: r.createdAt,
+    operatorEmail: r.operator.email,
+    organizationName: r.organizationId ? orgName.get(r.organizationId) ?? null : null,
+  }));
+}
+
 // --- Billing overview ----------------------------------------------------------
 
 export type BillingOverview = {
