@@ -9,6 +9,7 @@ import {
   parseOptionalPort,
   parseOptionalString,
 } from "@/lib/device-input";
+import { buildAdmsIclockUrls, resolvePublicAppUrlForOrg } from "@/lib/public-url";
 
 const DEVICE_LIST_SELECT = {
   id: true,
@@ -57,10 +58,15 @@ export async function GET() {
  * For pull TCP: pairing is null because the operator already has all the info they need.
  */
 type AdmsPairing = {
+  publicBaseUrl: string;
+  pushUrl: string;
+  pollUrl: string;
+  /** Optional on many F22 units — SR+ ADMS v1 identifies devices by serial only. */
+  commKey: string;
+  /** Legacy cloud-server fields (host + /iclock path) for older ZKTeco UI variants. */
   serverHost: string;
   serverPort: number;
   serverPath: string;
-  commKey: string;
 };
 
 function deriveOrigin(request: Request): { host: string; port: number } {
@@ -161,11 +167,18 @@ export async function POST(request: Request) {
     let pairing: AdmsPairing | null = null;
     if (connectionMode === "adms_push" && plaintextCommKey) {
       const origin = deriveOrigin(request);
+      const { url: publicBaseUrl } = await resolvePublicAppUrlForOrg(session.orgId, {
+        request,
+      });
+      const { pushUrl, pollUrl } = buildAdmsIclockUrls(publicBaseUrl);
       pairing = {
+        publicBaseUrl,
+        pushUrl,
+        pollUrl,
+        commKey: plaintextCommKey,
         serverHost: origin.host,
         serverPort: origin.port,
         serverPath: "/iclock",
-        commKey: plaintextCommKey,
       };
     }
 

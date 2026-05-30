@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -8,6 +9,12 @@ import { AddDeviceButton } from "@/app/components/add-device-drawer";
 import { DeviceStatusCells } from "@/app/components/device-status-cells";
 import { UnmappedDevicePunchesPanel } from "@/app/components/unmapped-device-punches-panel";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
+import {
+  getOrgPublicAppUrlOverride,
+  publicAppUrlHostnameHyphenWarning,
+} from "@/lib/public-app-url-settings";
+import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import { PublicAppUrlSettingsButton } from "@/app/components/public-app-url-settings";
 import {
   getStaffOptionsForUnmappedMapping,
   listUnmappedDeviceUsers,
@@ -59,17 +66,27 @@ export default async function DevicesPage() {
       .map((row) => [row.deviceId!, row._count._all]),
   );
 
+  const requestHeaders = await headers();
+  const [orgPublicAppUrl, resolvedPublic] = await Promise.all([
+    getOrgPublicAppUrlOverride(session.orgId),
+    resolvePublicAppUrlForOrg(session.orgId, { headers: requestHeaders }),
+  ]);
+  const publicBaseUrl = resolvedPublic.url;
+  const hostnameHyphenWarning = publicAppUrlHostnameHyphenWarning(publicBaseUrl);
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Devices</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            ZKTeco terminals registered to your organization. Punches arrive here over ADMS push or
-            scheduled pull and are matched to staff by device user ID.
+            ZKTeco terminals registered to your organization. Punches arrive via ADMS push when the
+            terminal reaches <span className="font-mono">/iclock/*</span>;{" "}
+            <span className="font-medium">Last active</span> updates on each successful ingest.
+            Match staff using the same device user ID as on the terminal.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled
@@ -78,7 +95,13 @@ export default async function DevicesPage() {
           >
             Filter
           </button>
-          <AddDeviceButton locations={locations} />
+          <PublicAppUrlSettingsButton
+            initialOrgPublicAppUrl={orgPublicAppUrl}
+            resolvedPublicAppUrl={publicBaseUrl}
+            resolvedSource={resolvedPublic.source}
+            hostnameHyphenWarning={hostnameHyphenWarning}
+          />
+          <AddDeviceButton locations={locations} publicBaseUrl={publicBaseUrl} />
         </div>
       </div>
 
@@ -186,6 +209,12 @@ export default async function DevicesPage() {
         initialRows={unmappedRows}
         initialStaffByLocationId={staffByLocationId}
       />
+
+      {hostnameHyphenWarning ? (
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {hostnameHyphenWarning}
+        </p>
+      ) : null}
 
       <p className="mt-4 text-xs text-zinc-500">
         ADMS push updates <span className="font-medium">Last active</span> when a registered,

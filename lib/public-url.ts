@@ -1,6 +1,8 @@
+import { getOrgPublicAppUrlOverride } from "@/lib/public-app-url-settings";
+
 /**
  * Canonical public HTTPS base URL (no trailing slash) for ADMS pairing copy and server-side fetches.
- * Prefer APP_URL or NEXT_PUBLIC_APP_URL in Vercel env; falls back to VERCEL_URL.
+ * Prefer per-org `public_app_url` AppSetting, then APP_URL / NEXT_PUBLIC_APP_URL, then VERCEL_URL.
  */
 export function normalizePublicAppUrl(raw: string): string {
   const t = raw.trim();
@@ -18,4 +20,67 @@ export function getPublicAppUrlFromEnv(): string {
     return `https://${host}`;
   }
   return "";
+}
+
+function resolvePublicAppUrlFromHeaders(headers: Headers): string {
+  const fwdHost = headers.get("x-forwarded-host");
+  const fwdProto = headers.get("x-forwarded-proto") ?? "https";
+  const host = fwdHost ?? headers.get("host");
+  if (!host) return "";
+  return normalizePublicAppUrl(`${fwdProto}://${host}`);
+}
+
+function resolvePublicAppUrlFromRequestUrl(request: Request): string {
+  const url = new URL(request.url);
+  const fwdHost = request.headers.get("x-forwarded-host");
+  const fwdProto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = fwdHost ?? url.host;
+  return normalizePublicAppUrl(`${fwdProto}://${host}`);
+}
+
+export type PublicAppUrlSource = "org" | "env" | "request" | "none";
+
+export type ResolvedPublicAppUrl = {
+  url: string;
+  source: PublicAppUrlSource;
+};
+
+/**
+ * Resolve public base URL: org AppSetting → env → optional request/headers fallback.
+ */
+export async function resolvePublicAppUrlForOrg(
+  organizationId: string,
+  opts?: { request?: Request; headers?: Headers },
+): Promise<ResolvedPublicAppUrl> {
+  const fromOrg = await getOrgPublicAppUrlOverride(organizationId);
+  if (fromOrg) return { url: fromOrg, source: "org" };
+
+  const fromEnv = getPublicAppUrlFromEnv();
+  if (fromEnv) return { url: fromEnv, source: "env" };
+
+  if (opts?.request) {
+    const fromRequest = resolvePublicAppUrlFromRequestUrl(opts.request);
+    if (fromRequest) return { url: fromRequest, source: "request" };
+  }
+  if (opts?.headers) {
+    const fromHeaders = resolvePublicAppUrlFromHeaders(opts.headers);
+    if (fromHeaders) return { url: fromHeaders, source: "request" };
+  }
+
+  return { url: "", source: "none" };
+}
+
+/** @deprecated Prefer `resolvePublicAppUrlForOrg` with organizationId. */
+export function resolvePublicAppUrlFromRequest(request: Request): string {
+  const fromEnv = getPublicAppUrlFromEnv();
+  if (fromEnv) return fromEnv;
+  return resolvePublicAppUrlFromRequestUrl(request);
+}
+
+export function buildAdmsIclockUrls(base: string): { pushUrl: string; pollUrl: string } {
+  const b = base.replace(/\/$/, "");
+  return {
+    pushUrl: `${b}/iclock/cdata`,
+    pollUrl: `${b}/iclock/getrequest`,
+  };
 }

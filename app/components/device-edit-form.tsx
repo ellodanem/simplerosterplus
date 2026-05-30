@@ -164,8 +164,11 @@ export function DeviceEditForm({
               value={v.connectionMode}
               onChange={(x) => update("connectionMode", x as ConnectionMode)}
               options={[
-                { value: "adms_push", label: "ADMS push (device calls us)" },
-                { value: "pull_tcp", label: "Pull TCP (we call the device)" },
+                { value: "adms_push", label: "ADMS push (recommended — device calls us)" },
+                {
+                  value: "pull_tcp",
+                  label: "Pull TCP (advanced / on-site — not cloud MVP)",
+                },
               ]}
             />
             <Field

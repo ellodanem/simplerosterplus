@@ -26,7 +26,16 @@ The terminal serial in requests must match a **enabled**, non-deleted `Device.se
 - Enable **ATTLOG** / real-time attendance upload (not OPERLOG-only)
 - Comm key: **not required** for SR+ ADMS v1 (serial-only identification)
 
-Replace `{base}` with your public origin (no path), e.g. `https://localhost:3000` only works if the device can reach your machine (usually use ngrok or staging).
+Replace `{base}` with your public origin (no trailing slash, no path).
+
+**Resolution order (SR+):**
+
+1. **Devices → Public URL** — per-org `AppSetting` `public_app_url` (use for custom domain vs Vercel preview URL)
+2. **`APP_URL`** or **`NEXT_PUBLIC_APP_URL`** in deployment env
+3. **`VERCEL_URL`** on Vercel
+4. Request host in local dev (`http://localhost:3000`)
+
+`https://localhost:3000` only works if the device can reach your machine (usually use ngrok or staging). Prefer a hyphen-free hostname on ZKTeco keypads when possible.
 
 ## 1. Heartbeat (getrequest)
 
@@ -83,6 +92,22 @@ Open `AttendanceLog` — rows with `source = device_adms`, `deviceId` set, optio
 1. Sign in: `admin@demo.local` / `demo`
 2. **Attendance** → Log tab — device punches for Alex (and unmapped rows if tested)
 3. **Devices** — **Front entrance** **Last active** updates after curl heartbeat/post
+4. **Devices → Public URL** — set org override (e.g. ngrok HTTPS origin); Add device checklist and post-create pairing card should show matching push/poll URLs
+
+### Public URL API (optional)
+
+```bash
+curl -sS -b "srp_session=YOUR_SESSION_COOKIE" "http://localhost:3000/api/devices/public-url"
+```
+
+```bash
+curl -sS -X PUT -b "srp_session=YOUR_SESSION_COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{"publicAppUrl":"https://your-tunnel.example.com"}' \
+  "http://localhost:3000/api/devices/public-url"
+```
+
+Clear org override: `{"publicAppUrl":""}`.
 
 ## Disabled device
 
