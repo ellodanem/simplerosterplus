@@ -20,6 +20,7 @@ import {
   touchDeviceLastSeen,
 } from "@/lib/adms-device";
 import { formatYmdInZone } from "@/lib/datetime-policy";
+import { recordAdmsRequest } from "@/lib/adms-last-request";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -114,6 +115,14 @@ export async function zkPushGET(request: NextRequest) {
   const sn = request.nextUrl.searchParams.get("SN") || "unknown";
   const path = request.nextUrl.pathname;
   console.log(`[ADMS] GET ${path} SN=${sn}`);
+  recordAdmsRequest({
+    method: "GET",
+    path,
+    sn,
+    table: null,
+    bytes: null,
+    lineCount: null,
+  });
   if (sn !== "unknown") {
     await touchDeviceIfResolved(sn);
   }
@@ -129,6 +138,14 @@ export async function zkPushCDATAGET(request: NextRequest) {
       ? "omit"
       : process.env.ZK_ICLOCK_TIMEZONE_OFFSET_MINUTES?.trim() || "default-240";
   console.log(`[ADMS] GET ${path} SN=${sn.trim() || "unknown"} handshake=options tz=${tzMode}`);
+  recordAdmsRequest({
+    method: "GET",
+    path,
+    sn: sn.trim() || "unknown",
+    table: null,
+    bytes: null,
+    lineCount: null,
+  });
   if (sn !== "unknown") {
     await touchDeviceIfResolved(sn);
   }
@@ -157,6 +174,14 @@ export async function zkPushPOST(request: NextRequest) {
     }
 
     console.log(`[ADMS] POST ${path} table=${table || "(none)"} SN=${sn} bytes=${body.length}`);
+    recordAdmsRequest({
+      method: "POST",
+      path,
+      sn,
+      table: table || declaredTable || null,
+      bytes: body.length,
+      lineCount: table === "ATTLOG" ? body.trim().split(/\r?\n/).filter((l) => l.trim()).length : null,
+    });
 
     if (table !== "ATTLOG") {
       const preview = body.trim().slice(0, 120).replace(/\s+/g, " ");

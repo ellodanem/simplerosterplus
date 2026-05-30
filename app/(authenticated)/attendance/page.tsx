@@ -24,6 +24,7 @@ import {
 } from "@/lib/roster-week";
 import { getAttendanceWeekData } from "@/lib/attendance-week";
 import { getAttendanceLogData } from "@/lib/attendance-log-data";
+import { UnmappedPunchesBanner } from "@/app/components/unmapped-punches-banner";
 import { AttendanceGrid } from "./attendance-grid";
 import { AttendanceLog } from "./attendance-log";
 import { AttendanceFilterProvider } from "./attendance-filter-context";
@@ -89,6 +90,12 @@ export default async function AttendancePage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/attendance/report?location=${encodeURIComponent(location.id)}`}
+            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
+          >
+            Attendance report
+          </Link>
           <button
             type="button"
             disabled
@@ -172,15 +179,27 @@ async function LogTab({
   const windowStartYmd = shiftYmd(todayYmd, -(logWindowDays - 1));
   const sinceDate = startOfLocalDayUtc(windowStartYmd, tz);
 
-  const data = await getAttendanceLogData({
-    organizationId: org.id,
-    locationId: location.id,
-    timeZone: tz,
-    sinceDate,
-  });
+  const [data, unmappedPunchCount] = await Promise.all([
+    getAttendanceLogData({
+      organizationId: org.id,
+      locationId: location.id,
+      timeZone: tz,
+      sinceDate,
+    }),
+    prisma.attendanceLog.count({
+      where: {
+        organizationId: org.id,
+        locationId: location.id,
+        staffId: null,
+        deviceUserId: { not: null },
+      },
+    }),
+  ]);
 
   return (
-    <AttendanceLog
+    <>
+      <UnmappedPunchesBanner count={unmappedPunchCount} />
+      <AttendanceLog
       key={`${windowStartYmd}:${expandedLogWindow ? "extended" : "default"}`}
       timeZone={tz}
       todayYmd={todayYmd}
@@ -196,6 +215,7 @@ async function LogTab({
       rowLimit={data.rowLimit}
       locationId={location.id}
     />
+    </>
   );
 }
 

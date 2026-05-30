@@ -106,6 +106,7 @@ export async function getAttendanceLogData(args: {
       select: {
         id: true,
         staffId: true,
+        deviceUserId: true,
         punchAt: true,
         punchType: true,
         source: true,
@@ -300,6 +301,7 @@ export async function getAttendanceLogData(args: {
     const serialized: SerializedPunch = {
       id: p.id,
       staffId: p.staffId,
+      deviceUserId: p.deviceUserId,
       punchAt: p.punchAt.toISOString(),
       punchType: p.punchType,
       source: p.source,

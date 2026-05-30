@@ -479,7 +479,7 @@ function LogRowItem({
             {staff ? `${staff.firstName} ${staff.lastName}` : "Unmatched punch"}
           </div>
           <div className="truncate text-xs text-zinc-500">
-            {staff?.role ?? "—"}
+            {staff?.role ?? (punch.deviceUserId ? `Device user ID ${punch.deviceUserId}` : "—")}
           </div>
         </div>
 

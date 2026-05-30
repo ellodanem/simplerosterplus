@@ -40,9 +40,9 @@ Reuse Shift Close `lib/device-user-id.ts` rules (leading zeros, 1–999 style ID
 
 ## Definition of done
 
-- [ ] Unmapped punch visible in UI
-- [ ] Manager can map ID → staff without DB access
-- [ ] Duplicate `deviceUserId` at same location rejected with clear error
-- [ ] [STATUS.md](./STATUS.md) row **03** → `completed`
+- [x] Unmapped punch visible in UI
+- [x] Manager can map ID → staff without DB access
+- [x] Duplicate `deviceUserId` at same location rejected with clear error
+- [x] [STATUS.md](./STATUS.md) row **03** → `completed`
 
 **Do not commit unless user asks.**

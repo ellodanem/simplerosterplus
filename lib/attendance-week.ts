@@ -54,6 +54,8 @@ export type PunchVerifyMethod =
 export type SerializedPunch = {
   id: string;
   staffId: string | null;
+  /** Terminal user id when the punch is unmapped or for device-sourced rows. */
+  deviceUserId: string | null;
   punchAt: string;
   punchType: "in" | "out";
   source: "manual" | "device_adms" | "device_pull";
@@ -184,6 +186,7 @@ export async function getAttendanceWeekData(args: {
       select: {
         id: true,
         staffId: true,
+        deviceUserId: true,
         punchAt: true,
         punchType: true,
         source: true,
@@ -247,6 +250,7 @@ export async function getAttendanceWeekData(args: {
     serializedPunches.push({
       id: p.id,
       staffId: p.staffId,
+      deviceUserId: p.deviceUserId,
       punchAt: p.punchAt.toISOString(),
       punchType: p.punchType,
       source: p.source,

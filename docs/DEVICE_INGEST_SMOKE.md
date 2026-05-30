@@ -88,8 +88,26 @@ Open `AttendanceLog` — rows with `source = device_adms`, `deviceId` set, optio
 
 Disable the device in UI, repeat POST — punches must **not** be created; `lastSeenAt` should not update.
 
-## Follow-up (out of scope for P0)
+## Health check
 
-- `/api/attendance/adms-health` diagnostic
+After sign-in, call the org-scoped diagnostics endpoint (session cookie required):
+
+```bash
+curl -sS -b "srp_session=YOUR_SESSION_COOKIE" "http://localhost:3000/api/attendance/adms-health"
+```
+
+Expected JSON includes:
+
+- `summary.last24hCount` — ADMS punches ingested in the last 24 hours
+- `devices[]` — per device: `lastSeenAt`, `punchCount24h`, optional `hint`
+- `latest` — most recent ADMS punch (or `null` if none)
+- `lastRequest` — last `/iclock/*` callback seen by this server process (in-memory; resets on restart)
+
+**UI:** **Devices** list shows **Punches (24h)** and an **ATTLOG?** label when the device contacted the server in the last 24h but stored zero punches (usual cause: OPERLOG-only upload).
+
+**OPERLOG-only test:** POST with `table=OPERLOG` (no ATTLOG lines) — `lastSeenAt` should update, `punchCount24h` stays 0, hint appears.
+
+## Follow-up (out of scope)
+
 - Unmapped `deviceUserId` queue + map-to-staff UI
 - Legacy `/api/attendance/adms` alias

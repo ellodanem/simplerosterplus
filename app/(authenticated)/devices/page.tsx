@@ -2,10 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { admsDeviceHint } from "@/lib/adms-health";
 import { DeviceEnabledToggle } from "@/app/components/device-enabled-toggle";
 import { AddDeviceButton } from "@/app/components/add-device-drawer";
 import { DeviceStatusCells } from "@/app/components/device-status-cells";
+import { UnmappedDevicePunchesPanel } from "@/app/components/unmapped-device-punches-panel";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
+import {
+  getStaffOptionsForUnmappedMapping,
+  listUnmappedDeviceUsers,
+} from "@/lib/unmapped-device-punches";
 
 export const metadata = {
   title: "Devices | Simple Roster Plus",
@@ -17,7 +23,7 @@ export default async function DevicesPage() {
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 
-  const [devices, locations] = await Promise.all([
+  const [devices, locations, punchCounts24h, unmappedRows] = await Promise.all([
     prisma.device.findMany({
       where: { organizationId: session.orgId, deletedAt: null },
       orderBy: [{ name: "asc" }],
@@ -28,7 +34,30 @@ export default async function DevicesPage() {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true },
     }),
+    prisma.attendanceLog.groupBy({
+      by: ["deviceId"],
+      where: {
+        organizationId: session.orgId,
+        source: "device_adms",
+        deviceId: { not: null },
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      _count: { _all: true },
+    }),
+    listUnmappedDeviceUsers(session.orgId),
   ]);
+
+  const unmappedLocationIds = [...new Set(unmappedRows.map((r) => r.locationId))];
+  const staffByLocationId = await getStaffOptionsForUnmappedMapping(
+    session.orgId,
+    unmappedLocationIds,
+  );
+
+  const punchCountByDeviceId = new Map(
+    punchCounts24h
+      .filter((row) => row.deviceId)
+      .map((row) => [row.deviceId!, row._count._all]),
+  );
 
   return (
     <div>
@@ -66,6 +95,7 @@ export default async function DevicesPage() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Last active</th>
+              <th className="px-4 py-3">Punches (24h)</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Serial</th>
               <th className="px-4 py-3 text-right">Enabled</th>
@@ -75,13 +105,20 @@ export default async function DevicesPage() {
           <tbody className="divide-y divide-zinc-100">
             {devices.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-500">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-500">
                   No devices yet. Use <span className="font-medium">Add device</span> to register a
                   terminal; punches appear here once ADMS push reaches the server.
                 </td>
               </tr>
             ) : (
               devices.map((d) => {
+                const punchCount24h = punchCountByDeviceId.get(d.id) ?? 0;
+                const hint = admsDeviceHint(
+                  d.lastSeenAt,
+                  punchCount24h,
+                  d.enabled,
+                  d.connectionMode,
+                );
                 return (
                   <tr key={d.id} className="hover:bg-zinc-50/80">
                     <td className="px-4 py-3">
@@ -102,6 +139,17 @@ export default async function DevicesPage() {
                       lastSeenAt={d.lastSeenAt?.toISOString() ?? null}
                       enabled={d.enabled}
                     />
+                    <td className="px-4 py-3 text-zinc-600">
+                      <span className="tabular-nums">{punchCount24h}</span>
+                      {hint ? (
+                        <span
+                          className="ml-1.5 text-xs text-amber-700"
+                          title={hint}
+                        >
+                          ATTLOG?
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 text-zinc-600">
                       {d.serialNumber ? (
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
@@ -134,10 +182,19 @@ export default async function DevicesPage() {
         </table>
       </div>
 
+      <UnmappedDevicePunchesPanel
+        initialRows={unmappedRows}
+        initialStaffByLocationId={staffByLocationId}
+      />
+
       <p className="mt-4 text-xs text-zinc-500">
         ADMS push updates <span className="font-medium">Last active</span> when a registered,
-        enabled terminal contacts <span className="font-mono">/iclock/*</span>. Pull-sync from LAN
-        is not enabled from cloud yet.
+        enabled terminal contacts <span className="font-mono">/iclock/*</span>.{" "}
+        <span className="font-medium">Punches (24h)</span> counts ADMS rows ingested in the last
+        24 hours. If a device shows recent contact but zero punches, hover{" "}
+        <span className="font-medium">ATTLOG?</span> for the usual fix (enable attendance upload,
+        not OPERLOG-only). Full diagnostics:{" "}
+        <span className="font-mono">GET /api/attendance/adms-health</span>.
       </p>
     </div>
   );
