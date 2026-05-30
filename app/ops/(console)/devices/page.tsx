@@ -1,6 +1,7 @@
-import { listDevicesForOps } from "@/lib/ops/data";
+import Link from "next/link";
+import { listDevicesForOps, getIngestHealth } from "@/lib/ops/data";
 import { type DeviceStatus } from "@/lib/ops/device-status";
-import { StatCard, Card, Pill, type Tone } from "../ops-ui";
+import { StatCard, Card, Pill, Sparkline, formatDateTime, type Tone } from "../ops-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,19 @@ const STATUS_LABEL: Record<DeviceStatus, string> = {
   never: "Never connected",
 };
 
+function formatDrift(ms: number | null): string {
+  if (ms === null) return "—";
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
 export default async function DeviceFleetPage() {
-  const { devices, counts } = await listDevicesForOps();
+  const [{ devices, counts }, ingest] = await Promise.all([
+    listDevicesForOps(),
+    getIngestHealth(),
+  ]);
+
+  const total24h = ingest.punchSeries24h.reduce((s, p) => s + p.count, 0);
 
   return (
     <div>
@@ -27,19 +39,73 @@ export default async function DeviceFleetPage() {
         Devices &amp; Ingest Health
       </h1>
       <p className="mt-1 text-sm text-zinc-600">
-        ZKTeco fleet across every organization. Status mirrors the tenant app: online ≤ 5
-        min since last contact, idle ≤ 24 h, otherwise offline.
+        ZKTeco fleet and ADMS ingest pipeline across every organization. Device status
+        mirrors the tenant app: online ≤ 5 min since last contact, idle ≤ 24 h, else offline.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
         <StatCard label="Devices" value={devices.length} hint="not deleted" />
         <StatCard label="Online" value={counts.online} hint="seen ≤ 5 min" />
-        <StatCard label="Idle" value={counts.idle} hint="seen ≤ 24 h" />
         <StatCard
           label="Offline / never"
           value={counts.offline + counts.never}
           hint="needs attention"
         />
+        <StatCard label="Punches today" value={ingest.punchesToday.toLocaleString()} hint="device-sourced" />
+        <StatCard
+          label="Avg clock drift"
+          value={formatDrift(ingest.avgClockDriftMs)}
+          hint={`${ingest.calibratedDevices}/${ingest.trackedSerials} calibrated`}
+        />
+        <StatCard
+          label="Stalled devices"
+          value={ingest.stalledDevices}
+          hint="ADMS, silent > 1 h"
+        />
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card title="Punch ingest volume (24 h)">
+            <div className="p-4">
+              <Sparkline points={ingest.punchSeries24h.map((p) => p.count)} />
+              <p className="mt-2 text-xs text-zinc-500">
+                {total24h.toLocaleString()} device punches ingested in the last 24 hours
+              </p>
+            </div>
+          </Card>
+        </div>
+
+        <Card title="Ingest errors — unmapped punches">
+          <ul className="divide-y divide-zinc-100">
+            {ingest.unmapped.length === 0 ? (
+              <li className="px-4 py-8 text-center text-sm text-zinc-500">
+                No unmapped device punches. Every punch is matched to a staff member.
+              </li>
+            ) : (
+              ingest.unmapped.map((u) => (
+                <li key={`${u.organizationId}-${u.deviceUserId}`} className="px-4 py-3">
+                  <Link
+                    href={`/ops/organizations/${u.organizationId}`}
+                    className="flex items-center justify-between gap-2 hover:underline"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-zinc-900">
+                        {u.organizationName}
+                      </span>
+                      <span className="block text-xs text-zinc-500">
+                        device user{" "}
+                        <span className="font-mono">{u.deviceUserId ?? "—"}</span> ·{" "}
+                        {formatDateTime(u.lastPunchAt)}
+                      </span>
+                    </span>
+                    <Pill tone="warn">{u.count}</Pill>
+                  </Link>
+                </li>
+              ))
+            )}
+          </ul>
+        </Card>
       </div>
 
       <div className="mt-6">
@@ -99,8 +165,8 @@ export default async function DeviceFleetPage() {
       </div>
 
       <p className="mt-4 text-xs text-zinc-500">
-        Punch-ingest time series, clock-drift, and live ingest-error feeds (unmapped users,
-        comm-key mismatches) are next on the roadmap — see{" "}
+        Clock drift is learned per ZKTeco serial from ADMS punches. Comm-key mismatch and
+        parse-error feeds land with richer ingest event logging — see{" "}
         <span className="font-mono">docs/OPERATOR_CONSOLE.md</span> §3.3.
       </p>
     </div>

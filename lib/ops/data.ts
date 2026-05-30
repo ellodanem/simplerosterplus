@@ -383,6 +383,108 @@ export async function listDevicesForOps(): Promise<FleetResult> {
   return { devices: mapped, counts };
 }
 
+// --- Ingest health -------------------------------------------------------------
+
+const HOUR_MS = 60 * 60 * 1000;
+
+export type IngestErrorRow = {
+  organizationId: string;
+  organizationName: string;
+  deviceUserId: string | null;
+  count: number;
+  lastPunchAt: Date | null;
+};
+
+export type IngestHealth = {
+  punchesToday: number; // device-sourced only
+  punchSeries24h: { label: string; count: number }[];
+  avgClockDriftMs: number | null;
+  calibratedDevices: number;
+  trackedSerials: number;
+  stalledDevices: number; // enabled ADMS push, last seen > 1h ago
+  unmapped: IngestErrorRow[];
+};
+
+export async function getIngestHealth(): Promise<IngestHealth> {
+  const since24h = new Date(Date.now() - 24 * HOUR_MS);
+  const oneHourAgo = new Date(Date.now() - HOUR_MS);
+  const todayStart = startOfUtcDay();
+
+  const [seriesRows, punchesToday, clocks, stalledDevices, unmappedGroups] = await Promise.all([
+    prisma.$queryRaw<Array<{ hour: Date; count: bigint }>>`
+      SELECT date_trunc('hour', "punchAt") AS hour, COUNT(*)::bigint AS count
+      FROM "AttendanceLog"
+      WHERE "punchAt" >= ${since24h} AND "source" <> 'manual'
+      GROUP BY 1 ORDER BY 1`,
+    prisma.attendanceLog.count({
+      where: { punchAt: { gte: todayStart }, source: { not: "manual" } },
+    }),
+    prisma.attendanceDeviceClock.findMany({ select: { offsetMs: true, isCalibrated: true } }),
+    prisma.device.count({
+      where: {
+        deletedAt: null,
+        enabled: true,
+        connectionMode: "adms_push",
+        lastSeenAt: { not: null, lt: oneHourAgo },
+      },
+    }),
+    prisma.attendanceLog.groupBy({
+      by: ["organizationId", "deviceUserId"],
+      where: { staffId: null, source: { not: "manual" } },
+      _count: { _all: true },
+      _max: { punchAt: true },
+    }),
+  ]);
+
+  const punchSeries24h = seriesRows.map((r) => ({
+    label: new Date(r.hour).toISOString().slice(11, 16),
+    count: Number(r.count),
+  }));
+
+  const calibratedDevices = clocks.filter((c) => c.isCalibrated).length;
+  const avgClockDriftMs =
+    clocks.length > 0
+      ? Math.round(clocks.reduce((s, c) => s + Math.abs(c.offsetMs), 0) / clocks.length)
+      : null;
+
+  const topUnmapped = unmappedGroups
+    .map((g) => ({
+      organizationId: g.organizationId,
+      deviceUserId: g.deviceUserId,
+      count: g._count._all,
+      lastPunchAt: g._max.punchAt,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
+
+  const orgIds = [...new Set(topUnmapped.map((u) => u.organizationId))];
+  const orgs = orgIds.length
+    ? await prisma.organization.findMany({
+        where: { id: { in: orgIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const orgName = new Map(orgs.map((o) => [o.id, o.name]));
+
+  const unmapped: IngestErrorRow[] = topUnmapped.map((u) => ({
+    organizationId: u.organizationId,
+    organizationName: orgName.get(u.organizationId) ?? u.organizationId,
+    deviceUserId: u.deviceUserId,
+    count: u.count,
+    lastPunchAt: u.lastPunchAt,
+  }));
+
+  return {
+    punchesToday,
+    punchSeries24h,
+    avgClockDriftMs,
+    calibratedDevices,
+    trackedSerials: clocks.length,
+    stalledDevices,
+    unmapped,
+  };
+}
+
 // --- Audit log -----------------------------------------------------------------
 
 export type AuditRow = {

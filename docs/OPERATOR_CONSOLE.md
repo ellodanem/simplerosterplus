@@ -325,6 +325,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 | Cross-tenant data layer | ✅ | Isolated in `lib/ops/data.ts` — the only place org-scoping is bypassed. |
 | Overview / Orgs list / Org 360 / Device fleet / Billing | ✅ (read-only) | Server-rendered from the DB; emerald/zinc/amber + Geist. |
 | Audited write actions | ✅ (lifecycle) | **Suspend/reactivate** (superadmin), **extend trial**, **convert demo→trial** (billing+) — confirm dialog + reason, audited. |
+| Ingest observability | ✅ (first pass) | 24 h punch-volume chart, punches today, learned clock-drift, stalled devices, live unmapped-punch feed. |
+| Production wiring | ✅ | `admin.` subdomain → `/ops` rewrite + edge gate in `middleware.ts`; `prisma migrate deploy` in the Vercel build. |
 | Stripe (live billing + refunds) | ⏳ | Schema mirror columns exist; billing pages read mirrored DB values. No Stripe calls/webhooks yet. |
 | Impersonation | ⏳ | Deferred — needs a read-only mode in the tenant app first; button is a labeled stub. |
 | Operator Clerk app + MFA | ⏳ | Custom auth today; documented swap path above. |
@@ -337,10 +339,21 @@ gate), `prisma/schema.prisma` + `prisma/migrations/20260530120000_operator_conso
 **Run it locally:** set `OPERATOR_AUTH_SECRET` (16+ chars), `npm run db:migrate`,
 `npm run db:seed`, then visit `/ops` and sign in with `ops@demo.local` / `ops`.
 
-**Subdomain rewrite (production):** the console is path-based at `/ops` so it's testable
-locally. Map `admin.simplerosterplus.com/*` → `/ops/*` at the edge (e.g. a Vercel host
-rewrite or reverse proxy). The cookie/secret separation already enforces the trust
-boundary regardless of host.
+**Subdomain rewrite (production): ✅ implemented in `middleware.ts`.** Any host starting
+with `admin.` (or an exact `ADMIN_HOST`) is treated as the operator plane: bare paths
+(e.g. `admin.host/organizations`) are rewritten under `/ops` and the operator gate runs at
+the edge. The app host keeps the console at `/ops`. Point `admin.simplerosterplus.com` at
+the same deployment via DNS — no separate app needed. The cookie/secret separation enforces
+the trust boundary regardless of host.
+
+**Migrations on deploy: ✅** the Vercel build runs `prisma migrate deploy` (build script:
+`prisma generate && prisma migrate deploy && next build`), so schema changes apply on
+deploy. `DATABASE_URL` must be set in the Vercel environment.
+
+**Ingest observability: ✅ (first pass)** the Devices page surfaces a 24 h punch-volume
+chart, punches-today, learned clock-drift (avg + calibrated count), stalled-device count,
+and a live unmapped-punch feed. Comm-key/parse error feeds need richer event logging
+(deferred).
 
 ## 9. Open questions
 
