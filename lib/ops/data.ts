@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { planMonthlyUsd } from "@/lib/ops/billing";
+import { orgMonthlyUsd } from "@/lib/ops/billing";
 import { deriveDeviceStatus, relativeTime, type DeviceStatus } from "@/lib/ops/device-status";
 
 // ============================================================================
@@ -109,7 +109,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     prisma.organization.groupBy({ by: ["plan"], _count: { _all: true } }),
     prisma.organization.findMany({
       where: { subscriptionStatus: "active" },
-      select: { plan: true },
+      select: { plan: true, mrrCents: true },
     }),
     dailySeries("Organization", "createdAt", 90),
     prisma.organization.findMany({
@@ -131,7 +131,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     }),
   ]);
 
-  const mrrUsd = activeSubs.reduce((sum, o) => sum + planMonthlyUsd(o.plan), 0);
+  const mrrUsd = activeSubs.reduce((sum, o) => sum + orgMonthlyUsd(o), 0);
   const activeOrgs = totalOrgs - suspendedOrgs;
 
   const planMix = planGroups
@@ -214,6 +214,7 @@ export async function listOrganizationsForOps(search?: string): Promise<OrgListR
       id: true,
       name: true,
       plan: true,
+      mrrCents: true,
       subscriptionStatus: true,
       isDemo: true,
       suspendedAt: true,
@@ -260,7 +261,7 @@ export async function listOrganizationsForOps(search?: string): Promise<OrgListR
     staff: staffMap.get(o.id) ?? 0,
     devices: deviceMap.get(o.id) ?? 0,
     admins: adminMap.get(o.id) ?? 0,
-    mrrUsd: o.subscriptionStatus === "active" ? planMonthlyUsd(o.plan) : 0,
+    mrrUsd: o.subscriptionStatus === "active" ? orgMonthlyUsd(o) : 0,
   }));
 }
 
@@ -276,6 +277,7 @@ export async function getOrganizationDetail(id: string) {
       name: true,
       timeZone: true,
       plan: true,
+      mrrCents: true,
       subscriptionStatus: true,
       currentPeriodEnd: true,
       trialEndsAt: true,
@@ -314,7 +316,7 @@ export async function getOrganizationDetail(id: string) {
     ownerEmail: owner?.email ?? null,
     recentAudit,
     punchSeries,
-    mrrUsd: org.subscriptionStatus === "active" ? planMonthlyUsd(org.plan) : 0,
+    mrrUsd: org.subscriptionStatus === "active" ? orgMonthlyUsd(org) : 0,
   };
 }
 
@@ -543,6 +545,7 @@ export type BillingOverview = {
     name: string;
     subscriptionStatus: string | null;
     trialEndsAt: Date | null;
+    stripeCustomerId: string | null;
   }[];
 };
 
@@ -553,7 +556,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
   const [activeSubs, trialing, pastDue, dunning] = await Promise.all([
     prisma.organization.findMany({
       where: { subscriptionStatus: "active" },
-      select: { plan: true },
+      select: { plan: true, mrrCents: true },
     }),
     prisma.organization.count({ where: { subscriptionStatus: "trialing" } }),
     prisma.organization.count({ where: { subscriptionStatus: { in: ["past_due", "unpaid"] } } }),
@@ -566,7 +569,13 @@ export async function getBillingOverview(): Promise<BillingOverview> {
       },
       orderBy: { trialEndsAt: "asc" },
       take: 20,
-      select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true },
+      select: {
+        id: true,
+        name: true,
+        subscriptionStatus: true,
+        trialEndsAt: true,
+        stripeCustomerId: true,
+      },
     }),
   ]);
 
@@ -574,7 +583,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
   let mrrUsd = 0;
   for (const o of activeSubs) {
     const plan = o.plan ?? "none";
-    const price = planMonthlyUsd(o.plan);
+    const price = orgMonthlyUsd(o);
     mrrUsd += price;
     const cur = planMap.get(plan) ?? { count: 0, mrrUsd: 0 };
     cur.count += 1;

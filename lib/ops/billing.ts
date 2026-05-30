@@ -20,6 +20,13 @@ export function planMonthlyUsd(plan: string | null | undefined): number {
   return PLAN_MONTHLY_USD[plan as PlanSlug] ?? 0;
 }
 
+// Exact monthly USD for an org: prefer the Stripe-mirrored `mrrCents`, fall back to the
+// plan→price estimate only when no mirror exists yet.
+export function orgMonthlyUsd(o: { plan?: string | null; mrrCents?: number | null }): number {
+  if (o.mrrCents != null) return o.mrrCents / 100;
+  return planMonthlyUsd(o.plan ?? null);
+}
+
 export function planLabel(plan: string | null | undefined): string {
   if (!plan) return "No plan";
   return plan.charAt(0).toUpperCase() + plan.slice(1);

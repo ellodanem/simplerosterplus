@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireOperator } from "@/lib/ops/context";
 import { getOrganizationDetail } from "@/lib/ops/data";
+import { stripeConfigured, stripeCustomerUrl } from "@/lib/ops/stripe";
 import { OrgActions } from "./org-actions";
 import {
   formatUsd,
@@ -54,6 +55,8 @@ export default async function OrganizationDetailPage({
           suspended={org.suspendedAt !== null}
           isDemo={org.isDemo}
           role={operator.role}
+          stripeConfigured={stripeConfigured()}
+          stripeLinked={org.stripeCustomerId !== null}
         />
       </div>
 
@@ -98,14 +101,30 @@ export default async function OrganizationDetailPage({
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-zinc-500">Stripe customer</span>
-              <span className="font-mono text-xs text-zinc-700">
-                {org.stripeCustomerId ?? "not linked"}
-              </span>
+              {org.stripeCustomerId ? (
+                <a
+                  href={stripeCustomerUrl(org.stripeCustomerId)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-xs text-emerald-700 hover:underline"
+                >
+                  {org.stripeCustomerId} ↗
+                </a>
+              ) : (
+                <span className="font-mono text-xs text-zinc-500">not linked</span>
+              )}
             </div>
-            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Live billing actions (refunds, plan changes, “Open in Stripe”) arrive with the
-              Stripe integration. Values shown mirror the database.
-            </p>
+            {stripeConfigured() ? (
+              <p className="text-xs text-zinc-500">
+                Billing fields mirror Stripe via webhooks. Use{" "}
+                <span className="font-medium">Sync from Stripe</span> to reconcile on demand.
+              </p>
+            ) : (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Stripe isn’t configured yet (set <span className="font-mono">STRIPE_SECRET_KEY</span>).
+                Values shown mirror the database.
+              </p>
+            )}
           </div>
         </Card>
       </div>

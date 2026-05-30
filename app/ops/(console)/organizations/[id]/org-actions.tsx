@@ -29,11 +29,15 @@ export function OrgActions({
   suspended,
   isDemo,
   role,
+  stripeConfigured,
+  stripeLinked,
 }: {
   orgId: string;
   suspended: boolean;
   isDemo: boolean;
   role: string;
+  stripeConfigured: boolean;
+  stripeLinked: boolean;
 }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
@@ -87,6 +91,31 @@ export function OrgActions({
         >
           Impersonate
         </button>
+
+        {canBilling && stripeConfigured ? (
+          <button
+            type="button"
+            disabled={!stripeLinked}
+            title={
+              stripeLinked
+                ? "Pull the latest subscription from Stripe and refresh mirrored billing"
+                : "No Stripe customer linked to this organization yet"
+            }
+            onClick={() =>
+              open({
+                key: "sync",
+                label: "Sync from Stripe",
+                description:
+                  "Pulls this organization's current subscription from Stripe and refreshes plan, status, MRR, and renewal date.",
+                endpoint: `${base}/sync-stripe`,
+                body: {},
+              })
+            }
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Sync from Stripe
+          </button>
+        ) : null}
 
         {canBilling && isDemo ? (
           <button

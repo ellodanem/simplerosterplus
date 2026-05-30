@@ -29,6 +29,10 @@ model Organization {
   plan                 String?
   /// Mirror of the Stripe subscription status, e.g. `active` | `trialing` | `past_due` | `canceled`.
   subscriptionStatus   String?
+  /// Normalized monthly recurring revenue in cents for this org, mirrored from the Stripe
+  /// subscription (yearly plans divided by 12). Exact MRR source; falls back to a plan→price
+  /// estimate only when null. Maintained by Stripe webhooks.
+  mrrCents             Int?
   /// End of the current paid period (Stripe `current_period_end`). Drives renewal display.
   currentPeriodEnd     DateTime?
   /// When the free trial ends. Drives the "trials ending" overview metric.

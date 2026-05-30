@@ -327,7 +327,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 | Audited write actions | ✅ (lifecycle) | **Suspend/reactivate** (superadmin), **extend trial**, **convert demo→trial** (billing+) — confirm dialog + reason, audited. |
 | Ingest observability | ✅ (first pass) | 24 h punch-volume chart, punches today, learned clock-drift, stalled devices, live unmapped-punch feed. |
 | Production wiring | ✅ | `admin.` subdomain → `/ops` rewrite + edge gate in `middleware.ts`; `prisma migrate deploy` in the Vercel build. |
-| Stripe (live billing + refunds) | ⏳ | Schema mirror columns exist; billing pages read mirrored DB values. No Stripe calls/webhooks yet. |
+| Stripe (mirror + webhooks) | ✅ (first pass) | Signature-verified webhook at **`/api/stripe/webhook`** mirrors subscription state → org columns (incl. exact `mrrCents`); **"Sync from Stripe"** operator action (billing+); **"Open in Stripe"** deep links on Billing + Org 360. Enabled when `STRIPE_SECRET_KEY` is set. |
+| Stripe (refunds + plan changes from console) | ⏳ | Deep-link to Stripe for now; in-console refund/plan-change UI deferred. |
 | Impersonation | ⏳ | Deferred — needs a read-only mode in the tenant app first; button is a labeled stub. |
 | Operator Clerk app + MFA | ⏳ | Custom auth today; documented swap path above. |
 | Users (cross-tenant), Feature flags, Comms | ⏳ | Nav shows them as "soon". |
@@ -354,6 +355,27 @@ deploy. `DATABASE_URL` must be set in the Vercel environment.
 chart, punches-today, learned clock-drift (avg + calibrated count), stalled-device count,
 and a live unmapped-punch feed. Comm-key/parse error feeds need richer event logging
 (deferred).
+
+**Stripe: ✅ (first pass)** Stripe stays the source of truth; SR+ mirrors minimal state.
+- **Env:** `STRIPE_SECRET_KEY` (server), `STRIPE_WEBHOOK_SIGNING_SECRET` (verify webhooks),
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, future checkout). Billing reads + the sync
+  action no-op gracefully until `STRIPE_SECRET_KEY` is set.
+- **Webhook:** `POST /api/stripe/webhook` (Node runtime, raw-body signature check, *not*
+  operator-gated). Handles `customer.subscription.created/updated/deleted`, `invoice.paid`,
+  `invoice.payment_failed`, `checkout.session.completed`. Resolves the org by mirrored
+  `stripeCustomerId` then Stripe customer `metadata.organizationId`; `checkout.session`
+  also links via `client_reference_id`.
+- **Mirror columns updated:** `stripeCustomerId`, `stripeSubscriptionId`, `plan`,
+  `subscriptionStatus`, `currentPeriodEnd`, `trialEndsAt`, and exact `mrrCents` (yearly→/12,
+  summed across items). MRR/ARR now use `mrrCents` when present, else the plan→price estimate.
+- **Operator action:** "Sync from Stripe" (`POST /api/ops/organizations/[id]/sync-stripe`,
+  billing+, audited as `billing.sync_stripe`) reconciles when a webhook is missed.
+- **Files:** `lib/ops/stripe.ts`, `lib/ops/stripe-sync.ts`, `app/api/stripe/webhook/route.ts`,
+  `app/api/ops/organizations/[id]/sync-stripe/route.ts`,
+  `prisma/migrations/20260530170000_org_mrr_cents`.
+- **Wiring Stripe:** point a dashboard webhook endpoint at `https://<app-host>/api/stripe/webhook`
+  (the app domain, not `admin.`), select the events above, copy the signing secret into
+  `STRIPE_WEBHOOK_SIGNING_SECRET`. Locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 
 ## 9. Open questions
 
