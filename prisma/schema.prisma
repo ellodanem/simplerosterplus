@@ -16,6 +16,30 @@ model Organization {
   /// IANA timezone, e.g. America/Toronto or UTC. Default for child locations and used directly when
   /// a location does not provide its own override.
   timeZone  String   @default("UTC")
+
+  // --- Billing & lifecycle (operator console; see docs/OPERATOR_CONSOLE.md) ---
+  // Stripe is the source of truth for money; these columns MIRROR Stripe so the operator
+  // console can render lists and trigger alerts without a Stripe round-trip per row. They are
+  // populated/maintained by Stripe webhooks, never edited by tenant-facing code.
+  /// Stripe customer id (`cus_...`). Null until the org is linked to Stripe.
+  stripeCustomerId     String?  @unique
+  /// Stripe subscription id (`sub_...`). Null while on trial/demo or unsubscribed.
+  stripeSubscriptionId String?  @unique
+  /// Plan slug shown in the console, e.g. `trial` | `starter` | `pro`. Null = no plan yet.
+  plan                 String?
+  /// Mirror of the Stripe subscription status, e.g. `active` | `trialing` | `past_due` | `canceled`.
+  subscriptionStatus   String?
+  /// End of the current paid period (Stripe `current_period_end`). Drives renewal display.
+  currentPeriodEnd     DateTime?
+  /// When the free trial ends. Drives the "trials ending" overview metric.
+  trialEndsAt          DateTime?
+  /// Seeded sandbox org (GTM demo funnel). See AGENT_CONTEXT_GTM_AUTH_PRICING.md.
+  isDemo               Boolean  @default(false)
+  /// When a demo sandbox should be auto-reclaimed.
+  demoExpiresAt        DateTime?
+  /// Operator suspended this org (non-payment, abuse). Non-null = access blocked.
+  suspendedAt          DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -517,4 +541,70 @@ model AttendanceDayOverride {
   @@unique([staffId, date])
   @@index([staffId])
   @@index([staffId, date])
+}
+
+// ============================================================================
+// Operator console (platform admin plane). See docs/OPERATOR_CONSOLE.md.
+//
+// These tables are the OPERATOR identity + audit store. They are intentionally
+// separate from the tenant-facing `AppUser` (customers) and carry no
+// `organizationId` — operators act ACROSS all tenants. Access to anything that
+// reads these is gated behind the operator auth boundary (`lib/ops/*`).
+// ============================================================================
+
+/// Coarse capability tier for an operator. Enforced in `lib/ops` before any
+/// privileged action. `readonly` can view everything; `support` adds
+/// impersonation/notes; `billing` adds refunds/plan changes; `superadmin` adds
+/// suspend/delete and operator management.
+enum OperatorRole {
+  readonly
+  support
+  billing
+  superadmin
+}
+
+/// An internal SR+ staff member allowed onto the platform control plane. Auth
+/// proves *who you are*; a row here proves *you may operate the plane*
+/// (defense in depth). `clerkUserId` is reserved for the future dedicated
+/// operator Clerk app; today login uses `passwordHash` (custom JWT, mirroring
+/// the pre-Clerk customer auth).
+model OperatorUser {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  /// Null once the operator Clerk app is adopted; today holds the bcrypt hash.
+  passwordHash String?
+  /// Reserved: subject id from the dedicated operator Clerk application.
+  clerkUserId  String?      @unique
+  role         OperatorRole @default(readonly)
+  /// Non-null = access revoked without deleting the audit trail linkage.
+  disabledAt   DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  auditLogs OperatorAuditLog[]
+}
+
+/// Immutable record of every operator action. Append-only by convention; the
+/// console never updates or deletes rows. `metadata` carries before/after and a
+/// human reason for sensitive actions (suspend, refund, impersonate).
+model OperatorAuditLog {
+  id             String       @id @default(cuid())
+  operatorUserId String
+  operator       OperatorUser @relation(fields: [operatorUserId], references: [id], onDelete: Cascade)
+  /// Dotted action key, e.g. `org.suspend`, `billing.refund`, `impersonate.start`, `auth.login`.
+  action         String
+  /// Entity class the action targeted, e.g. `organization`, `appUser`, `device`, `session`.
+  targetType     String
+  targetId       String?
+  /// Affected tenant when applicable, for per-org audit filtering.
+  organizationId String?
+  /// Free-form JSON: { before, after, reason, ip, ... }. Stored as text for portability.
+  metadata       String?
+  createdAt      DateTime     @default(now())
+
+  @@index([operatorUserId])
+  @@index([organizationId])
+  @@index([action, createdAt])
+  @@index([createdAt])
 }

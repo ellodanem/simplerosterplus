@@ -38,6 +38,21 @@ async function main() {
     update: { passwordHash },
   });
 
+  // Operator console (platform admin plane) seed — separate identity store from AppUser.
+  // See docs/OPERATOR_CONSOLE.md. Set OPERATOR_AUTH_SECRET (16+ chars) to enable login.
+  const operatorEmail = (process.env.SEED_OPERATOR_EMAIL ?? "ops@demo.local").toLowerCase();
+  const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? "ops";
+  const operatorPasswordHash = await hashPassword(operatorPassword);
+  await prisma.operatorUser.upsert({
+    where: { email: operatorEmail },
+    create: {
+      email: operatorEmail,
+      passwordHash: operatorPasswordHash,
+      role: "superadmin",
+    },
+    update: { passwordHash: operatorPasswordHash, role: "superadmin", disabledAt: null },
+  });
+
   const defaultLocation = await prisma.location.upsert({
     where: { organizationId_name: { organizationId: org.id, name: "Main" } },
     create: {

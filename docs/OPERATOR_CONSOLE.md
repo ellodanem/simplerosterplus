@@ -1,7 +1,7 @@
 # Operator Console — platform admin/management plane (design)
 
-**Status:** Design / not implemented. No app code exists for this yet; this doc is the
-authoritative spec to build against.
+**Status:** Foundation implemented (read-only console). Build started 2026-05-30 — see
+[Implementation status](#implementation-status). This doc remains the authoritative spec.
 
 **Purpose:** Capture the design for the **platform operator console** — the internal
 super-admin surface SR+ staff use to administer *all* customers and organizations
@@ -310,6 +310,36 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ![Operator console — billing & subscriptions](./operator-console/images/admin-billing-mockup.png)
 
 ---
+
+## Implementation status
+
+**Shipped (2026-05-30): read-only foundation.**
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Routing | ✅ | Console at **`/ops/*`**, APIs at `/api/ops/*`. Subdomain `admin.` maps to `/ops` via a deploy-time host rewrite (below). |
+| Operator auth | ✅ (custom) | Separate cookie (`srp_operator_session`), **separate secret** `OPERATOR_AUTH_SECRET`, audience-bound JWT. Mirrors the current pre-Clerk tenant auth; swaps to a dedicated operator Clerk app later without touching the allow-list. |
+| Allow-list (layer 2) | ✅ | `OperatorUser` row required + `disabledAt` check in `lib/ops/context.ts`. |
+| RBAC | ✅ (scaffold) | `OperatorRole` + `operatorCan()` capability check; enforced once write actions land. |
+| Audit log | ✅ (writes) | `OperatorAuditLog` + `recordOperatorAudit()`; login is audited. UI viewer pending. |
+| Cross-tenant data layer | ✅ | Isolated in `lib/ops/data.ts` — the only place org-scoping is bypassed. |
+| Overview / Orgs list / Org 360 / Device fleet / Billing | ✅ (read-only) | Server-rendered from the DB; emerald/zinc/amber + Geist. |
+| Stripe (live billing) | ⏳ | Schema mirror columns exist; billing pages read mirrored DB values. No Stripe calls/webhooks yet. |
+| Audited write actions (suspend, extend trial, refund, impersonate) | ⏳ | Buttons present but disabled. |
+| Operator Clerk app + MFA | ⏳ | Custom auth today; documented swap path above. |
+| Users (cross-tenant), Audit viewer, Feature flags, Comms | ⏳ | Nav shows them as "soon". |
+
+**Key files:** `lib/ops/*` (auth, context, audit, billing, data, device-status),
+`app/ops/login/*`, `app/ops/(console)/*`, `app/api/ops/auth/*`, `middleware.ts` (operator
+gate), `prisma/schema.prisma` + `prisma/migrations/20260530120000_operator_console`.
+
+**Run it locally:** set `OPERATOR_AUTH_SECRET` (16+ chars), `npm run db:migrate`,
+`npm run db:seed`, then visit `/ops` and sign in with `ops@demo.local` / `ops`.
+
+**Subdomain rewrite (production):** the console is path-based at `/ops` so it's testable
+locally. Map `admin.simplerosterplus.com/*` → `/ops/*` at the edge (e.g. a Vercel host
+rewrite or reverse proxy). The cookie/secret separation already enforces the trust
+boundary regardless of host.
 
 ## 9. Open questions
 
