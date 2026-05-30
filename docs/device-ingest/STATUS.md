@@ -10,7 +10,7 @@
 | 04 | [step-04-devices-ui-truthfulness.md](./step-04-devices-ui-truthfulness.md) | `completed` | cursor-2026-05-30 | 2026-05-30 | 2026-05-30 | ADMS-first Devices UI + pairing URLs |
 | 05 | [step-05-org-public-url.md](./step-05-org-public-url.md) | `completed` | cursor-2026-05-30 | 2026-05-30 | 2026-05-30 | Org public_app_url + resolve chain + Devices UI |
 | 06 | [step-06-field-test-runbook.md](./step-06-field-test-runbook.md) | `completed` | cursor-2026-05-30 | 2026-05-30 | 2026-05-30 | docs/DEVICE_INGEST_FIELD_TEST.md + README link |
-| 07 | [step-07-pull-tcp-scope.md](./step-07-pull-tcp-scope.md) | `pending` | | | | Doc/decision only — defer build |
+| 07 | [step-07-pull-tcp-scope.md](./step-07-pull-tcp-scope.md) | `completed` | cursor-2026-05-30 | 2026-05-30 | 2026-05-30 | DEVICE_INGEST_PULL_TCP_DECISION.md — ADMS-only MVP |
 
 ### Status values
 
@@ -30,3 +30,4 @@
 | 2026-05-30 | 04 | ADMS-first copy, F22 URL checklist, pull TCP advanced, comm key de-emphasized |
 | 2026-05-30 | 05 | Org public_app_url AppSetting, resolvePublicAppUrlForOrg, Devices Public URL modal |
 | 2026-05-30 | 06 | Partner field test runbook (DEVICE_INGEST_FIELD_TEST.md) |
+| 2026-05-30 | 07 | Pull TCP scope decision doc — ADMS-only MVP, defer pull sync |
