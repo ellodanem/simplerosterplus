@@ -25,6 +25,7 @@ Use this as the product filter for new features and UX decisions:
 
 - The schema already scopes data with **`Organization`** and **`AppUser`** (`organizationId` on users; tenant tables link to the org).
 - Intended direction: multiple **AppUser** accounts per organization, roles/permissions, and optional multi-organization support for a single deployment (e.g. agency). Login/session, invites, and RBAC are **not** wired in this scaffold — add when you pick an auth approach.
+- **Operator/admin plane (separate concern):** administering *all* customers/orgs (monitoring, Stripe billing, device fleet) is a distinct surface from tenant admin — planned at `admin.simplerosterplus.com` with its own auth. See [OPERATOR_CONSOLE.md](./OPERATOR_CONSOLE.md).
 
 ## App location
 

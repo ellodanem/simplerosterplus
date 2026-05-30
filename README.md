@@ -9,6 +9,7 @@ An updated roster + attendance direction (ZKTeco / ADMS per product goals).
 | **Repo root** | Next.js app (App Router), Prisma, PostgreSQL — run `npm run dev` here. |
 | `docs/PRODUCT_NOTES.md` | Timezone model (per-organization IANA) and multi-user roadmap. |
 | `docs/DASHBOARD_RECOMMENDATIONS.md` | Home dashboard mock review, target UX, visual system, and build sequencing. |
+| `docs/OPERATOR_CONSOLE.md` | **Platform operator/admin console** (`admin.simplerosterplus.com`): cross-tenant monitoring, Stripe billing, device fleet, separate auth — design + mockups. |
 | `docs/device-ingest/README.md` | **ZKTeco ADMS port:** step prompts + [STATUS.md](./docs/device-ingest/STATUS.md) for agents. |
 | `SIMPLE_ROSTER_PLUS_SOURCE_HANDOFF.md` | Notes ported from Shift Close for parity of domain concepts. |
 
