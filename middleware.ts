@@ -134,6 +134,36 @@ export async function middleware(request: NextRequest) {
     return gateOperator(request, pathname);
   }
 
+  // Block mutating tenant API calls during read-only operator impersonation.
+  if (
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/ops") &&
+    !pathname.startsWith("/api/stripe/") &&
+    pathname !== "/api/auth/login" &&
+    pathname !== "/api/auth/end-impersonation"
+  ) {
+    const method = request.method;
+    if (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE") {
+      const key = secretKey();
+      if (key.length > 0) {
+        const token = request.cookies.get(SESSION_COOKIE)?.value;
+        if (token) {
+          try {
+            const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
+            if (payload.readOnly === true) {
+              return NextResponse.json(
+                { error: "Read-only operator session — changes are not allowed." },
+                { status: 403 },
+              );
+            }
+          } catch {
+            // Invalid token — let the route return 401.
+          }
+        }
+      }
+    }
+  }
+
   // --- Tenant app plane (existing custom auth) ---
   if (pathname === "/login") {
     return NextResponse.next();

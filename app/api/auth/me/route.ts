@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getSession, isReadOnlySession } from "@/lib/session";
 
 export async function GET() {
   const session = await getSession();
@@ -7,6 +7,12 @@ export async function GET() {
     return NextResponse.json({ user: null }, { status: 401 });
   }
   return NextResponse.json({
-    user: { id: session.sub, email: session.email, organizationId: session.orgId },
+    user: {
+      id: session.sub,
+      email: session.email,
+      organizationId: session.orgId,
+      readOnly: isReadOnlySession(session),
+      orgName: session.orgName ?? null,
+    },
   });
 }

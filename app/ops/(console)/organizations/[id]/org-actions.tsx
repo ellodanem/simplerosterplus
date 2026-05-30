@@ -46,6 +46,7 @@ export function OrgActions({
   const [error, setError] = useState<string | null>(null);
 
   const base = `/api/ops/organizations/${orgId}`;
+  const canSupport = can(role, "support");
   const canSuspend = can(role, "superadmin");
   const canBilling = can(role, "billing");
 
@@ -71,6 +72,14 @@ export function OrgActions({
         setError(data.error || "Action failed");
         return;
       }
+      if (confirm.key === "impersonate") {
+        const redirectUrl =
+          typeof (data as { redirectUrl?: string }).redirectUrl === "string"
+            ? (data as { redirectUrl: string }).redirectUrl
+            : "/roster";
+        window.location.assign(redirectUrl);
+        return;
+      }
       setConfirm(null);
       router.refresh();
     } finally {
@@ -78,19 +87,39 @@ export function OrgActions({
     }
   }
 
-  const noActions = !canSuspend && !canBilling;
+  const noActions = !canSupport && !canSuspend && !canBilling;
 
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          disabled
-          title="Read-only impersonation ships after a read-only mode exists in the tenant app (see roadmap)"
-          className="cursor-not-allowed rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-400"
-        >
-          Impersonate
-        </button>
+        {canSupport ? (
+          <button
+            type="button"
+            onClick={() =>
+              open({
+                key: "impersonate",
+                label: "View as this organization",
+                description:
+                  "Opens the tenant app in a read-only operator session (30 min). You will see exactly what this org sees; no changes can be made.",
+                endpoint: `${base}/impersonate`,
+                body: {},
+                withReason: true,
+              })
+            }
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Impersonate
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Support role or higher required"
+            className="cursor-not-allowed rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-400"
+          >
+            Impersonate
+          </button>
+        )}
 
         {canBilling && stripeConfigured ? (
           <button

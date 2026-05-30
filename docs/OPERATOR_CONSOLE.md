@@ -329,7 +329,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 | Production wiring | ✅ | `admin.` subdomain → `/ops` rewrite + edge gate in `middleware.ts`; `prisma migrate deploy` in the Vercel build. |
 | Stripe (mirror + webhooks) | ✅ (first pass) | Signature-verified webhook at **`/api/stripe/webhook`** mirrors subscription state → org columns (incl. exact `mrrCents`); **"Sync from Stripe"** operator action (billing+); **"Open in Stripe"** deep links on Billing + Org 360. Enabled when `STRIPE_SECRET_KEY` is set. |
 | Stripe (refunds + plan changes from console) | ⏳ | Deep-link to Stripe for now; in-console refund/plan-change UI deferred. |
-| Impersonation | ⏳ | Deferred — needs a read-only mode in the tenant app first; button is a labeled stub. |
+| Impersonation (read-only) | ✅ | Support+ **Impersonate** on Org 360 → 30 min read-only tenant session; amber banner + **End session**; mutating APIs blocked in middleware; audited (`impersonate.start` / `impersonate.end`). Built on current JWT; swaps to Clerk actor tokens when tenant auth migrates. |
 | Operator Clerk app + MFA | ⏳ | Custom auth today; documented swap path above. |
 | Users (cross-tenant), Feature flags, Comms | ⏳ | Nav shows them as "soon". |
 

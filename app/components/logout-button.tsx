@@ -2,19 +2,25 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+export function LogoutButton({ readOnly = false }: { readOnly?: boolean }) {
   const router = useRouter();
   return (
     <button
       type="button"
       className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
       onClick={async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
+        if (readOnly) {
+          const res = await fetch("/api/auth/end-impersonation", { method: "POST" });
+          const data = (await res.json().catch(() => ({}))) as { redirectUrl?: string };
+          router.push(data.redirectUrl ?? "/ops");
+        } else {
+          await fetch("/api/auth/logout", { method: "POST" });
+          router.push("/login");
+        }
         router.refresh();
       }}
     >
-      Sign out
+      {readOnly ? "End session" : "Sign out"}
     </button>
   );
 }
