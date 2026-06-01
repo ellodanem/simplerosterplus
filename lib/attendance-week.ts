@@ -338,6 +338,7 @@ export async function getAttendanceWeekData(args: {
         override: overrideByCell.get(key) ?? null,
         punches: punchesByCell.get(key) ?? [],
         graceMinutes,
+        nowUtc: new Date(),
       });
       cells[key] = {
         status: result.status,

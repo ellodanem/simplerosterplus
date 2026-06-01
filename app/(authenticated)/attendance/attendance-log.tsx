@@ -681,6 +681,7 @@ function statusPillLabel(status: PresenceStatus, minutesLate: number | null): st
     case "on_vacation": return "Vacation";
     case "day_off": return "Day off";
     case "station_closed": return "Closed";
+    case "scheduled": return "Scheduled";
     case "no_shift": return "Unscheduled";
   }
 }

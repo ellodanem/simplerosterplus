@@ -572,8 +572,9 @@ export function AttendanceGrid({
 
         <p className="mt-3 text-xs text-zinc-500">
           Grace window: <span className="font-semibold">{currentGraceMinutes} min</span> after
-          shift start before a punch counts as late. OT uses worked hours for the week. Click any
-          unblocked cell to add a punch or override the day.
+          shift start before a punch counts as late; absent only after that window with no
+          in-punch. OT uses worked hours for the week. Click any unblocked cell to add a punch or
+          override the day.
         </p>
       </div>
 

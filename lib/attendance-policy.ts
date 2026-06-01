@@ -7,10 +7,13 @@
  * by N+1 queries.
  *
  * Precedence (high → low): station_closed > on_vacation > day_off > manual_* > exempt
- * > (expected ? present|late|absent : no_shift).
+ * > (expected ? present|late|absent|scheduled : no_shift).
+ *
+ * `scheduled` = shift on roster but no in-punch yet, and the absent window has not opened
+ * (future day, or today before shift start + grace). `absent` only after that window.
  */
 
-import { startOfLocalDayUtc } from "./datetime-policy";
+import { formatYmdInZone, startOfLocalDayUtc } from "./datetime-policy";
 
 export type PresenceStatus =
   | "no_shift"
@@ -22,6 +25,7 @@ export type PresenceStatus =
   | "manual_absent"
   | "present"
   | "late"
+  | "scheduled"
   | "absent";
 
 export type Punch = {
@@ -51,6 +55,8 @@ export type ComputePresenceInput = {
   punches: Punch[];
   /** Minutes after the shift start before we flip from `present` → `late`. */
   graceMinutes: number;
+  /** Evaluation instant (typically server "now") in UTC. */
+  nowUtc: Date;
 };
 
 export type PresenceResult = {
@@ -85,6 +91,33 @@ function localTimeToUtc(ymd: string, hhmm: string, timeZone: string): Date | nul
   return new Date(dayStart.getTime() + (hours * 60 + minutes) * 60_000);
 }
 
+/** No in-punch yet: scheduled until shift start + grace, then absent (past days are always absent). */
+function statusWithoutInPunch(input: {
+  dateYmd: string;
+  timeZone: string;
+  expected: ExpectedShift;
+  graceMinutes: number;
+  nowUtc: Date;
+}): "scheduled" | "absent" {
+  const todayYmd = formatYmdInZone(input.nowUtc, input.timeZone);
+  if (input.dateYmd > todayYmd) {
+    return "scheduled";
+  }
+  if (input.dateYmd < todayYmd) {
+    return "absent";
+  }
+  const startUtc = localTimeToUtc(input.dateYmd, input.expected.startHHmm, input.timeZone);
+  if (!startUtc) {
+    return "scheduled";
+  }
+  const graceMs = Math.max(0, input.graceMinutes) * 60_000;
+  const absentAfterMs = startUtc.getTime() + graceMs;
+  if (input.nowUtc.getTime() < absentAfterMs) {
+    return "scheduled";
+  }
+  return "absent";
+}
+
 export function computePresence(input: ComputePresenceInput): PresenceResult {
   const sortedPunches = [...input.punches].sort(
     (a, b) => a.punchAt.getTime() - b.punchAt.getTime(),
@@ -117,7 +150,14 @@ export function computePresence(input: ComputePresenceInput): PresenceResult {
   }
 
   if (!firstInAt) {
-    return { status: "absent", firstInAt, lastOutAt, minutesLate: null };
+    const status = statusWithoutInPunch({
+      dateYmd: input.dateYmd,
+      timeZone: input.timeZone,
+      expected: input.expected,
+      graceMinutes: input.graceMinutes,
+      nowUtc: input.nowUtc,
+    });
+    return { status, firstInAt, lastOutAt, minutesLate: null };
   }
 
   const startUtc = localTimeToUtc(input.dateYmd, input.expected.startHHmm, input.timeZone);
@@ -147,6 +187,7 @@ export function presenceLabel(status: PresenceStatus): string {
     case "manual_absent": return "Absent (manual)";
     case "present": return "Present";
     case "late": return "Late";
+    case "scheduled": return "Scheduled";
     case "absent": return "Absent";
   }
 }
@@ -166,6 +207,7 @@ export function presenceGlyph(status: PresenceStatus): string {
     case "manual_absent": return "X";
     case "present": return "P";
     case "late": return "L";
+    case "scheduled": return "·";
     case "absent": return "A";
   }
 }
@@ -194,6 +236,8 @@ export function presenceClasses(status: PresenceStatus): {
       return { solid: "bg-emerald-700 text-white", soft: "bg-emerald-50" };
     case "late":
       return { solid: "bg-amber-500 text-white", soft: "bg-amber-50" };
+    case "scheduled":
+      return { solid: "bg-slate-400 text-white", soft: "bg-slate-50" };
     case "absent":
       return { solid: "bg-rose-600 text-white", soft: "bg-rose-50" };
     case "manual_absent":
@@ -213,8 +257,8 @@ export function presenceClasses(status: PresenceStatus): {
 
 /**
  * Statuses that warrant supervisor attention this week. Drives the "N irregularities"
- * KPI chip in the page header. Late counts; absent counts; manual_absent does NOT count
- * because the supervisor has already weighed in.
+ * KPI chip in the page header. Late counts; absent counts; `scheduled` does not count
+ * (shift not due yet). manual_absent does NOT count because the supervisor already weighed in.
  */
 export function isIrregular(status: PresenceStatus): boolean {
   return status === "late" || status === "absent";
