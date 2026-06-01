@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getHomeWeekSummary, homeGreetingName } from "@/lib/home-week-summary";
+import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import { rosterShareUrl } from "@/lib/roster-share";
 import { getSession } from "@/lib/session";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 
@@ -23,6 +26,14 @@ export default async function HomePage() {
 
   const summary = await getHomeWeekSummary(session.orgId);
   const name = homeGreetingName(session.email);
+  const headersList = await headers();
+  const { url: publicBase } = await resolvePublicAppUrlForOrg(session.orgId, {
+    headers: headersList,
+  });
+  const rosterShareFullUrl =
+    summary.rosterShareToken && publicBase
+      ? rosterShareUrl(publicBase, summary.rosterShareToken)
+      : null;
   const rosterHref = `/roster?week=${encodeURIComponent(summary.weekStartYmd)}`;
   const attendanceHref = `/attendance?view=week&week=${encodeURIComponent(summary.weekStartYmd)}`;
   const requestsHref =
@@ -50,9 +61,28 @@ export default async function HomePage() {
           </p>
           <p className="mt-0.5 text-xs text-zinc-400">
             {summary.orgName} · {summary.locationName}
+            {summary.rosterStatus === "published" ? (
+              <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+                Roster published
+              </span>
+            ) : (
+              <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+                Roster draft
+              </span>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {rosterShareFullUrl ? (
+            <a
+              href={rosterShareFullUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+            >
+              Share link
+            </a>
+          ) : null}
           {summary.pendingRequestsCount > 0 ? (
             <Link
               href={requestsHref}
@@ -159,9 +189,23 @@ export default async function HomePage() {
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <Link href={rosterHref} className="font-medium text-emerald-800 hover:text-emerald-950">
-                Continue weekly roster →
+                {summary.rosterStatus === "published"
+                  ? "View roster (published) →"
+                  : "Continue weekly roster →"}
               </Link>
             </li>
+            {rosterShareFullUrl ? (
+              <li>
+                <a
+                  href={rosterShareFullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-emerald-800 hover:text-emerald-950"
+                >
+                  Open staff share page →
+                </a>
+              </li>
+            ) : null}
             <li>
               <Link
                 href={attendanceHref}

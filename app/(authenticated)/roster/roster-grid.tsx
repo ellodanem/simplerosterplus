@@ -33,6 +33,7 @@ import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
+import { RosterPublishControls } from "./roster-publish-controls";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 
 type Staff = {
@@ -107,6 +108,8 @@ export function RosterGrid({
   weekStartWeekday,
   orgName,
   weekPublished,
+  sharePath,
+  shareUrl,
   days,
   timeZone,
   prevWeek,
@@ -133,6 +136,8 @@ export function RosterGrid({
   weekStartWeekday: number;
   orgName: string;
   weekPublished: boolean;
+  sharePath: string | null;
+  shareUrl: string | null;
   days: string[];
   timeZone: string;
   prevWeek: string;
@@ -289,6 +294,15 @@ export function RosterGrid({
     }
     return count;
   }, [unlockedDays, staffRows, blockMap, entries]);
+
+  const openShiftCountFromToday = useMemo(() => {
+    let total = 0;
+    for (const ymd of days) {
+      if (ymd < todayYmd) continue;
+      total += dayCounts[ymd]?.offCount ?? 0;
+    }
+    return total;
+  }, [days, dayCounts, todayYmd]);
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
@@ -853,6 +867,14 @@ export function RosterGrid({
           ) : null}
         </div>
       </div>
+
+      <RosterPublishControls
+        weekId={weekId}
+        initialPublished={weekPublished}
+        sharePath={sharePath}
+        shareUrl={shareUrl}
+        openShiftCountFromToday={openShiftCountFromToday}
+      />
 
       {templates.length === 0 ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

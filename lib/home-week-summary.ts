@@ -14,6 +14,11 @@ import {
 } from "./roster-display-staff";
 import { getRosterWeekStartWeekday } from "./roster-week-settings";
 import {
+  computeCoverageRangeLabel,
+  offCountForDay,
+  summarizeOpenShiftsFromToday,
+} from "./roster-coverage";
+import {
   currentWeekStartYmd,
   dayHeaderLabel,
   daysOfWeek,
@@ -38,6 +43,8 @@ export type HomeWeekSummary = {
   openShiftDayLabel: string | null;
   coverageRangeLabel: string | null;
   pendingRequestsCount: number;
+  rosterStatus: "draft" | "published" | null;
+  rosterShareToken: string | null;
 };
 
 type RosterStaffRow = {
@@ -67,65 +74,6 @@ function formatWeekRangeLabel(
   const start = dayHeaderLabel(weekStartYmd, timeZone);
   const end = dayHeaderLabel(weekEnd, timeZone);
   return `${start.weekday} ${start.date} – ${end.weekday} ${end.date}`;
-}
-
-function offCountForDay(args: {
-  staff: RosterStaffRow[];
-  entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
-  stationClosed: boolean;
-  ymd: string;
-}): number {
-  if (args.stationClosed) return 0;
-  let unavailable = 0;
-  let assigned = 0;
-  for (const s of args.staff) {
-    if (args.blockMap[`${s.id}__${args.ymd}`]) {
-      unavailable++;
-      continue;
-    }
-    if (args.entries[`${s.id}__${args.ymd}`]) assigned++;
-  }
-  const active = args.staff.length - unavailable;
-  return Math.max(0, active - assigned);
-}
-
-/** Longest contiguous run of days (ymd >= today) with zero open slots and station open. */
-function computeCoverageRangeLabel(args: {
-  days: string[];
-  todayYmd: string;
-  offByDay: Map<string, number>;
-  closedDays: Set<string>;
-  timeZone: string;
-}): string | null {
-  const segments: string[][] = [];
-  let current: string[] = [];
-
-  for (const ymd of args.days) {
-    if (ymd < args.todayYmd) continue;
-    if (args.closedDays.has(ymd)) {
-      if (current.length) {
-        segments.push(current);
-        current = [];
-      }
-      continue;
-    }
-    if ((args.offByDay.get(ymd) ?? 0) === 0) {
-      current.push(ymd);
-    } else if (current.length) {
-      segments.push(current);
-      current = [];
-    }
-  }
-  if (current.length) segments.push(current);
-
-  if (segments.length === 0) return null;
-  const best = segments.reduce((a, b) => (b.length > a.length ? b : a));
-  if (best.length === 0) return null;
-
-  const fmt = (ymd: string) => dayHeaderLabel(ymd, args.timeZone).weekday;
-  if (best.length === 1) return fmt(best[0]!);
-  return `${fmt(best[0]!)}–${fmt(best[best.length - 1]!)}`;
 }
 
 export async function getHomeWeekSummary(organizationId: string): Promise<HomeWeekSummary> {
@@ -161,6 +109,8 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
         },
         select: {
           id: true,
+          status: true,
+          shareToken: true,
           entries: {
             select: { staffId: true, date: true, shiftTemplateId: true },
           },
@@ -233,26 +183,29 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
   }
 
   const offByDay = new Map<string, number>();
-  let openShiftCount = 0;
-  let openShiftDayYmd: string | null = null;
-  let openShiftDayMax = 0;
-
   for (const ymd of days) {
     if (ymd < todayYmd) continue;
-    const off = offCountForDay({
-      staff: visibleStaff,
-      entries,
-      blockMap,
-      stationClosed: closedDays.has(ymd),
+    offByDay.set(
       ymd,
-    });
-    offByDay.set(ymd, off);
-    openShiftCount += off;
-    if (off > openShiftDayMax) {
-      openShiftDayMax = off;
-      openShiftDayYmd = ymd;
-    }
+      offCountForDay({
+        staff: visibleStaff,
+        entries,
+        blockMap,
+        stationClosed: closedDays.has(ymd),
+        ymd,
+      }),
+    );
   }
+
+  const openShiftSummary = summarizeOpenShiftsFromToday({
+    days,
+    todayYmd,
+    staff: visibleStaff,
+    entries,
+    blockMap,
+    closedDays,
+    timeZone,
+  });
 
   const coverageRangeLabel =
     visibleStaff.length > 0
@@ -276,13 +229,15 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     graceMinutes: attendance.graceMinutes,
     lateCount,
     absentCount,
-    openShiftCount,
-    openShiftDayYmd: openShiftDayMax > 0 ? openShiftDayYmd : null,
-    openShiftDayLabel:
-      openShiftDayMax > 0 && openShiftDayYmd
-        ? dayHeaderLabel(openShiftDayYmd, timeZone).weekday
-        : null,
+    openShiftCount: openShiftSummary.openShiftCount,
+    openShiftDayYmd: openShiftSummary.openShiftDayYmd,
+    openShiftDayLabel: openShiftSummary.openShiftDayLabel,
     coverageRangeLabel,
     pendingRequestsCount: pendingVacation + pendingDayOff,
+    rosterStatus: rosterWeek?.status ?? null,
+    rosterShareToken:
+      rosterWeek?.status === "published" && rosterWeek.shareToken
+        ? rosterWeek.shareToken
+        : null,
   };
 }

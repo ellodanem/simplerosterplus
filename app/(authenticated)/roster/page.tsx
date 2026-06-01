@@ -1,5 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import { rosterSharePath, rosterShareUrl } from "@/lib/roster-share";
 import { getSession } from "@/lib/session";
 import { getDefaultLocation } from "@/lib/location";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
@@ -104,8 +107,21 @@ export default async function RosterPage({
       status: "draft",
     },
     update: {},
-    select: { id: true, weekStart: true, status: true, notes: true },
+    select: { id: true, weekStart: true, status: true, shareToken: true, notes: true },
   });
+
+  const headersList = await headers();
+  const { url: publicBase } = await resolvePublicAppUrlForOrg(org.id, {
+    headers: headersList,
+  });
+  const sharePath =
+    week.status === "published" && week.shareToken
+      ? rosterSharePath(week.shareToken)
+      : null;
+  const shareUrl =
+    sharePath && publicBase && week.shareToken
+      ? rosterShareUrl(publicBase, week.shareToken)
+      : null;
 
   const prevWeekStartYmd = shiftYmd(weekStartYmd, -7);
   const prevWeekStartDate = utcDateFromYmd(prevWeekStartYmd);
@@ -230,6 +246,8 @@ export default async function RosterPage({
         weekStartWeekday={weekStartWeekday}
         orgName={org.name}
         weekPublished={week.status === "published"}
+        sharePath={sharePath}
+        shareUrl={shareUrl}
         days={days}
         timeZone={effectiveTimeZone}
         prevWeek={prevWeek}
