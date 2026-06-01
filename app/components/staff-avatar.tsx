@@ -29,12 +29,13 @@ function paletteIndex(seed: string): number {
   return h % AVATAR_PALETTE.length;
 }
 
-export type AvatarSize = "sm" | "md" | "lg";
+export type AvatarSize = "sm" | "md" | "lg" | "xl";
 
 const SIZE_CLASS: Record<AvatarSize, string> = {
   sm: "size-6 text-[10px]",
   md: "size-8 text-xs",
   lg: "size-10 text-sm",
+  xl: "size-11 text-sm",
 };
 
 export function StaffAvatar({

@@ -71,14 +71,6 @@ export default async function StaffPage() {
   }));
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Staff</h1>
-      <p className="mt-1 text-sm text-zinc-600">
-        People in your organization. Archive when someone leaves; use test accounts only for
-        trials.
-      </p>
-
-      <StaffList staff={rows} locations={locations} roles={roles} departments={departments} />
-    </div>
+    <StaffList staff={rows} locations={locations} roles={roles} departments={departments} />
   );
 }
