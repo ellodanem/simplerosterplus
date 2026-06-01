@@ -33,7 +33,7 @@ import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
-import { RosterPublishControls } from "./roster-publish-controls";
+import { RosterShareControls } from "./roster-share-controls";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 
 type Staff = {
@@ -649,7 +649,7 @@ export function RosterGrid({
             {orgName} · <span className="font-mono">{timeZone}</span>
             {weekPublished ? (
               <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
-                Published
+                Live
               </span>
             ) : null}
             {weekLocked ? (
@@ -868,9 +868,9 @@ export function RosterGrid({
         </div>
       </div>
 
-      <RosterPublishControls
+      <RosterShareControls
         weekId={weekId}
-        initialPublished={weekPublished}
+        initialLive={weekPublished}
         sharePath={sharePath}
         shareUrl={shareUrl}
         openShiftCountFromToday={openShiftCountFromToday}

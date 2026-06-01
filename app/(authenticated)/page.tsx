@@ -63,7 +63,7 @@ export default async function HomePage() {
             {summary.orgName} · {summary.locationName}
             {summary.rosterStatus === "published" ? (
               <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-                Roster published
+                Roster live
               </span>
             ) : (
               <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
@@ -190,7 +190,7 @@ export default async function HomePage() {
             <li>
               <Link href={rosterHref} className="font-medium text-emerald-800 hover:text-emerald-950">
                 {summary.rosterStatus === "published"
-                  ? "View roster (published) →"
+                  ? "View roster (live) →"
                   : "Continue weekly roster →"}
               </Link>
             </li>

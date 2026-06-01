@@ -32,7 +32,7 @@ export default async function SharedRosterPage({ params }: PageProps) {
       <div className="mx-auto max-w-7xl">
         <header className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Published roster
+            Shared roster
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
             {data.orgName}
