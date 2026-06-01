@@ -262,10 +262,8 @@ export function errorJson(e: unknown): { status: number; body: Record<string, un
   if (e instanceof RequestError) {
     return { status: e.status, body: { error: e.message, ...(e.payload ?? {}) } };
   }
-  if (e instanceof Error) {
-    return { status: 500, body: { error: e.message } };
-  }
-  return { status: 500, body: { error: "Unexpected error" } };
+  console.error("[api:requests]", e);
+  return { status: 500, body: { error: "Something went wrong. Please try again." } };
 }
 
 /**

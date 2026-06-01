@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
@@ -20,6 +21,14 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
  * happen once instead of once per day.
  */
 export async function POST(request: Request, { params }: Ctx) {
+  try {
+    return await postRosterEntriesBatch(request, params);
+  } catch (err) {
+    return uncaughtApiErrorResponse(err, "roster entries batch");
+  }
+}
+
+async function postRosterEntriesBatch(request: Request, params: Promise<{ id: string }>) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id: weekId } = await params;

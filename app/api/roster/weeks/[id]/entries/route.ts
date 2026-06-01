@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isApprovedBlocked } from "@/lib/leave-blocks";
@@ -20,6 +21,14 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
  * roster membership, and read-only past weeks.
  */
 export async function PUT(request: Request, { params }: Ctx) {
+  try {
+    return await putRosterEntry(request, params);
+  } catch (err) {
+    return uncaughtApiErrorResponse(err, "roster entry PUT");
+  }
+}
+
+async function putRosterEntry(request: Request, params: Promise<{ id: string }>) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id: weekId } = await params;

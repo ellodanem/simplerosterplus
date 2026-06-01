@@ -112,47 +112,57 @@ async function touchDeviceIfResolved(sn: string): Promise<Awaited<ReturnType<typ
 }
 
 export async function zkPushGET(request: NextRequest) {
-  const sn = request.nextUrl.searchParams.get("SN") || "unknown";
-  const path = request.nextUrl.pathname;
-  console.log(`[ADMS] GET ${path} SN=${sn}`);
-  recordAdmsRequest({
-    method: "GET",
-    path,
-    sn,
-    table: null,
-    bytes: null,
-    lineCount: null,
-  });
-  if (sn !== "unknown") {
-    await touchDeviceIfResolved(sn);
+  try {
+    const sn = request.nextUrl.searchParams.get("SN") || "unknown";
+    const path = request.nextUrl.pathname;
+    console.log(`[ADMS] GET ${path} SN=${sn}`);
+    recordAdmsRequest({
+      method: "GET",
+      path,
+      sn,
+      table: null,
+      bytes: null,
+      lineCount: null,
+    });
+    if (sn !== "unknown") {
+      await touchDeviceIfResolved(sn);
+    }
+    return new NextResponse("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
+  } catch (error) {
+    console.error("[ADMS] GET error:", error);
+    return new NextResponse("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
   }
-  return new NextResponse("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
 }
 
 export async function zkPushCDATAGET(request: NextRequest) {
-  const sn = request.nextUrl.searchParams.get("SN") || "unknown";
-  const path = request.nextUrl.pathname;
-  const body = buildIclockCdataHandshakeBody(sn);
-  const tzMode =
-    process.env.ZK_ICLOCK_HANDSHAKE_TIMEZONE === "0"
-      ? "omit"
-      : process.env.ZK_ICLOCK_TIMEZONE_OFFSET_MINUTES?.trim() || "default-240";
-  console.log(`[ADMS] GET ${path} SN=${sn.trim() || "unknown"} handshake=options tz=${tzMode}`);
-  recordAdmsRequest({
-    method: "GET",
-    path,
-    sn: sn.trim() || "unknown",
-    table: null,
-    bytes: null,
-    lineCount: null,
-  });
-  if (sn !== "unknown") {
-    await touchDeviceIfResolved(sn);
+  try {
+    const sn = request.nextUrl.searchParams.get("SN") || "unknown";
+    const path = request.nextUrl.pathname;
+    const body = buildIclockCdataHandshakeBody(sn);
+    const tzMode =
+      process.env.ZK_ICLOCK_HANDSHAKE_TIMEZONE === "0"
+        ? "omit"
+        : process.env.ZK_ICLOCK_TIMEZONE_OFFSET_MINUTES?.trim() || "default-240";
+    console.log(`[ADMS] GET ${path} SN=${sn.trim() || "unknown"} handshake=options tz=${tzMode}`);
+    recordAdmsRequest({
+      method: "GET",
+      path,
+      sn: sn.trim() || "unknown",
+      table: null,
+      bytes: null,
+      lineCount: null,
+    });
+    if (sn !== "unknown") {
+      await touchDeviceIfResolved(sn);
+    }
+    return new NextResponse(body, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  } catch (error) {
+    console.error("[ADMS] cdata GET error:", error);
+    return new NextResponse("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
   }
-  return new NextResponse(body, {
-    status: 200,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
 }
 
 export async function zkPushPOST(request: NextRequest) {

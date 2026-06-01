@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
@@ -172,6 +173,6 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "staff POST");
   }
 }

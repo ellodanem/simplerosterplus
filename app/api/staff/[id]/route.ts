@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canDeleteStaff } from "@/lib/staff-archive";
@@ -229,7 +230,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
         { status: 409 },
       );
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "staff PATCH");
   }
 }
 

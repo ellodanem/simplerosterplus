@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 
@@ -85,7 +86,7 @@ export async function PUT(request: Request) {
         { status: 409 },
       );
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "setup business");
   }
 }
 

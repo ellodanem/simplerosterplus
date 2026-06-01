@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json({ error: "That location already exists." }, { status: 409 });
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "locations POST");
   }
 }
 

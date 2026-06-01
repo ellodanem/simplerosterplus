@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getRoleDeleteBlockReason } from "@/lib/role-delete-guard";
@@ -71,7 +72,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json({ error: "That role already exists." }, { status: 409 });
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "roles id");
   }
 }
 
@@ -92,6 +93,6 @@ export async function DELETE(_request: Request, { params }: Ctx) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "roles id");
   }
 }

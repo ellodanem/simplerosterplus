@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
+import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
@@ -193,6 +194,6 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    throw err;
+    return uncaughtApiErrorResponse(err, "devices POST");
   }
 }
