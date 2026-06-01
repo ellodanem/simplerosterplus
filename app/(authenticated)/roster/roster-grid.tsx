@@ -110,6 +110,7 @@ export function RosterGrid({
   weekPublished,
   sharePath,
   shareUrl,
+  shareBaseUrl,
   days,
   timeZone,
   prevWeek,
@@ -138,6 +139,8 @@ export function RosterGrid({
   weekPublished: boolean;
   sharePath: string | null;
   shareUrl: string | null;
+  /** Canonical public app origin (APP_URL / org override), not the browser host. */
+  shareBaseUrl: string | null;
   days: string[];
   timeZone: string;
   prevWeek: string;
@@ -873,6 +876,7 @@ export function RosterGrid({
         initialLive={weekPublished}
         sharePath={sharePath}
         shareUrl={shareUrl}
+        shareBaseUrl={shareBaseUrl}
         openShiftCountFromToday={openShiftCountFromToday}
       />
 

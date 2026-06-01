@@ -248,6 +248,7 @@ export default async function RosterPage({
         weekPublished={week.status === "published"}
         sharePath={sharePath}
         shareUrl={shareUrl}
+        shareBaseUrl={publicBase || null}
         days={days}
         timeZone={effectiveTimeZone}
         prevWeek={prevWeek}

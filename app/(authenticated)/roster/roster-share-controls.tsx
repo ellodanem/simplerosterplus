@@ -30,17 +30,26 @@ function ShareMenuChevron() {
   );
 }
 
+function absoluteShareUrl(base: string | null | undefined, sharePathValue: string): string {
+  const origin =
+    base?.trim().replace(/\/$/, "") ||
+    (typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "");
+  return `${origin}${sharePathValue}`;
+}
+
 export function RosterShareControls({
   weekId,
   initialLive,
   sharePath,
   shareUrl,
+  shareBaseUrl,
   openShiftCountFromToday,
 }: {
   weekId: string;
   initialLive: boolean;
   sharePath: string | null;
   shareUrl: string | null;
+  shareBaseUrl: string | null;
   openShiftCountFromToday: number;
 }) {
   const router = useRouter();
@@ -59,11 +68,9 @@ export function RosterShareControls({
 
   const displayUrl = useMemo(() => {
     if (url) return url;
-    if (path && typeof window !== "undefined") {
-      return `${window.location.origin}${path}`;
-    }
-    return path;
-  }, [url, path]);
+    if (path) return absoluteShareUrl(shareBaseUrl, path);
+    return null;
+  }, [url, path, shareBaseUrl]);
 
   useEffect(() => {
     setLive(initialLive);
@@ -84,10 +91,7 @@ export function RosterShareControls({
 
   function resolveShareUrl(sharePathValue: string | null | undefined): string | null {
     if (!sharePathValue) return null;
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}${sharePathValue}`;
-    }
-    return sharePathValue;
+    return absoluteShareUrl(shareBaseUrl, sharePathValue);
   }
 
   async function releaseWeek(
