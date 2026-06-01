@@ -50,4 +50,5 @@ For the current optimization baseline and rollout checklist, see [`docs/OPTIMIZA
 | Command | Purpose |
 |--------|---------|
 | `npm run db:seed` | Idempotent demo data (after migrate) |
+| `npm run provision-org` | Create org + default location + admin (env: `PROVISION_ORG_NAME`, `PROVISION_ORG_TIMEZONE`, `PROVISION_ADMIN_EMAIL`; optional `PROVISION_ADMIN_PASSWORD`, `PROVISION_LOGIN_BASE_URL`) |
 | `npm run db:studio` | Prisma Studio |

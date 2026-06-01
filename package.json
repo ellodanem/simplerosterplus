@@ -12,7 +12,8 @@
     "db:deploy": "node scripts/run-prisma.mjs migrate deploy",
     "db:push": "node scripts/run-prisma.mjs db push",
     "db:studio": "node scripts/run-prisma.mjs studio",
-    "db:seed": "node scripts/run-prisma.mjs db seed"
+    "db:seed": "node scripts/run-prisma.mjs db seed",
+    "provision-org": "tsx scripts/provision-org.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { requireOperator } from "@/lib/ops/context";
 import { listOrganizationsForOps } from "@/lib/ops/data";
 import { formatUsd, planLabel, subscriptionStatusLabel, subscriptionStatusTone } from "@/lib/ops/billing";
 import { Card, Pill, formatDate } from "../ops-ui";
+import { CreateOrgForm } from "./create-org-form";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,7 @@ export default async function OrganizationsPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { q } = await searchParams;
+  const [{ q }, operator] = await Promise.all([searchParams, requireOperator()]);
   const search = (q ?? "").trim();
   const orgs = await listOrganizationsForOps(search || undefined);
 
@@ -21,7 +23,9 @@ export default async function OrganizationsPage({
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Organizations</h1>
           <p className="mt-1 text-sm text-zinc-600">Every tenant on the platform.</p>
         </div>
-        <form method="get" className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-3">
+          <CreateOrgForm role={operator.role} />
+          <form method="get" className="flex items-center gap-2">
           <input
             type="search"
             name="q"
@@ -36,6 +40,7 @@ export default async function OrganizationsPage({
             Search
           </button>
         </form>
+        </div>
       </div>
 
       <div className="mt-6">
