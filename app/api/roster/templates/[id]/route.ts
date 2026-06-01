@@ -95,7 +95,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
 
   const template = await prisma.shiftTemplate.update({
-    where: { id },
+    where: { id, organizationId: session.orgId },
     data,
     select: TEMPLATE_SELECT,
   });
@@ -113,6 +113,6 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.shiftTemplate.delete({ where: { id } });
+  await prisma.shiftTemplate.delete({ where: { id, organizationId: session.orgId } });
   return NextResponse.json({ ok: true });
 }

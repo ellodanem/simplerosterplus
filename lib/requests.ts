@@ -52,6 +52,7 @@ export type SerializedRequest = {
  * the same as no entry — clearing them isn't user-visible.
  */
 export async function getConflictSummaries(
+  organizationId: string,
   ranges: ConflictRange[],
 ): Promise<Map<string, ConflictSummary>> {
   const summaries = new Map<string, ConflictSummary>();
@@ -66,6 +67,7 @@ export async function getConflictSummaries(
 
   const rows = await prisma.rosterEntry.findMany({
     where: {
+      staff: { organizationId },
       staffId: { in: Array.from(new Set(ranges.map((range) => range.staffId))) },
       shiftTemplateId: { not: null },
       date: { gte: minDate, lte: maxDate },
@@ -95,12 +97,13 @@ export async function getConflictSummaries(
 }
 
 export async function countConflicts(args: {
+  organizationId: string;
   staffId: string;
   startDate: Date;
   endDate: Date;
 }): Promise<ConflictSummary> {
   return (
-    (await getConflictSummaries([
+    (await getConflictSummaries(args.organizationId, [
       {
         key: "single",
         staffId: args.staffId,
@@ -157,6 +160,7 @@ export const decidedBySelect = { email: true } as const;
 export async function serializeVacation(
   row: VacationRow,
   conflictSummary?: ConflictSummary,
+  organizationId?: string,
 ): Promise<SerializedRequest> {
   const base = baseSerialized("vacation", row, {
     startDate: ymdForDbDate(row.startDate),
@@ -165,11 +169,14 @@ export async function serializeVacation(
   if (row.status === "requested") {
     const conflicts =
       conflictSummary ??
-      (await countConflicts({
-        staffId: row.staffId,
-        startDate: row.startDate,
-        endDate: row.endDate,
-      }));
+      (organizationId
+        ? await countConflicts({
+            organizationId,
+            staffId: row.staffId,
+            startDate: row.startDate,
+            endDate: row.endDate,
+          })
+        : { count: 0, dates: [] });
     base.conflictCount = conflicts.count;
     base.conflictDates = conflicts.dates;
   }
@@ -179,6 +186,7 @@ export async function serializeVacation(
 export async function serializeDayOff(
   row: DayOffRow,
   conflictSummary?: ConflictSummary,
+  organizationId?: string,
 ): Promise<SerializedRequest> {
   const base = baseSerialized("dayOff", row, {
     date: ymdForDbDate(row.date),
@@ -186,11 +194,14 @@ export async function serializeDayOff(
   if (row.status === "requested") {
     const conflicts =
       conflictSummary ??
-      (await countConflicts({
-        staffId: row.staffId,
-        startDate: row.date,
-        endDate: row.date,
-      }));
+      (organizationId
+        ? await countConflicts({
+            organizationId,
+            staffId: row.staffId,
+            startDate: row.date,
+            endDate: row.date,
+          })
+        : { count: 0, dates: [] });
     base.conflictCount = conflicts.count;
     base.conflictDates = conflicts.dates;
   }
@@ -289,6 +300,7 @@ export async function loadStaffForLocation(args: {
  * conflicting shifts still exist.
  */
 export async function approveLeaveTx(args: {
+  organizationId: string;
   kind: "vacation" | "dayOff";
   leaveId: string;
   staffId: string;
@@ -300,7 +312,7 @@ export async function approveLeaveTx(args: {
   await prisma.$transaction([
     prisma.rosterEntry.deleteMany({
       where: {
-        staffId: args.staffId,
+        staff: { organizationId: args.organizationId, id: args.staffId },
         shiftTemplateId: { not: null },
         date: { gte: args.startDate, lte: args.endDate },
       },

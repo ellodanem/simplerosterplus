@@ -172,7 +172,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   try {
     const device = await prisma.device.update({
-      where: { id },
+      where: { id, organizationId: session.orgId },
       data,
       select: DEVICE_SELECT,
     });
@@ -204,7 +204,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   }
 
   await prisma.device.update({
-    where: { id },
+    where: { id, organizationId: session.orgId },
     data: { deletedAt: new Date(), enabled: false },
   });
 

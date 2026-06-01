@@ -110,7 +110,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
 
   const punch = await prisma.attendanceLog.update({
-    where: { id },
+    where: { id, organizationId: session.orgId },
     data,
     select: {
       id: true,
@@ -152,6 +152,6 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   const existing = await loadPunch(id, session.orgId, location.id);
   if (!existing) return NextResponse.json({ error: "Punch not found" }, { status: 404 });
 
-  await prisma.attendanceLog.delete({ where: { id } });
+  await prisma.attendanceLog.delete({ where: { id, organizationId: session.orgId } });
   return NextResponse.json({ ok: true });
 }

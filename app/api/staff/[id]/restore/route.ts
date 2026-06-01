@@ -34,7 +34,7 @@ export async function POST(_request: Request, { params }: Ctx) {
   }
 
   const staff = await prisma.staff.update({
-    where: { id },
+    where: { id, organizationId: session.orgId },
     data: { archivedAt: null, isActive: true },
     select: STAFF_SELECT,
   });

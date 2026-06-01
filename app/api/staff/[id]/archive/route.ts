@@ -35,7 +35,7 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const archivedAt = new Date();
   const staff = await prisma.staff.update({
-    where: { id },
+    where: { id, organizationId: session.orgId },
     data: { archivedAt, isActive: false },
     select: STAFF_SELECT,
   });

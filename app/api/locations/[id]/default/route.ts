@@ -21,7 +21,7 @@ export async function POST(_request: Request, { params }: Ctx) {
       data: { isDefault: false },
     }),
     prisma.location.update({
-      where: { id },
+      where: { id, organizationId: session.orgId },
       data: { isDefault: true, sortOrder: 0 },
     }),
   ]);

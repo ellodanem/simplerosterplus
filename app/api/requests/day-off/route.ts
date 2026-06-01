@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       select: dayOffSelect,
     });
 
-    return NextResponse.json({ request: await serializeDayOff(row) }, { status: 201 });
+    return NextResponse.json({ request: await serializeDayOff(row, undefined, session.orgId) }, { status: 201 });
   } catch (e) {
     const { status, body } = errorJson(e);
     return NextResponse.json(body, { status });

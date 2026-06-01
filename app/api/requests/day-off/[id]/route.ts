@@ -81,7 +81,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
     if (action === "deny") {
       const updated = await prisma.staffDayOff.update({
-        where: { id: row.id },
+        where: { id: row.id, staff: { organizationId: session.orgId } },
         data: {
           status: "denied",
           decidedByUserId: userId,
@@ -93,6 +93,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     }
 
     const conflicts = await countConflicts({
+      organizationId: session.orgId,
       staffId: row.staffId,
       startDate: row.date,
       endDate: row.date,
@@ -111,6 +112,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     }
 
     await approveLeaveTx({
+      organizationId: session.orgId,
       kind: "dayOff",
       leaveId: row.id,
       staffId: row.staffId,
@@ -147,7 +149,9 @@ export async function DELETE(_request: Request, { params }: Ctx) {
     const location = await getDefaultLocation(session.orgId);
     const row = await loadDayOff(id, session.orgId, location.id);
 
-    await prisma.staffDayOff.delete({ where: { id } });
+    await prisma.staffDayOff.delete({
+      where: { id: row.id, staff: { organizationId: session.orgId } },
+    });
     return NextResponse.json({ ok: true, request: await serializeDayOff(row) });
   } catch (e) {
     const { status, body } = errorJson(e);

@@ -207,7 +207,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   try {
     const staff = await prisma.staff.update({
-      where: { id },
+      where: { id, organizationId: session.orgId },
       data,
       select: STAFF_SELECT,
     });
@@ -253,6 +253,6 @@ export async function DELETE(_request: Request, { params }: Ctx) {
     return NextResponse.json({ error: deleteCheck.reason ?? "Delete not allowed" }, { status: 403 });
   }
 
-  await prisma.staff.delete({ where: { id } });
+  await prisma.staff.delete({ where: { id, organizationId: session.orgId } });
   return NextResponse.json({ ok: true });
 }

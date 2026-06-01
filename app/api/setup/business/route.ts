@@ -60,7 +60,7 @@ export async function PUT(request: Request) {
 
       const loc = existingDefault
         ? await tx.location.update({
-            where: { id: existingDefault.id },
+            where: { id: existingDefault.id, organizationId: session.orgId },
             data: { name: defaultLocationName, isDefault: true, sortOrder: 0 },
             select: { id: true, name: true, timeZone: true },
           })

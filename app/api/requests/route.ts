@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const conflictSummaries = await getConflictSummaries([
+    const conflictSummaries = await getConflictSummaries(session.orgId, [
       ...vacationRows
         .filter((row) => row.status === "requested")
         .map((row) => ({

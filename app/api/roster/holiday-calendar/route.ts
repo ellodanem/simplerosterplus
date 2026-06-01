@@ -97,7 +97,7 @@ export async function PUT(request: Request) {
   const location = await getDefaultLocation(session.orgId);
   const sync = await prisma.$transaction(async (tx) => {
     await tx.location.update({
-      where: { id: location.id },
+      where: { id: location.id, organizationId: session.orgId },
       data: {
         holidayCountryCode: countryCode,
         holidaySubdivisionCode: subdivisionCode,

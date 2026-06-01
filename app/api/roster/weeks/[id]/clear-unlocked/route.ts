@@ -81,7 +81,10 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   if (toDelete.length > 0) {
     await prisma.rosterEntry.deleteMany({
-      where: { id: { in: toDelete.map((entry) => entry.id) } },
+      where: {
+        rosterWeekId: week.id,
+        id: { in: toDelete.map((entry) => entry.id) },
+      },
     });
   }
 

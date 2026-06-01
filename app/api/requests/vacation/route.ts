@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ request: await serializeVacation(created) }, { status: 201 });
+    return NextResponse.json({ request: await serializeVacation(created, undefined, session.orgId) }, { status: 201 });
   } catch (e) {
     const { status, body } = errorJson(e);
     return NextResponse.json(body, { status });

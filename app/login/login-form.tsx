@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+type OrgOption = { id: string; name: string };
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -10,6 +12,8 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [organizationId, setOrganizationId] = useState("");
+  const [orgChoices, setOrgChoices] = useState<OrgOption[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -21,9 +25,25 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          ...(organizationId ? { organizationId } : {}),
+        }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+        organizations?: OrgOption[];
+      };
+      if (res.status === 409 && data.code === "ORG_SELECT_REQUIRED" && data.organizations) {
+        setOrgChoices(data.organizations);
+        if (data.organizations.length === 1) {
+          setOrganizationId(data.organizations[0].id);
+        }
+        setError(data.error ?? "Choose your organization.");
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "Sign-in failed");
         return;
@@ -52,7 +72,11 @@ export function LoginForm() {
               autoComplete="username"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setOrgChoices(null);
+                setOrganizationId("");
+              }}
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-emerald-500 focus:ring-2"
             />
           </div>
@@ -71,10 +95,32 @@ export function LoginForm() {
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-emerald-500 focus:ring-2"
             />
           </div>
+          {orgChoices && orgChoices.length > 1 ? (
+            <div>
+              <label className="block text-sm font-medium text-zinc-700" htmlFor="organization">
+                Organization
+              </label>
+              <select
+                id="organization"
+                name="organization"
+                required
+                value={organizationId}
+                onChange={(e) => setOrganizationId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-emerald-500 focus:ring-2"
+              >
+                <option value="">Choose organization…</option>
+                {orgChoices.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || (orgChoices !== null && orgChoices.length > 1 && !organizationId)}
             className="w-full rounded-lg bg-emerald-700 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
           >
             {pending ? "Signing in…" : "Sign in"}
