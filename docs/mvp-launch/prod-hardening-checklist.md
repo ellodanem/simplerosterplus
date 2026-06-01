@@ -63,7 +63,8 @@ If either succeeds, run `prod:remove-demo-creds` against prod DB and redeploy.
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Postgres (Neon) |
+| `DATABASE_URL` | Postgres (Neon); pooled URL is fine for the app |
+| `DIRECT_URL` | Optional but recommended when `DATABASE_URL` is a Neon **pooler** host; use the direct (non-`-pooler`) connection string. Vercel build auto-derives it if omitted. |
 | `AUTH_SECRET` | Tenant JWT (≥ 16 chars, not `.env.example` placeholder) |
 | `OPERATOR_AUTH_SECRET` | Operator JWT (≥ 16 chars, separate from tenant) |
 

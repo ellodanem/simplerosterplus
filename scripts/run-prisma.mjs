@@ -4,6 +4,7 @@
  */
 import { config } from "dotenv";
 import { spawnSync } from "node:child_process";
+import { ensureDirectUrl } from "./ensure-direct-url.mjs";
 
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
@@ -34,7 +35,7 @@ if (prismaArgs.length === 0) {
 const result = spawnSync("npx", ["prisma", ...prismaArgs], {
   stdio: "inherit",
   shell: true,
-  env: process.env,
+  env: ensureDirectUrl({ ...process.env }),
 });
 
 process.exit(result.status ?? 1);

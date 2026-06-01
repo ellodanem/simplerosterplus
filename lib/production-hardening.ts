@@ -83,6 +83,13 @@ export function auditRequiredEnv(target: "production" | "development" = "product
   const databaseUrl = process.env.DATABASE_URL?.trim();
   if (!databaseUrl) {
     issues.push({ level: "error", code: "DATABASE_URL_MISSING", message: "DATABASE_URL is not set" });
+  } else if (isProd && databaseUrl.includes("-pooler.") && !process.env.DIRECT_URL?.trim()) {
+    issues.push({
+      level: "warn",
+      code: "DIRECT_URL_RECOMMENDED",
+      message:
+        "DATABASE_URL uses a Neon pooler; set DIRECT_URL to the direct host (or rely on migrate-deploy auto-derive at build time)",
+    });
   }
 
   const authSecret = process.env.AUTH_SECRET?.trim() ?? "";

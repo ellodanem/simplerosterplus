@@ -1,7 +1,8 @@
 # Operator Console — platform admin/management plane (design)
 
-**Status:** Foundation implemented (read-only console). Build started 2026-05-30 — see
-[Implementation status](#implementation-status). This doc remains the authoritative spec.
+**Status:** **v1 shipped to production** (2026-05-30). Operator console live at `/ops` on the
+main Vercel deployment. See [Implementation status](#implementation-status) and
+[Continuity handoff](#continuity-handoff-pause-point-2026-05-30) to resume work.
 
 **Purpose:** Capture the design for the **platform operator console** — the internal
 super-admin surface SR+ staff use to administer *all* customers and organizations
@@ -11,7 +12,7 @@ tenant admin already covered in `docs/AGENT_CONTEXT_GTM_AUTH_PRICING.md`.
 **Product:** Simple Roster Plus (SR+) — B2B roster + attendance (ZKTeco / ADMS),
 Next.js + Prisma + PostgreSQL, multi-tenant via `Organization`.
 
-**Related docs:** `docs/AGENT_CONTEXT_GTM_AUTH_PRICING.md`, `docs/PRODUCT_NOTES.md`,
+**Related docs:** `docs/PRICING.md`, `docs/AGENT_CONTEXT_GTM_AUTH_PRICING.md`, `docs/PRODUCT_NOTES.md`,
 `README.md`, `prisma/schema.prisma`
 
 ---
@@ -347,9 +348,10 @@ the edge. The app host keeps the console at `/ops`. Point `admin.simplerosterplu
 the same deployment via DNS — no separate app needed. The cookie/secret separation enforces
 the trust boundary regardless of host.
 
-**Migrations on deploy: ✅** the Vercel build runs `prisma migrate deploy` (build script:
-`prisma generate && prisma migrate deploy && next build`), so schema changes apply on
-deploy. `DATABASE_URL` must be set in the Vercel environment.
+**Migrations on deploy: ✅** the Vercel build runs `prisma migrate deploy` via
+`scripts/migrate-deploy.mjs` (retries + direct Neon URL). `DATABASE_URL` is required;
+when it uses a Neon **pooler** host, set **`DIRECT_URL`** to the direct connection string
+or rely on auto-derive (pooler host with `-pooler` removed).
 
 **Ingest observability: ✅ (first pass)** the Devices page surfaces a 24 h punch-volume
 chart, punches-today, learned clock-drift (avg + calibrated count), stalled-device count,
@@ -377,15 +379,98 @@ and a live unmapped-punch feed. Comm-key/parse error feeds need richer event log
   (the app domain, not `admin.`), select the events above, copy the signing secret into
   `STRIPE_WEBHOOK_SIGNING_SECRET`. Locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 
+## Continuity handoff (pause point 2026-05-30)
+
+Use this section to resume after a break. Branch **`docs/operator-console`** was merged into
+**`main`** at commit **`dad776d`** and deployed to production.
+
+### Production access (verified working)
+
+| Surface | URL |
+|---------|-----|
+| Operator login | https://simplerosterplus.vercel.app/ops/login |
+| Operator console | https://simplerosterplus.vercel.app/ops |
+| Tenant app | https://simplerosterplus.vercel.app/login |
+
+Seed operator sign-in (after `npm run db:seed`): **`ops@demo.local`** / **`ops`** (requires
+`OPERATOR_AUTH_SECRET` on Vercel). Seed tenant sign-in: **`admin@demo.local`** / **`demo`**.
+
+### What is done (operator console v1)
+
+- **Routing:** `/ops/*` on app host; `admin.*` host rewrite + edge gate in `middleware.ts`
+  (DNS for `admin.simplerosterplus.com` not purchased yet — works at `/ops` today).
+- **Auth:** Custom JWT operator plane — separate cookie (`srp_operator_session`), separate
+  secret (`OPERATOR_AUTH_SECRET`), `OperatorUser` allow-list, RBAC (`readonly` / `support` /
+  `billing` / `superadmin`).
+- **Pages:** Overview, Organizations list, Org 360, Device fleet + ingest health, Billing,
+  Audit log viewer.
+- **Audited write actions:** Suspend/reactivate (superadmin), extend trial, convert demo→trial
+  (billing+), Sync from Stripe (billing+, when Stripe configured).
+- **Stripe (first pass):** Webhook at `/api/stripe/webhook`, org billing mirror columns incl.
+  `mrrCents`, Open in Stripe deep links. Gracefully disabled until `STRIPE_SECRET_KEY` set.
+- **Impersonation (read-only):** Support+ **Impersonate** on Org 360 → 30 min read-only tenant
+  session; middleware blocks mutating APIs; amber banner + End session; audited
+  (`impersonate.start` / `impersonate.end`). Built on current tenant JWT (not Clerk yet).
+- **Deploy:** `prisma migrate deploy` in Vercel build; operator + billing migrations applied.
+
+### Clerk (registered, not wired)
+
+Customer Clerk app **"SRP"** created; **Organizations enabled** (membership required). Keys in
+local `.env` only (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`). **Tenant app still
+uses custom JWT** (`AUTH_SECRET`, `/login`, `AppUser.passwordHash`). Operator console still uses
+custom operator JWT — operator Clerk app not created yet. See `docs/AGENT_CONTEXT_GTM_AUTH_PRICING.md`.
+
+### What is left — recommended resume order
+
+1. **Tenant Clerk migration** (highest leverage) — replace custom tenant auth; provisioning
+   webhooks; `/setup` onboarding wizard. Unblocks real sign-up and cleaner impersonation later.
+2. **Stripe keys on Vercel** — `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SIGNING_SECRET`,
+   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`; dashboard webhook → `https://simplerosterplus.vercel.app/api/stripe/webhook`.
+3. **Operator Clerk app + MFA** — second Clerk application for `admin.*`; swap operator login;
+   mandatory MFA for internal staff.
+4. **Stripe refunds/plan changes in-console** — convenience; deep-link to Stripe works today.
+5. **Cross-tenant Users** nav page — find any `AppUser` across orgs, access support actions.
+6. **Feature flags + Comms** — per-org toggles and targeted banners (nav shows "soon").
+7. **Custom domains** — buy `simplerosterplus.com`; point `app.` and `admin.` at Vercel.
+8. **Ingest observability (deeper)** — comm-key/parse error feeds (needs richer event logging).
+9. **Broader GTM** (see `AGENT_CONTEXT_GTM_AUTH_PRICING.md`, tiers in `PRICING.md`) — demo→trial funnel, pricing/SKUs
+   in Stripe, employee self-service (drives Clerk Enhanced B2B tier later).
+
+### Vercel env checklist (production)
+
+| Variable | Purpose | Set on Vercel? |
+|----------|---------|----------------|
+| `DATABASE_URL` | Postgres / migrations | Required |
+| `AUTH_SECRET` | Tenant custom JWT | Required |
+| `OPERATOR_AUTH_SECRET` | Operator console login | Required (verified for `/ops`) |
+| `STRIPE_SECRET_KEY` | Billing mirror + sync | Optional until Stripe wired |
+| `STRIPE_WEBHOOK_SIGNING_SECRET` | Stripe webhooks | Optional |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Future checkout | Optional |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Tenant Clerk (future) | Not yet |
+| `CLERK_SECRET_KEY` | Tenant Clerk (future) | Not yet |
+
+### Key commits on `main` (operator console arc)
+
+```
+11d3498  Add operator console design doc and mockups
+50e2323  Build operator console foundation (read-only)
+88a8488  Add audited operator write actions + audit log viewer
+8ad7b1a  Add ingest observability + production wiring
+0722ec0  Wire Stripe into operator console (mirror + webhooks)
+dad776d  Add read-only operator impersonation for tenant support  ← HEAD at pause
+```
+
 ## 9. Open questions
 
-1. Same Next.js deployment with host routing vs. a separate app for `admin.`?
+1. ~~Same Next.js deployment with host routing vs. a separate app for `admin.`?~~ **Decided:**
+   same deployment; host routing in `middleware.ts`.
 2. Operator MFA: TOTP only, or require SSO (Google Workspace) for internal staff?
 3. How much Stripe state to mirror vs. fetch on demand (lists need mirror; detail can fetch)?
-4. Impersonation: read-only only at launch, or a clearly-flagged write mode for support fixes?
-5. Plan/SKU shape (per org / per location / per device add-on) — feeds the billing module
-   and the pricing open questions in `AGENT_CONTEXT_GTM_AUTH_PRICING.md`.
+4. ~~Impersonation: read-only only at launch?~~ **Shipped read-only v1.** Write mode for
+   support fixes remains a future, separately gated decision.
+5. Plan/SKU shape — see `docs/PRICING.md` (Free / Plus / Pro, add-ons). Feeds the billing module
+   and Stripe step 12; GTM context in `AGENT_CONTEXT_GTM_AUTH_PRICING.md`.
 
 ---
 
-*Last updated: 2026-05-30. Update when auth, hosting, billing, or scope decisions change.*
+*Last updated: 2026-05-30 (pause handoff). Update when auth, hosting, billing, or scope decisions change.*

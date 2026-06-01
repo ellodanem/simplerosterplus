@@ -15,7 +15,7 @@ An updated roster + attendance direction (ZKTeco / ADMS per product goals).
 
 ### Quick start
 
-1. Copy [`.env.example`](./.env.example) to `.env` and set **`DATABASE_URL`** and **`AUTH_SECRET`** (16+ characters).
+1. Copy [`.env.example`](./.env.example) to `.env` and set **`DATABASE_URL`**, **`AUTH_SECRET`** (16+ characters), and **`DIRECT_URL`** (same as `DATABASE_URL` for local Postgres; for Neon pooler URLs use the direct non-`-pooler` host — or omit and let Prisma scripts derive it).
 2. `npm run db:generate` then **`npm run db:migrate`** (or `npm run db:push` while prototyping).
 3. **`npm run db:seed`** — creates a demo org, admin user, sample staff, shift template, and holiday.
 4. **`npm run dev`** — open [http://localhost:3000](http://localhost:3000), **Sign in** with `admin@demo.local` / `demo`, then open **Staff**.
