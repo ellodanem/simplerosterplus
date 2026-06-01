@@ -189,8 +189,7 @@ export function StaffList({
       </div>
 
       <div className="mt-6">
-        <StaffDirectory
-          title="Staff"
+        <StaffTable
           rows={filteredActiveRows}
           emptyMessage={
             rows.length === 0
@@ -216,8 +215,7 @@ export function StaffList({
           </button>
           {archiveExpanded ? (
             <div className="mt-2">
-              <StaffDirectory
-                title="Archived"
+              <StaffTable
                 rows={filteredArchivedRows}
                 emptyMessage="No archived staff match these filters."
                 onEdit={setEditing}
@@ -279,93 +277,88 @@ const emptyStaffMessage = (
   </>
 );
 
-function StaffDirectory({
-  title,
+function StaffTable({
   rows,
   emptyMessage,
   onEdit,
 }: {
-  title: string;
   rows: StaffRow[];
   emptyMessage: ReactNode;
   onEdit: (row: StaffRow) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-      <div className="border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-        {title}
-      </div>
-      {rows.length === 0 ? (
-        <p className="px-4 py-8 text-center text-sm text-zinc-500">{emptyMessage}</p>
-      ) : (
-        <ul className="divide-y divide-zinc-100">
-          {rows.map((s) => (
-            <li key={s.id}>
-              <div className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50/80">
-                <StaffAvatar
-                  firstName={s.firstName}
-                  lastName={s.lastName}
-                  size="xl"
-                  title={`${s.firstName} ${s.lastName}`}
-                />
-                <div className="min-w-0 flex-1">
+    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+      <table className="w-full min-w-[56rem] text-left text-sm">
+        <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <tr>
+            <th className="px-4 py-3">Name</th>
+            <th className="px-4 py-3">Email</th>
+            <th className="px-4 py-3">Role</th>
+            <th className="px-4 py-3">Department</th>
+            <th className="px-4 py-3">Location</th>
+            <th className="px-4 py-3">Device ID</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Punch exempt</th>
+            <th className="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={9} className="px-4 py-8 text-center text-zinc-500">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            rows.map((s) => (
+              <tr key={s.id} className="hover:bg-zinc-50/80">
+                <td className="px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <StaffAvatar
+                      firstName={s.firstName}
+                      lastName={s.lastName}
+                      size="md"
+                      title={`${s.firstName} ${s.lastName}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onEdit(s)}
+                      className="truncate text-left font-medium text-zinc-900 hover:underline"
+                      title={`${s.firstName} ${s.lastName}`}
+                    >
+                      {s.firstName} {s.lastName}
+                    </button>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{s.email || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.role || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.departmentName || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.locationName ?? "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {s.deviceUserId ? (
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">
+                      {s.deviceUserId}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{staffStatusLabel(s)}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.punchExempt ? "Yes" : "No"}</td>
+                <td className="px-4 py-3 text-right">
                   <button
                     type="button"
                     onClick={() => onEdit(s)}
-                    className="truncate text-left text-sm font-medium text-zinc-900 hover:underline"
+                    className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
                   >
-                    {s.firstName} {s.lastName}
+                    Edit
                   </button>
-                  <p className="truncate text-xs text-zinc-500">{s.role || "No role assigned"}</p>
-                  <StaffDirectoryMeta row={s} />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onEdit(s)}
-                  className="shrink-0 text-sm font-medium text-emerald-700 hover:text-emerald-900"
-                >
-                  Edit
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function StaffDirectoryMeta({ row }: { row: StaffRow }) {
-  const status = staffStatusLabel(row);
-  const bits: string[] = [];
-  if (row.locationName) bits.push(row.locationName);
-  if (row.departmentName) bits.push(row.departmentName);
-  if (row.email) bits.push(row.email);
-  if (row.deviceUserId) bits.push(`Device ${row.deviceUserId}`);
-  if (row.punchExempt) bits.push("Punch exempt");
-
-  if (bits.length === 0 && status === "Active") return null;
-
-  return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-500">
-      {bits.length > 0 ? (
-        <span className="min-w-0 truncate" title={bits.join(" · ")}>
-          {bits.join(" · ")}
-        </span>
-      ) : null}
-      {status !== "Active" ? (
-        <span
-          className={`shrink-0 rounded px-1.5 py-0.5 font-semibold uppercase tracking-wide ${
-            status === "Archived"
-              ? "bg-zinc-100 text-zinc-600"
-              : status === "Test"
-                ? "bg-amber-50 text-amber-800"
-                : "bg-sky-50 text-sky-800"
-          }`}
-        >
-          {status}
-        </span>
-      ) : null}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
