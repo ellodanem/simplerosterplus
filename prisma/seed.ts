@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../lib/password";
+import { assertSeedAllowedInProduction } from "../lib/production-hardening";
 
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
@@ -12,6 +13,16 @@ async function main() {
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "demo";
   const orgName = process.env.SEED_ORG_NAME ?? "Demo Organization";
   const timeZone = process.env.SEED_ORG_TIMEZONE ?? "America/Toronto";
+
+  const operatorEmail = (process.env.SEED_OPERATOR_EMAIL ?? "ops@demo.local").toLowerCase();
+  const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? "ops";
+
+  assertSeedAllowedInProduction({
+    adminEmail,
+    adminPassword,
+    operatorEmail,
+    operatorPassword,
+  });
 
   let org = await prisma.organization.findFirst({ where: { name: orgName } });
   if (!org) {
@@ -40,8 +51,6 @@ async function main() {
 
   // Operator console (platform admin plane) seed — separate identity store from AppUser.
   // See docs/OPERATOR_CONSOLE.md. Set OPERATOR_AUTH_SECRET (16+ chars) to enable login.
-  const operatorEmail = (process.env.SEED_OPERATOR_EMAIL ?? "ops@demo.local").toLowerCase();
-  const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? "ops";
   const operatorPasswordHash = await hashPassword(operatorPassword);
   await prisma.operatorUser.upsert({
     where: { email: operatorEmail },

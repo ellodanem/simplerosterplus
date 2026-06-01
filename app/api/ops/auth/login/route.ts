@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { shouldRejectDemoLoginInProduction } from "@/lib/production-hardening";
 import {
   OPERATOR_SESSION_COOKIE,
   operatorSessionCookieOptions,
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
   const password = typeof body.password === "string" ? body.password : "";
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+  }
+
+  if (shouldRejectDemoLoginInProduction(email, password)) {
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
   const operator = await prisma.operatorUser.findUnique({

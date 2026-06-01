@@ -13,7 +13,10 @@
     "db:push": "node scripts/run-prisma.mjs db push",
     "db:studio": "node scripts/run-prisma.mjs studio",
     "db:seed": "node scripts/run-prisma.mjs db seed",
-    "provision-org": "tsx scripts/provision-org.ts"
+    "provision-org": "tsx scripts/provision-org.ts",
+    "prod:env-audit": "tsx scripts/prod-env-audit.ts",
+    "prod:secret-scan": "tsx scripts/secret-hygiene-scan.ts",
+    "prod:remove-demo-creds": "tsx scripts/remove-demo-credentials.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
