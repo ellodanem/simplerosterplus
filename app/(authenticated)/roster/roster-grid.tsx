@@ -1101,7 +1101,7 @@ export function RosterGrid({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div
-                          className={`truncate font-medium ${
+                          className={`truncate font-semibold ${
                             belowMinimumOffDays
                               ? "animate-roster-off-days-blink"
                               : "text-zinc-900"
