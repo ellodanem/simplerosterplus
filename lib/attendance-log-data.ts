@@ -68,6 +68,8 @@ export async function getAttendanceLogData(args: {
   timeZone: string;
   /** When set, the SQL filter is `punchAt >= sinceDate`. When null, no lower bound — every active punch. */
   sinceDate: Date | null;
+  /** When false, include punches filed into a pay period. Default: hide filed punches. */
+  activeOnly?: boolean;
   rowLimit?: number;
 }): Promise<AttendanceLogData> {
   const {
@@ -75,6 +77,7 @@ export async function getAttendanceLogData(args: {
     locationId,
     timeZone,
     sinceDate,
+    activeOnly = true,
     rowLimit = MAX_ATTENDANCE_LOG_ROWS,
   } = args;
 
@@ -97,8 +100,7 @@ export async function getAttendanceLogData(args: {
       where: {
         organizationId,
         locationId,
-        // When the pay-period workflow lands, swap this for `extractedAt: null` so the
-        // "active" feed automatically hides filed rows.
+        ...(activeOnly ? { extractedAt: null } : {}),
         ...(sinceDate ? { punchAt: { gte: sinceDate } } : {}),
       },
       orderBy: { punchAt: "desc" },
@@ -277,6 +279,7 @@ export async function getAttendanceLogData(args: {
         override: overrideByDayKey.get(key) ?? null,
         punches: punchesByDayKey.get(key) ?? [],
         graceMinutes,
+        nowUtc: new Date(),
       });
       staffByDayKey.set(key, result.status);
       minutesLateByDayKey.set(key, result.minutesLate);

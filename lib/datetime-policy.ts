@@ -57,6 +57,22 @@ export function startOfLocalDayUtc(ymd: string, timeZone: string): Date {
   return new Date(minMs);
 }
 
+/** Last instant of a local calendar day in `timeZone` (inclusive end for range filters). */
+export function endOfLocalDayUtc(ymd: string, timeZone: string): Date {
+  const nextYmd = shiftYmdLocal(ymd, 1);
+  return new Date(startOfLocalDayUtc(nextYmd, timeZone).getTime() - 1);
+}
+
+/** Add `days` to `YYYY-MM-DD` without timezone (calendar math). */
+export function shiftYmdLocal(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 const LOCAL_WEEKDAY_TO_INDEX: Record<string, number> = {
   Sun: 0,
   Mon: 1,

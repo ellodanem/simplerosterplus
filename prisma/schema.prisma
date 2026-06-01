@@ -62,6 +62,7 @@ model Organization {
   devices               Device[]
   attendanceLogs        AttendanceLog[]
   attendanceDeviceClocks AttendanceDeviceClock[]
+  payPeriods            PayPeriod[]
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -88,6 +89,7 @@ model Location {
   devices        Device[]
   publicHolidays PublicHoliday[]
   attendanceLogs AttendanceLog[]
+  payPeriods     PayPeriod[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -492,10 +494,16 @@ model AttendanceLog {
   clockOffsetMsApplied Int?
   /// warmup | learned_offset | apply_disabled | no_serial | parse_fallback | …
   clockNormalizeReason String?
+  /// Set when this punch is filed into a saved Extract Pay Period report.
+  extractedAt          DateTime?
+  extractedPayPeriodId String?
+  extractedPayPeriod   PayPeriod?   @relation(fields: [extractedPayPeriodId], references: [id], onDelete: SetNull)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
   @@index([locationId, punchAt])
+  @@index([locationId, extractedAt])
+  @@index([extractedPayPeriodId])
   @@index([staffId, punchAt])
   @@index([organizationId, punchAt])
   @@index([deviceId])
@@ -550,6 +558,30 @@ model AttendanceDayOverride {
   @@unique([staffId, date])
   @@index([staffId])
   @@index([staffId, date])
+}
+
+/// Saved Extract Pay Period snapshot (payroll-prep summary). Saving files matching punches.
+model PayPeriod {
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  locationId           String
+  location             Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  startDate            DateTime     @db.Date
+  endDate              DateTime     @db.Date
+  /// Business calendar day when the report was generated/saved.
+  reportDate           DateTime     @db.Date
+  entityName           String
+  rows                 Json
+  notes                String       @default("")
+  rowsBeforeLastEdit   Json?
+  emailSentAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  extractedPunches     AttendanceLog[]
+
+  @@index([locationId, endDate(sort: Desc), createdAt(sort: Desc)])
+  @@index([organizationId])
 }
 
 // ============================================================================

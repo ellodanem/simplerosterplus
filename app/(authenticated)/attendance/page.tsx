@@ -24,6 +24,8 @@ import {
 } from "@/lib/roster-week";
 import { getAttendanceWeekData } from "@/lib/attendance-week";
 import { getAttendanceLogData } from "@/lib/attendance-log-data";
+import { getLastFiledCutoffYmd, getLatestFiledPayPeriod } from "@/lib/pay-period-last-filed";
+import { payPeriodToYmd } from "@/lib/pay-period-db";
 import { UnmappedPunchesBanner } from "@/app/components/unmapped-punches-banner";
 import { AttendanceGrid } from "./attendance-grid";
 import { AttendanceLog } from "./attendance-log";
@@ -97,15 +99,12 @@ export default async function AttendancePage({
           >
             Attendance report
           </Link>
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Coming soon"
-            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-400 shadow-sm"
+          <Link
+            href={`/attendance/pay-period?location=${encodeURIComponent(location.id)}`}
+            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
           >
             Extract Pay Period
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -118,6 +117,10 @@ export default async function AttendancePage({
             currentLocationId={location.id}
             departments={departmentNames}
           />
+
+        {view === "log" ? (
+          <FiledPayPeriodBanner locationId={location.id} />
+        ) : null}
 
         {view === "week" ? (
           <WeekTab
@@ -138,6 +141,26 @@ export default async function AttendancePage({
         )}
       </AttendanceFilterProvider>
       </Suspense>
+    </div>
+  );
+}
+
+async function FiledPayPeriodBanner({ locationId }: { locationId: string }) {
+  const latest = await getLatestFiledPayPeriod(locationId);
+  if (!latest) return null;
+  const start = payPeriodToYmd(latest.startDate);
+  const end = payPeriodToYmd(latest.endDate);
+  const filed = latest.createdAt.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return (
+    <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+      Last Extract Pay Period filed:{" "}
+      <span className="font-semibold">
+        {start} – {end}
+      </span>{" "}
+      on {filed}. The active log hides punches filed in earlier periods.
     </div>
   );
 }
@@ -179,7 +202,10 @@ async function LogTab({
   const logWindowDays = getAttendanceLogWindowDays(expandedLogWindow ? "1" : null);
   const todayYmd = formatYmdInZone(new Date(), tz);
   const windowStartYmd = shiftYmd(todayYmd, -(logWindowDays - 1));
-  const sinceDate = startOfLocalDayUtc(windowStartYmd, tz);
+  const lastFiledCutoff = await getLastFiledCutoffYmd(location.id);
+  const sinceYmd =
+    lastFiledCutoff && lastFiledCutoff > windowStartYmd ? lastFiledCutoff : windowStartYmd;
+  const sinceDate = startOfLocalDayUtc(sinceYmd, tz);
 
   const [data, unmappedPunchCount] = await Promise.all([
     getAttendanceLogData({
@@ -205,7 +231,7 @@ async function LogTab({
       key={`${windowStartYmd}:${expandedLogWindow ? "extended" : "default"}`}
       timeZone={tz}
       todayYmd={todayYmd}
-      windowStartYmd={windowStartYmd}
+      windowStartYmd={sinceYmd}
       defaultWindowDays={DEFAULT_ATTENDANCE_LOG_WINDOW_DAYS}
       expandedWindow={expandedLogWindow}
       windowDays={logWindowDays}

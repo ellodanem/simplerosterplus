@@ -13,6 +13,7 @@ async function loadPunch(id: string, organizationId: string, locationId: string)
       punchAt: true,
       punchType: true,
       originalPunchAt: true,
+      extractedAt: true,
     },
   });
 }
@@ -151,6 +152,12 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   const location = await getDefaultLocation(session.orgId);
   const existing = await loadPunch(id, session.orgId, location.id);
   if (!existing) return NextResponse.json({ error: "Punch not found" }, { status: 404 });
+  if (existing.extractedAt) {
+    return NextResponse.json(
+      { error: "This punch was filed in an Extract Pay Period and cannot be deleted." },
+      { status: 409 },
+    );
+  }
 
   await prisma.attendanceLog.delete({ where: { id, organizationId: session.orgId } });
   return NextResponse.json({ ok: true });
