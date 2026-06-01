@@ -308,7 +308,7 @@ export function AttendanceLog({
       {showAddModal ? (
         <AddPunchModal
           open
-          staff={logData.staff}
+          staff={railStaff}
           timeZone={timeZone}
           todayYmd={todayYmd}
           onClose={() => setShowAddModal(false)}
