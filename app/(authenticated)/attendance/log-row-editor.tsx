@@ -150,12 +150,14 @@ export function LogRowEditor({
               {staff?.role ?? "—"} · {dayYmd}
             </div>
           </div>
-          <span
-            className={`ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls.solid}`}
-            title={presenceLabel(status)}
-          >
-            {presenceLabel(status)}
-          </span>
+          {row.isShiftArrival ? (
+            <span
+              className={`ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls.solid}`}
+              title={presenceLabel(status)}
+            >
+              {presenceLabel(status)}
+            </span>
+          ) : null}
         </div>
 
         {row.punch.corrected ? (

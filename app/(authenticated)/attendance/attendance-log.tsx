@@ -111,7 +111,7 @@ export function AttendanceLog({
       if (filter === "device" && r.punch.source === "manual") return false;
       if (filter === "corrected" && !r.punch.corrected) return false;
       if (filter === "late") {
-        if (r.punch.punchType !== "in") return false;
+        if (!r.isShiftArrival) return false;
         if (r.dayStatus !== "late") return false;
       }
       return true;
@@ -467,9 +467,9 @@ function LogRowItem({
 }) {
   const { punch, dayStatus, minutesLate } = row;
   const statusClasses = presenceClasses(dayStatus);
-  // Show the day-status pill only on the IN row — the OUT row would just repeat the same
-  // pill, which is noise. Both rows still get the Corrected pill when applicable.
-  const showStatus = punch.punchType === "in";
+  // Day status (on time / late / etc.) applies to shift arrival only — the first IN of
+  // the day. Later IN rows are returns from break and must not repeat the arrival badge.
+  const showStatus = punch.punchType === "in" && row.isShiftArrival;
   return (
     <li>
       <button

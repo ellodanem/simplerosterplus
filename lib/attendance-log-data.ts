@@ -17,7 +17,6 @@ import { isStaffEventVisible } from "@/lib/staff-archive";
 import { ymdForDbDate } from "./roster-week";
 import {
   computePresence,
-  isIrregular,
   type PresenceStatus,
   type Punch,
 } from "./attendance-policy";
@@ -33,6 +32,8 @@ export type LogRow = {
   dayStatus: PresenceStatus;
   /** Whole minutes late on the day's first in-punch, when applicable. */
   minutesLate: number | null;
+  /** True when this row is the day's first `in` punch (shift arrival), not a return from break. */
+  isShiftArrival: boolean;
 };
 
 export type LogKpis = {
@@ -149,6 +150,7 @@ export async function getAttendanceLogData(args: {
 
   const staffByDayKey = new Map<string, PresenceStatus>();
   const minutesLateByDayKey = new Map<string, number | null>();
+  const arrivalPunchIdByDayKey = new Map<string, string>();
 
   if (dayKeys.size > 0 && minYmd && maxYmd) {
     const rangeStartDate = utcDateFromYmd(minYmd);
@@ -214,7 +216,7 @@ export async function getAttendanceLogData(args: {
             lte: new Date(rangeEndDate.getTime() + 2 * 24 * 60 * 60_000),
           },
         },
-        select: { staffId: true, punchAt: true, punchType: true },
+        select: { id: true, staffId: true, punchAt: true, punchType: true },
       }),
     ]);
 
@@ -264,6 +266,20 @@ export async function getAttendanceLogData(args: {
       arr.push({ punchAt: dp.punchAt, punchType: dp.punchType });
     }
 
+    const sortedDayPunches = [...allDayPunches].sort(
+      (a, b) => a.punchAt.getTime() - b.punchAt.getTime(),
+    );
+    for (const dp of sortedDayPunches) {
+      if (!dp.staffId || dp.punchType !== "in") continue;
+      const staff = staffById.get(dp.staffId);
+      if (staff && !isStaffEventVisible(staff, dp.punchAt)) continue;
+      const ymd = formatYmdInZone(dp.punchAt, timeZone);
+      const k = `${dp.staffId}__${ymd}`;
+      if (!arrivalPunchIdByDayKey.has(k)) {
+        arrivalPunchIdByDayKey.set(k, dp.id);
+      }
+    }
+
     for (const key of dayKeys) {
       const [staffId, ymd] = key.split("__");
       const staff = staffById.get(staffId);
@@ -288,6 +304,9 @@ export async function getAttendanceLogData(args: {
 
   const rows: LogRow[] = [];
   let lateCount = 0;
+  for (const status of staffByDayKey.values()) {
+    if (status === "late") lateCount += 1;
+  }
   let correctedCount = 0;
   let manualCount = 0;
   let deviceCount = 0;
@@ -313,9 +332,10 @@ export async function getAttendanceLogData(args: {
       corrected: p.originalPunchAt !== null,
       originalPunchAt: p.originalPunchAt ? p.originalPunchAt.toISOString() : null,
     };
-    rows.push({ punch: serialized, dayYmd, dayStatus, minutesLate });
+    const isShiftArrival =
+      !!dayKey && p.punchType === "in" && arrivalPunchIdByDayKey.get(dayKey) === p.id;
+    rows.push({ punch: serialized, dayYmd, dayStatus, minutesLate, isShiftArrival });
 
-    if (p.punchType === "in" && isIrregular(dayStatus)) lateCount += 1;
     if (p.originalPunchAt !== null) correctedCount += 1;
     if (p.source === "manual") manualCount += 1;
     else deviceCount += 1;
