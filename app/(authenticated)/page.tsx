@@ -44,6 +44,18 @@ export default async function HomePage() {
   const hasAttendanceIssues = summary.lateCount > 0 || summary.absentCount > 0;
   const hasOpenShifts = summary.openShiftCount > 0;
   const hasExceptions = hasAttendanceIssues || hasOpenShifts;
+  const rosterStatusBadge =
+    summary.rosterStatus === "published"
+      ? { label: "Roster live", className: "bg-emerald-100 text-emerald-800" }
+      : summary.rosterStatus === "draft"
+        ? { label: "Roster draft", className: "bg-zinc-100 text-zinc-600" }
+        : { label: "Roster not started", className: "bg-zinc-100 text-zinc-600" };
+  const intro =
+    summary.rosterStatus === null
+      ? "Start your first week roster, then publish and share it with staff."
+      : hasExceptions || summary.pendingRequestsCount > 0
+        ? "Here’s what needs attention before the week runs."
+        : "All clear so far. Publish when you’re ready to share the roster.";
 
   return (
     <div className="space-y-8">
@@ -57,19 +69,15 @@ export default async function HomePage() {
             <span className="font-mono text-zinc-700">{summary.timeZone}</span>
           </p>
           <p className="mt-2 text-sm text-zinc-500">
-            Here&apos;s what needs attention before the week runs.
+            {intro}
           </p>
           <p className="mt-0.5 text-xs text-zinc-400">
             {summary.orgName} · {summary.locationName}
-            {summary.rosterStatus === "published" ? (
-              <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-                Roster live
-              </span>
-            ) : (
-              <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
-                Roster draft
-              </span>
-            )}
+            <span
+              className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${rosterStatusBadge.className}`}
+            >
+              {rosterStatusBadge.label}
+            </span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +106,7 @@ export default async function HomePage() {
             href={rosterHref}
             className="inline-flex rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
           >
-            Open roster
+            {summary.rosterStatus === null ? "Start roster" : "Open roster"}
           </Link>
         </div>
       </div>
@@ -148,7 +156,9 @@ export default async function HomePage() {
             }
             stat={summary.openShiftCount}
             description={
-              summary.openShiftCount === 0
+              summary.rosterStatus === null
+                ? "Build your first week on the roster to see open slots and coverage."
+                : summary.openShiftCount === 0
                 ? "Everyone schedulable has a shift assigned from today through week end."
                 : summary.openShiftDayLabel
                   ? `${summary.openShiftCount} unassigned slot${summary.openShiftCount === 1 ? "" : "s"} from today on—most on ${summary.openShiftDayLabel}.`
@@ -156,7 +166,7 @@ export default async function HomePage() {
             }
             href={rosterHref}
             actionLabel="Open roster"
-            muted={!hasOpenShifts}
+            muted={!hasOpenShifts && summary.rosterStatus !== null}
           />
           <GlanceCard
             tone="emerald"
@@ -167,7 +177,9 @@ export default async function HomePage() {
             }
             stat={null}
             description={
-              summary.coverageRangeLabel
+              summary.rosterStatus === null
+                ? "Once you add shifts on the roster, you’ll see coverage for the week here."
+                : summary.coverageRangeLabel
                 ? "All schedulable slots are filled on those days."
                 : hasOpenShifts
                   ? "Fill open slots on the roster to improve coverage."
@@ -191,7 +203,9 @@ export default async function HomePage() {
               <Link href={rosterHref} className="font-medium text-emerald-800 hover:text-emerald-950">
                 {summary.rosterStatus === "published"
                   ? "View roster (live) →"
-                  : "Continue weekly roster →"}
+                  : summary.rosterStatus === "draft"
+                    ? "Continue weekly roster →"
+                    : "Start your first roster →"}
               </Link>
             </li>
             {rosterShareFullUrl ? (

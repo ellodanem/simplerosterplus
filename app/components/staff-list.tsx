@@ -272,8 +272,7 @@ export function StaffList({
 
 const emptyStaffMessage = (
   <>
-    No staff yet. Use Add Staff or run{" "}
-    <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">npm run db:seed</code>.
+    No staff yet. Use <span className="font-medium">Add staff</span> to build your team list.
   </>
 );
 

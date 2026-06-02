@@ -701,7 +701,7 @@ export function RosterGrid({
             title="Coming soon"
             className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm font-medium text-zinc-400"
           >
-            AI scheduler
+            Auto scheduler
           </button>
           <div className="relative">
             <button
