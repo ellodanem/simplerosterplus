@@ -8,8 +8,8 @@
 | 02 | [step-02-tenant-provisioning.md](./step-02-tenant-provisioning.md) | 0 | `completed` | cursor-2026-05-31 | 2026-05-31 | 2026-05-31 | Operator UI at /ops/organizations + `npm run provision-org`; audited `org.create` |
 | 03 | [step-03-production-hardening.md](./step-03-production-hardening.md) | 0 | `completed` | cursor-2026-06-01 | 2026-06-01 | 2026-06-01 | Seed/login guards + audit scripts; owner confirms Neon/Vercel/live logins in prod-hardening-checklist.md |
 | 04 | [step-04-graceful-errors.md](./step-04-graceful-errors.md) | 0 | `completed` | cursor-2026-06-01 | 2026-06-01 | 2026-06-01 | error/not-found/global UI; lib/api-error; safe API + ADMS OK-on-error |
-| 05 | [step-05-roster-publish-share.md](./step-05-roster-publish-share.md) | 1 | `in_progress` | cursor-2026-06-01 | 2026-06-01 | | **Core loop** — Publish + shareable read-only/print; no messaging provider |
-| 06 | [step-06-zkteco-live-test.md](./step-06-zkteco-live-test.md) | 1 | `pending` | | | | Real punch → attendance on non-seed org |
+| 05 | [step-05-roster-publish-share.md](./step-05-roster-publish-share.md) | 1 | `completed` | cursor-2026-06-01 | 2026-06-01 | Publish API + share token link `/share/roster/[token]` + print; gap modal |
+| 06 | [step-06-zkteco-live-test.md](./step-06-zkteco-live-test.md) | 1 | `completed` | cursor-2026-06-01 | 2026-06-01 | 2026-06-01 | ADMS curl sim on non-seed org; see field-test-log.md + scripts/zkteco-field-test.ts |
 | 07 | [step-07-first-run-ux.md](./step-07-first-run-ux.md) | 1 | `pending` | | | | Empty states + mobile sanity |
 | 08 | [step-08-marketing-site-ready.md](./step-08-marketing-site-ready.md) | 1 | `pending` | | | | Contact form + truthful copy + SEO + domain |
 | 09 | [step-09-feedback-intake.md](./step-09-feedback-intake.md) | 1 | `pending` | | | | A channel testers use; we triage |
@@ -36,6 +36,8 @@
 
 | Date | Step | Change |
 |------|------|--------|
+| 2026-06-01 | 06 | ADMS field test on provisioned org; field-test-log.md + repeatable script |
+| 2026-06-01 | 05 | Roster publish/unpublish API, public share link, print view, Home draft/published |
 | 2026-06-01 | 04 | App error boundaries; generic API 500s; roster + iclock hardened |
 | 2026-06-01 | 03 | Production seed guard, @demo.local login block, prod:env-audit / prod:secret-scan / prod:remove-demo-creds |
 | 2026-05-31 | 02 | Operator create-org form + shared `lib/ops/provision-org` + CLI script |
