@@ -25,11 +25,35 @@ function statusClasses(status: StaffReportDay["status"]): string {
   }
 }
 
-function formatPunchList(punches: StaffReportDay["punches"]): string {
-  if (punches.length === 0) return "—";
-  return punches
-    .map((p) => `${p.timeLabel} ${p.punchType.toUpperCase()}${p.corrected ? "*" : ""}`)
-    .join(" · ");
+/** Revert: plain mono string — punches.map((p) => `${p.timeLabel} ${p.punchType.toUpperCase()}…`).join(" · ") */
+function punchChipClasses(punchType: "in" | "out"): string {
+  return punchType === "in"
+    ? "bg-emerald-100 text-emerald-800"
+    : "bg-orange-100 text-orange-800";
+}
+
+function PunchList({ punches }: { punches: StaffReportDay["punches"] }) {
+  if (punches.length === 0) return <>—</>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {punches.map((p, i) => (
+        <span key={`${p.timeLabel}-${p.punchType}-${i}`} className="inline-flex items-center gap-1">
+          {i > 0 ? (
+            <span className="text-zinc-400" aria-hidden="true">
+              ·
+            </span>
+          ) : null}
+          <span
+            className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold ${punchChipClasses(p.punchType)}`}
+          >
+            <span aria-hidden="true">{p.punchType === "in" ? "↓" : "↑"}</span>
+            {p.timeLabel} {p.punchType.toUpperCase()}
+            {p.corrected ? "*" : null}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
 }
 
 export function StaffReportForm({
@@ -188,8 +212,8 @@ export function StaffReportForm({
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-zinc-800">
-                      {formatPunchList(day.punches)}
+                    <td className="px-4 py-2.5 text-xs">
+                      <PunchList punches={day.punches} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-zinc-900">
                       {day.hoursLabel ?? "—"}
