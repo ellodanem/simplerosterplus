@@ -13,6 +13,14 @@ Use this as the product filter for new features and UX decisions:
 
 **Home dashboard (planned):** See [DASHBOARD_RECOMMENDATIONS.md](./DASHBOARD_RECOMMENDATIONS.md) for the landing mock review, target “week at a glance” UX, visual alignment with the app, and implementation order.
 
+## Holiday calendar (country import)
+
+- Each default **location** can set a country in **Holiday calendar** (roster menu). SRP imports public/bank holidays from the `date-holidays` package for the sync window (current year −1 through +5).
+- Imported rows default to **labeled only** (`stationClosed: false`). Mark a day **closed** on the roster when it should block shift assignment (typical full public holidays).
+- **Half days** are not a separate database flag yet. Use the holiday name (e.g. `Carnival (half day)`) and leave the day schedulable unless you intentionally mark it closed.
+- **Manual holidays** on the same date are never overwritten by sync.
+- **St. Lucia (`LC`) — Carnival 2026:** The bundled library lists Carnival on **2026-07-10**, which is wrong for this year. SRP applies a patch in `lib/holiday-calendar.ts`: **20 July** = `Carnival` (full holiday — mark closed on the roster); **21 July** = `Carnival (half day)` (label only). Re-run **Save & sync** on the holiday calendar after upgrading to pick up corrected dates. Add future Carnival years to the same patch table when official dates are known.
+
 ## Timezone (not fixed to one region)
 
 - Each **organization** has `Organization.timeZone` (IANA string, e.g. `America/Toronto`, `Europe/London`, `UTC`).

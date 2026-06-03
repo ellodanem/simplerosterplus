@@ -24,6 +24,28 @@ export type HolidayCalendarSyncResult = {
 const IMPORT_TYPES = new Set(["public", "bank"]);
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Overrides where `date-holidays` dates/names disagree with observed St. Lucia holidays. */
+const COUNTRY_HOLIDAY_PATCHES: Record<
+  string,
+  Array<{
+    year: number;
+    removeYmds: string[];
+    add: Array<{ ymd: string; name: string }>;
+  }>
+> = {
+  LC: [
+    {
+      year: 2026,
+      // Library: 2026-07-10 "Carnival". Observed: 20 Jul (public holiday), 21 Jul (half day).
+      removeYmds: ["2026-07-10"],
+      add: [
+        { ymd: "2026-07-20", name: "Carnival" },
+        { ymd: "2026-07-21", name: "Carnival (half day)" },
+      ],
+    },
+  ],
+};
+
 let cachedCountries: HolidayOption[] | null = null;
 const subdivisionCache = new Map<string, HolidayOption[]>();
 
@@ -142,6 +164,24 @@ export async function syncHolidayCalendarForLocation(
   };
 }
 
+function applyCountryHolidayPatches(
+  countryCode: string,
+  namesByYmd: Map<string, Set<string>>,
+  years: number[],
+): void {
+  const patches = COUNTRY_HOLIDAY_PATCHES[countryCode.trim().toUpperCase()];
+  if (!patches) return;
+  const yearSet = new Set(years);
+  for (const patch of patches) {
+    if (!yearSet.has(patch.year)) continue;
+    for (const ymd of patch.removeYmds) namesByYmd.delete(ymd);
+    for (const { ymd, name } of patch.add) {
+      if (!YMD_RE.test(ymd)) continue;
+      namesByYmd.set(ymd, new Set([name]));
+    }
+  }
+}
+
 function mapOptions(input: Record<string, string> | undefined): HolidayOption[] {
   return Object.entries(input ?? {})
     .map(([code, name]) => ({ code, name }))
@@ -182,6 +222,8 @@ function buildImportedHolidays(
       else namesByYmd.set(ymd, new Set([name]));
     }
   }
+
+  applyCountryHolidayPatches(countryCode, namesByYmd, years);
 
   return Array.from(namesByYmd.entries())
     .map(([date, names]) => ({
