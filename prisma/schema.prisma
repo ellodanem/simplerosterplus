@@ -649,3 +649,25 @@ model OperatorAuditLog {
   @@index([action, createdAt])
   @@index([createdAt])
 }
+
+/// Inbound interest from the public marketing site (waitlist, contact, questions).
+model MarketingInquiry {
+  id             String   @id @default(cuid())
+  /// `early_access` | `contact` | `question`
+  intent         String   @default("early_access")
+  name           String
+  email          String
+  business       String?
+  phone          String?
+  /// Approximate active staff count when provided.
+  staffCount     String?
+  /// `yes` | `no` | `unknown` when the form asks about ZKTeco.
+  hasZkteco      String?
+  message        String?
+  /// Landing page path or campaign tag when supplied.
+  source         String?
+  createdAt      DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([createdAt])
+}

@@ -4,7 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers</title>
-  <meta name="description" content="Simple Roster Plus helps managers create weekly schedules and track attendance in minutes—with AI keeping the process fast and simple.">
+  <meta name="description" content="Free for up to 10 staff. Build weekly schedules and track attendance in minutes—try your clock free for 30 days. For shift managers, not HR bloat.">
+  <link rel="canonical" href="https://simplerosterplus.vercel.app/">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Simple Roster Plus">
+  <meta property="og:title" content="Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers">
+  <meta property="og:description" content="Free for up to 10 staff. Build weekly schedules and track attendance in minutes—try your clock free for 30 days.">
+  <meta property="og:url" content="https://simplerosterplus.vercel.app/">
+  <meta property="og:image" content="https://simplerosterplus.vercel.app/images/hero-weekly-schedule-attendance.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers">
+  <meta name="twitter:description" content="Free for up to 10 staff. Weekly schedules and attendance for shift managers—no HR bloat.">
+  <meta name="twitter:image" content="https://simplerosterplus.vercel.app/images/hero-weekly-schedule-attendance.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -265,6 +278,7 @@
       line-height: 1.55;
     }
     .lead strong { color: var(--text); font-weight: 600; }
+    .hero .lead { max-width: none; }
     .hero-cta { margin: 0 0 1rem; }
     .hero-badges {
       display: flex;
@@ -758,14 +772,110 @@
     .footer-links a { color: #94a3b8; text-decoration: none; }
     .footer-links a:hover { color: #fff; }
     .footer-copy { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
+
+    #contact { background: var(--bg); border-top: 1px solid var(--border-light); }
+    .contact-panel {
+      max-width: 36rem;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--shadow-xl);
+    }
+    .contact-form { display: grid; gap: 1rem; margin-top: 1.25rem; text-align: left; }
+    .contact-form label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text);
+    }
+    .contact-form label span.optional { font-weight: 500; color: var(--text-muted); }
+    .contact-form input,
+    .contact-form select,
+    .contact-form textarea {
+      width: 100%;
+      font: inherit;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .contact-form textarea { min-height: 5.5rem; resize: vertical; }
+    .contact-form input:focus-visible,
+    .contact-form select:focus-visible,
+    .contact-form textarea:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 1px;
+      border-color: var(--accent-blue);
+    }
+    .form-row-2 {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 520px) {
+      .form-row-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .form-note { margin: 0.85rem 0 0; font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+    .form-status {
+      margin: 0.75rem 0 0;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+    .form-status[data-state="success"] {
+      display: block;
+      background: var(--accent-green-soft);
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    .form-status[data-state="error"] {
+      display: block;
+      background: var(--accent-rose-soft);
+      color: #9f1239;
+      border: 1px solid #fecdd3;
+    }
+    .setup-includes {
+      max-width: 36rem;
+      margin: 0 auto 2rem;
+      padding: 1.5rem 1.35rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+      box-shadow: var(--shadow-md);
+    }
+    .setup-includes h3 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+    .setup-includes ul { margin: 0; padding-left: 1.2rem; color: var(--text-muted); }
+    .setup-includes li { margin-bottom: 0.35rem; }
+    .setup-includes .eyebrow-note {
+      display: block;
+      margin-top: 0.65rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .pricing-line {
+      margin: 0 0 1rem;
+      padding: 0.85rem 1rem;
+      background: var(--accent-blue-soft);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .pricing-line strong { color: var(--text); }
   </style>
 </head>
 <body>
-  <!-- App URLs — update when custom domain or Clerk signup route is live -->
+  <!-- Site + app URLs — update SRP_SITE_URL when marketing domain goes live -->
   <script>
+    window.SRP_SITE_URL = "https://simplerosterplus.vercel.app";
     window.SRP_APP_ORIGIN = "https://simplerosterplus.vercel.app";
     window.SRP_APP_LOGIN_URL = "https://simplerosterplus.vercel.app/login";
-    window.SRP_APP_SIGNUP_URL = "https://simplerosterplus.vercel.app/login";
+    window.SRP_MARKETING_API = "https://simplerosterplus.vercel.app/api/marketing/contact";
   </script>
   <a class="skip-link" href="#main">Skip to main content</a>
 
@@ -792,7 +902,7 @@
       </a>
       <div class="header-actions">
         <a class="btn btn-ghost" id="app-login" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
-        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
       </div>
     </div>
   </header>
@@ -802,13 +912,13 @@
       <div class="wrap hero-grid">
         <div>
           <h1 id="hero-heading">Build the weekly schedule and track attendance—in minutes.</h1>
-          <p class="lead"><strong>Simple Roster Plus</strong> helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.</p>
+          <p class="lead"><strong>Free for up to 10 staff.</strong> Simple Roster Plus helps managers publish the weekly roster and see plan vs. actual attendance in one place—try your clock free for 30 days. No payroll or HR bloat.</p>
           <p class="hero-cta">
-            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+            <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
           </p>
           <ul class="hero-badges" aria-label="Highlights">
-            <li>AI-assisted scheduling</li>
-            <li>Attendance beside the roster</li>
+            <li>Weekly roster + attendance</li>
+            <li>ZKTeco-ready</li>
             <li>Built for managers</li>
           </ul>
         </div>
@@ -867,7 +977,7 @@
           <article class="outcome">
             <div class="check" aria-hidden="true">✓</div>
             <h3>Schedule the week quickly</h3>
-            <p>Build or adjust the roster in minutes—with AI helping you fill gaps and repeat what worked last week.</p>
+            <p>Build or adjust the roster in minutes—the auto scheduler helps you fill gaps and repeat what worked last week.</p>
           </article>
           <article class="outcome">
             <div class="check" aria-hidden="true">✓</div>
@@ -887,7 +997,7 @@
       <div class="wrap">
         <p class="section-kicker">How it works</p>
         <h2 id="solution-heading" class="section-title">One app for the week: schedule, attendance, clarity</h2>
-        <p class="section-lead">Simple Roster Plus keeps managers in one lightweight flow—create the weekly schedule, track attendance as people clock in, and use AI to cut the busywork. <a href="#how-it-works">See how it works</a></p>
+        <p class="section-lead">Simple Roster Plus keeps managers in one lightweight flow—create the weekly schedule, track attendance as people clock in, and use built-in suggestions and summaries to cut the busywork. <a href="#how-it-works">See how it works</a></p>
 
         <div class="solution-stack">
           <article class="solution-block">
@@ -897,7 +1007,7 @@
               </div>
               <div>
                 <h3>Create the weekly schedule in minutes</h3>
-                <p>Start from last week, drop in shifts, and let AI suggest fills and adjustments so you’re not rebuilding from scratch every time.</p>
+                <p>Start from last week, drop in shifts, and use the auto scheduler to suggest fills and adjustments so you’re not rebuilding from scratch every time.</p>
               </div>
             </div>
             <img class="media-shot" src="images/solution-schedule-builder.png" width="1280" height="800" alt="Simple Roster Plus weekly roster grid with shift blocks, staff rows, and week navigation.">
@@ -920,11 +1030,11 @@
                 <svg viewBox="0 0 24 24"><path d="M12 3l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z"/><circle cx="12" cy="12" r="9"/></svg>
               </div>
               <div>
-                <h3>AI keeps it fast and simple</h3>
-                <p>Smart suggestions and clear summaries surface what needs attention—without turning rostering into enterprise configuration software.</p>
+                <h3>Clear summaries, not HR bloat</h3>
+                <p>Rule-based weekly summaries and exception highlights surface what needs attention—without turning rostering into enterprise configuration software.</p>
               </div>
             </div>
-            <img class="media-shot" src="images/solution-ai-assist.png" width="1280" height="800" alt="Simple Roster Plus home dashboard with weekly exception summary for late arrivals, open slots, and coverage.">
+            <img class="media-shot" src="images/solution-ai-assist.png" width="1280" height="800" alt="Simple Roster Plus home dashboard with weekly exception summary for late arrivals, open slots, and coverage—illustrative.">
           </article>
         </div>
 
@@ -943,42 +1053,28 @@
     <section id="social-proof" aria-labelledby="social-proof-heading">
       <div class="wrap">
         <div class="section-head-center">
-          <p class="section-kicker">Social proof</p>
+          <p class="section-kicker">What you get</p>
           <h2 id="social-proof-heading" class="section-title">Built for managers who run the week</h2>
         </div>
         <div class="features-list">
           <h2 class="visually-hidden">Product highlights</h2>
           <ul>
-            <li>Weekly schedule builder with AI-assisted fills and adjustments</li>
+            <li>Weekly schedule builder with auto-scheduler suggestions</li>
+            <li>Publish &amp; share the roster (link or print) when the week is ready</li>
             <li>Attendance view tied to the roster—see plan vs. actual at a glance</li>
             <li>Exception highlights (late, absent, hour gaps) without digging through sheets</li>
             <li>Simple exports when you need to hand hours to payroll or admin</li>
           </ul>
         </div>
-        <div class="testimonials" aria-label="Customer testimonials">
-          <figure class="testimonial-placeholder">
-            <blockquote>“[Short quote about saving time on weekly scheduling—replace with a real manager testimonial.]”</blockquote>
-            <figcaption>
-              [Name], [Role]
-              <span class="placeholder-note">Testimonial placeholder 1</span>
-            </figcaption>
-          </figure>
-          <figure class="testimonial-placeholder">
-            <blockquote>“[Short quote about attendance clarity or fewer payroll disputes—replace when available.]”</blockquote>
-            <figcaption>
-              [Name], [Role]
-              <span class="placeholder-note">Testimonial placeholder 2</span>
-            </figcaption>
-          </figure>
-        </div>
-        <div class="logo-placeholder" aria-label="Customer logos">
-          <p><strong>Logo row placeholder</strong> — add 3–6 customer or partner logos when you have permission.</p>
-          <div class="logo-slots" aria-hidden="true">
-            <span class="logo-slot">Logo</span>
-            <span class="logo-slot">Logo</span>
-            <span class="logo-slot">Logo</span>
-            <span class="logo-slot">Logo</span>
-          </div>
+        <div class="setup-includes" aria-labelledby="setup-includes-heading">
+          <h3 id="setup-includes-heading">What you get from a typical setup</h3>
+          <ul>
+            <li>Short call on shifts, sites, and how your team clocks in</li>
+            <li>Staff and device configuration when you use a ZKTeco terminal</li>
+            <li>Roster and attendance views matched to your week</li>
+            <li>Manager handover so you can run the weekly loop yourself</li>
+          </ul>
+          <span class="eyebrow-note">Not a customer quote—we’ll add real stories when design partners are ready to share them.</span>
         </div>
       </div>
     </section>
@@ -997,7 +1093,7 @@
           </div>
           <div class="step" data-step="2">
             <h3>Build this week’s schedule</h3>
-            <p>Create or tweak shifts in minutes; AI helps with repeats, gaps, and quick edits.</p>
+            <p>Create or tweak shifts in minutes; the auto scheduler helps with repeats, gaps, and quick edits.</p>
           </div>
           <div class="step" data-step="3">
             <h3>Track attendance as people work</h3>
@@ -1009,7 +1105,7 @@
           </div>
         </div>
         <p class="text-center" style="margin-top:1.75rem;">
-          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
         </p>
       </div>
     </section>
@@ -1018,15 +1114,15 @@
       <div class="wrap">
         <p class="section-kicker text-center">Questions</p>
         <h2 id="faq-heading" class="section-title text-center">Common questions</h2>
-        <p class="section-lead text-center" style="margin-left:auto;margin-right:auto;">Short answers before you start your trial.</p>
+        <p class="section-lead text-center" style="margin-left:auto;margin-right:auto;">Short answers before you request early access.</p>
         <div class="faq-list">
           <details open>
             <summary>Who is Simple Roster Plus for?</summary>
             <p class="faq-a">Managers at shift-based small businesses who need to publish a weekly schedule and track attendance without a bloated HR system. If you want payroll, hiring, and benefits in one suite, this isn’t that—and that’s intentional.</p>
           </details>
           <details>
-            <summary>How does AI help?</summary>
-            <p class="faq-a">AI speeds up the repetitive parts—suggesting shift fills, surfacing exceptions, and keeping the UI focused on what to do next—so you spend less time clicking and more time running the floor.</p>
+            <summary>How does the auto scheduler help?</summary>
+            <p class="faq-a">It speeds up the repetitive parts—suggesting shift fills from templates and last week, surfacing exceptions on Home, and keeping the UI focused on what to do next. Summaries are rule-based today, not a chatbot—so you spend less time clicking and more time running the floor.</p>
           </details>
           <details>
             <summary>How long does setup take?</summary>
@@ -1042,19 +1138,71 @@
           </details>
           <details>
             <summary>How much does it cost?</summary>
-            <p class="faq-a">Pricing is still being finalized. Start a free trial to use the product; we’ll publish simple plans before paid launch. No payroll or enterprise HR bundles—just roster and attendance for managers.</p>
+            <p class="faq-a">Free for up to 10 staff (try your clock free for 30 days). Plus is <strong>$19.99/month</strong> — up to 100 staff, live attendance, SMS roster publish, and 1 device included. Pro is <strong>$49.99/month</strong> for unlimited staff and larger teams. Extra devices and WhatsApp are <strong>$5/month</strong> each. No payroll or annual contract required.</p>
           </details>
         </div>
       </div>
     </section>
 
-    <section id="get-started" aria-labelledby="get-started-heading">
+    <section id="contact" aria-labelledby="contact-heading">
       <div class="wrap">
-        <div class="get-started-panel">
-          <h2 id="get-started-heading" class="section-title">Start your free trial</h2>
-          <p class="section-lead">Create your account in the app, add your team, and build this week’s schedule—most managers are up and running in minutes.</p>
-          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
-          <p class="get-started-note">Already have an account? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>. Questions? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
+        <div class="section-head-center">
+          <p class="section-kicker">Start free</p>
+          <h2 id="contact-heading" class="section-title">Request early access</h2>
+          <p class="section-lead">Self-serve signup is coming soon. For now, tell us about your team—we’ll reply with practical next steps and hand-onboard the first design partners.</p>
+        </div>
+        <div class="contact-panel">
+          <p class="pricing-line"><strong>Free for up to 10 staff.</strong> Try your clock free for 30 days. Then <strong>$19.99/month</strong> for Plus—up to 100 staff, live attendance, SMS roster publish, and one device included. No annual contract required.</p>
+          <form id="contact-form" class="contact-form" novalidate>
+            <input type="hidden" name="intent" value="early_access">
+            <div>
+              <label for="contact-name">Your name</label>
+              <input id="contact-name" name="name" type="text" autocomplete="name" required minlength="2">
+            </div>
+            <div>
+              <label for="contact-email">Work email</label>
+              <input id="contact-email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="form-row-2">
+              <div>
+                <label for="contact-business">Business name <span class="optional">(optional)</span></label>
+                <input id="contact-business" name="business" type="text" autocomplete="organization">
+              </div>
+              <div>
+                <label for="contact-phone">Phone <span class="optional">(optional)</span></label>
+                <input id="contact-phone" name="phone" type="tel" autocomplete="tel">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div>
+                <label for="contact-staff">Approx. staff count</label>
+                <select id="contact-staff" name="staffCount">
+                  <option value="">Select…</option>
+                  <option value="1-5">1–5</option>
+                  <option value="6-10">6–10</option>
+                  <option value="11-25">11–25</option>
+                  <option value="26-50">26–50</option>
+                  <option value="51-100">51–100</option>
+                  <option value="100+">100+</option>
+                </select>
+              </div>
+              <div>
+                <label for="contact-zkteco">Using ZKTeco (or similar) today?</label>
+                <select id="contact-zkteco" name="hasZkteco">
+                  <option value="unknown">Not sure</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="contact-message">Anything else? <span class="optional">(optional)</span></label>
+              <textarea id="contact-message" name="message" placeholder="Sites, shift pattern, or what you want to fix first…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" id="contact-submit">Send my request</button>
+            <p class="form-status" id="contact-status" role="status" aria-live="polite"></p>
+          </form>
+          <p class="form-note">Already have an account from us? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in to the app</a>. Prefer email? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
         </div>
       </div>
     </section>
@@ -1062,8 +1210,8 @@
     <section id="cta-close" aria-labelledby="cta-close-heading">
       <div class="wrap">
         <h2 id="cta-close-heading">Your week’s schedule and attendance—fast, simple, in one place.</h2>
-        <p>Join managers who want AI-assisted scheduling without the HR bloat.</p>
-        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <p>Free for up to 10 staff—request early access and we’ll get you running the weekly loop.</p>
+        <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
       </div>
     </section>
   </main>
@@ -1087,10 +1235,10 @@
           <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
         </svg>
       </a>
-      <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.</p>
+      <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes—with smart summaries that keep the process fast and simple.</p>
       <nav class="footer-links" aria-label="Footer">
         <a href="#faq">FAQ</a>
-        <a class="app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <a class="start-free-cta" href="#contact">Start Free</a>
         <a href="privacy.html">Privacy policy</a>
         <a href="terms.html">Terms of service</a>
         <a id="app-login-footer" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
@@ -1102,14 +1250,65 @@
     document.getElementById("y").textContent = new Date().getFullYear();
     (function () {
       var origin = (window.SRP_APP_ORIGIN || "https://simplerosterplus.vercel.app").replace(/\/$/, "");
+      var siteUrl = (window.SRP_SITE_URL || origin).replace(/\/$/, "");
       var loginUrl = window.SRP_APP_LOGIN_URL || origin + "/login";
-      var signupUrl = window.SRP_APP_SIGNUP_URL || loginUrl;
-      document.querySelectorAll(".app-cta").forEach(function (el) {
-        el.href = signupUrl;
-      });
+      var marketingApi = window.SRP_MARKETING_API || origin + "/api/marketing/contact";
+
+      var canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) canonical.href = siteUrl + "/";
+
       ["app-login", "app-login-inline", "app-login-footer"].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.href = loginUrl;
+      });
+
+      var form = document.getElementById("contact-form");
+      var statusEl = document.getElementById("contact-status");
+      var submitBtn = document.getElementById("contact-submit");
+      if (!form || !statusEl) return;
+
+      function setStatus(state, message) {
+        statusEl.textContent = message;
+        statusEl.setAttribute("data-state", state);
+      }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        setStatus("", "");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending…";
+
+        var fd = new FormData(form);
+        var payload = {
+          intent: fd.get("intent") || "early_access",
+          name: String(fd.get("name") || "").trim(),
+          email: String(fd.get("email") || "").trim(),
+          business: String(fd.get("business") || "").trim() || null,
+          phone: String(fd.get("phone") || "").trim() || null,
+          staffCount: String(fd.get("staffCount") || "").trim() || null,
+          hasZkteco: String(fd.get("hasZkteco") || "unknown"),
+          message: String(fd.get("message") || "").trim() || null,
+          source: "landing-page#contact",
+        };
+
+        try {
+          var res = await fetch(marketingApi, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok) {
+            throw new Error(data.error || "Could not send your request. Please try again or email hello@simplerosterplus.com.");
+          }
+          form.reset();
+          setStatus("success", "Thanks—we received your request and will reply soon.");
+        } catch (err) {
+          setStatus("error", err.message || "Something went wrong. Please email hello@simplerosterplus.com.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Send my request";
+        }
       });
     })();
   </script>
