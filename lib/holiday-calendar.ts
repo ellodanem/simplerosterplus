@@ -142,8 +142,8 @@ export async function syncHolidayCalendarForLocation(
   };
 }
 
-function mapOptions(input: Record<string, string>): HolidayOption[] {
-  return Object.entries(input)
+function mapOptions(input: Record<string, string> | undefined): HolidayOption[] {
+  return Object.entries(input ?? {})
     .map(([code, name]) => ({ code, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
