@@ -5,6 +5,7 @@ import { Modal } from "@/app/components/modal";
 import { StaffAvatar } from "@/app/components/staff-avatar";
 import { startOfLocalDayUtc } from "@/lib/datetime-policy";
 import type { AttendanceStaff } from "@/lib/attendance-week";
+import { useSuggestedPunchType } from "./use-suggested-punch-type";
 
 const HHMM_RE = /^(\d{2}):(\d{2})$/;
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -35,10 +36,10 @@ export function AddPunchModal({
   onError: (msg: string) => void;
   onAdded: (msg: string) => void;
 }) {
-  const [staffId, setStaffId] = useState<string>(staff[0]?.id ?? "");
+  const [staffId, setStaffId] = useState<string>("");
   const [day, setDay] = useState<string>(todayYmd);
   const [time, setTime] = useState<string>(() => nowHhmmInZone(timeZone));
-  const [type, setType] = useState<"in" | "out">("in");
+  const { type, setType } = useSuggestedPunchType(staffId || null);
   const [note, setNote] = useState<string>("");
   const [pending, setPending] = useState(false);
 
@@ -97,18 +98,23 @@ export function AddPunchModal({
           <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Staff
           </label>
-          {selectedStaff ? (
+          {staff.length === 0 ? (
+            <p className="mt-1 text-sm text-zinc-500">No staff at this location yet.</p>
+          ) : (
             <div className="mt-1 flex items-center gap-2">
-              <StaffAvatar
-                firstName={selectedStaff.firstName}
-                lastName={selectedStaff.lastName}
-                size="sm"
-              />
+              {selectedStaff ? (
+                <StaffAvatar
+                  firstName={selectedStaff.firstName}
+                  lastName={selectedStaff.lastName}
+                  size="sm"
+                />
+              ) : null}
               <select
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
                 className="flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
               >
+                <option value="">Select staff…</option>
                 {staff.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.firstName} {s.lastName}
@@ -117,8 +123,6 @@ export function AddPunchModal({
                 ))}
               </select>
             </div>
-          ) : (
-            <p className="mt-1 text-sm text-zinc-500">No staff at this location yet.</p>
           )}
         </section>
 

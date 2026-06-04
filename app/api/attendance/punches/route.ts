@@ -3,6 +3,48 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
 import { isStaffArchived, isStaffEventVisible } from "@/lib/staff-archive";
+import {
+  getLatestStaffPunchType,
+  suggestedPunchTypeAfter,
+} from "@/lib/attendance-manual-punch-default";
+
+/**
+ * GET /api/attendance/punches?staffId=...
+ * Returns suggested manual punch direction from the staff member's latest punch at this location.
+ */
+export async function GET(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const staffId = new URL(request.url).searchParams.get("staffId")?.trim() ?? "";
+  if (!staffId) {
+    return NextResponse.json({ error: "staffId is required" }, { status: 400 });
+  }
+
+  const location = await getDefaultLocation(session.orgId);
+  const staff = await prisma.staff.findFirst({
+    where: {
+      id: staffId,
+      organizationId: session.orgId,
+      locationId: location.id,
+    },
+    select: { id: true },
+  });
+  if (!staff) {
+    return NextResponse.json({ error: "Staff not found at this location" }, { status: 404 });
+  }
+
+  const lastPunchType = await getLatestStaffPunchType({
+    organizationId: session.orgId,
+    locationId: location.id,
+    staffId: staff.id,
+  });
+
+  return NextResponse.json({
+    lastPunchType,
+    suggestedType: suggestedPunchTypeAfter(lastPunchType),
+  });
+}
 
 /**
  * POST /api/attendance/punches

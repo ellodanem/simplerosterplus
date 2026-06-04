@@ -28,6 +28,7 @@ import {
   type OvertimeStatus,
 } from "@/lib/overtime";
 import { methodGlyph, methodFullLabel } from "./punch-method-badge";
+import { useSuggestedPunchType } from "./use-suggested-punch-type";
 import { useAttendanceFilters } from "./attendance-filter-context";
 import {
   filterStaffForAttendanceDisplay,
@@ -826,7 +827,8 @@ function CellEditorModal({
   const defaultInTime = expected?.startHHmm ?? nowHhmmInZone(timeZone);
   const defaultOutTime = expected?.endHHmm ?? nowHhmmInZone(timeZone);
 
-  const [newType, setNewType] = useState<"in" | "out">("in");
+  const { type: newType, setType: setNewType, refresh: refreshSuggestedType } =
+    useSuggestedPunchType(staff.id);
   const [newTime, setNewTime] = useState<string>(defaultInTime);
   const [newNote, setNewNote] = useState<string>("");
   const [overrideStatus, setOverrideStatus] = useState<"present" | "absent" | null>(
@@ -876,6 +878,7 @@ function CellEditorModal({
       if (!res.ok) throw new Error(data.error || "Could not add punch");
       onNotice(`Added ${newType === "in" ? "in" : "out"}-punch at ${newTime}.`);
       setNewNote("");
+      refreshSuggestedType();
     });
   }
 
@@ -889,6 +892,7 @@ function CellEditorModal({
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Could not delete punch");
       onNotice("Punch deleted.");
+      refreshSuggestedType();
     });
   }
 
