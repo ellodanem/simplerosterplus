@@ -36,7 +36,7 @@ function ReadOnlyCell({
     const label =
       blocked === "holiday" ? "Closed" : blocked === "vacation" ? "Vacation" : "Day off";
     return (
-      <div className="flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500">
+      <div className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500">
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
             {holidayName}
@@ -48,7 +48,7 @@ function ReadOnlyCell({
   }
   if (!tpl) {
     return (
-      <div className="flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400">
+      <div className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400">
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
             {holidayName}
@@ -60,7 +60,7 @@ function ReadOnlyCell({
   }
   return (
     <div
-      className="flex h-14 flex-col items-center justify-center rounded-lg px-1 text-center text-xs font-semibold text-white shadow-sm"
+      className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg px-1 text-center text-xs font-semibold text-white shadow-sm"
       style={{ background: tpl.color || FALLBACK_COLOR }}
       title={`${tpl.name} · ${tpl.startTime}–${tpl.endTime}`}
     >
@@ -100,8 +100,8 @@ export function RosterShareTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-      <table className="w-full min-w-[58rem] table-fixed border-collapse text-sm">
+    <div className="roster-share-table-wrap overflow-x-auto rounded-xl border border-zinc-200 bg-white print:overflow-visible">
+      <table className="roster-share-table w-full min-w-[58rem] table-fixed border-collapse text-sm print:min-w-0">
         <colgroup>
           <col style={{ width: "10rem" }} />
           {data.days.map((d) => (
@@ -110,7 +110,7 @@ export function RosterShareTable({
         </colgroup>
         <thead>
           <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            <th className="sticky left-0 z-10 min-w-[10rem] border-r border-zinc-200 bg-zinc-50 px-3 py-3 text-left">
+            <th className="sticky left-0 z-10 min-w-[10rem] border-r border-zinc-200 bg-zinc-50 px-3 py-3 text-left print:static">
               Staff
             </th>
             {data.days.map((d) => {
@@ -139,7 +139,7 @@ export function RosterShareTable({
           ) : (
             <>
               <tr className="bg-zinc-50">
-                <td className="sticky left-0 z-10 border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                <td className="sticky left-0 z-10 border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 print:static">
                   Count
                 </td>
                 {data.days.map((d) => {
@@ -160,7 +160,7 @@ export function RosterShareTable({
               </tr>
               {data.staff.map((s) => (
                 <tr key={s.id} className="border-t border-zinc-100">
-                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2">
+                  <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2 print:static">
                     <div className="truncate font-semibold text-zinc-900">
                       {formatRosterStaffName(s.firstName, s.lastName)}
                     </div>
