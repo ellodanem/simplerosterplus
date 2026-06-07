@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/app/components/app-nav";
+import { FeedbackButton } from "@/app/components/feedback-button";
 import { ImpersonationBanner } from "@/app/components/impersonation-banner";
 import { LogoutButton } from "@/app/components/logout-button";
 import { getSession, isReadOnlySession } from "@/lib/session";
@@ -45,6 +46,12 @@ export default async function AuthenticatedLayout({
         </div>
       </header>
       <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</div>
+      <footer className="mt-auto border-t border-zinc-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 text-xs text-zinc-500">
+          <span>Design partner preview — your feedback shapes what we ship next.</span>
+          <FeedbackButton userEmail={session.email} />
+        </div>
+      </footer>
     </div>
   );
 }

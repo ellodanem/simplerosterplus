@@ -63,6 +63,7 @@ model Organization {
   attendanceLogs        AttendanceLog[]
   attendanceDeviceClocks AttendanceDeviceClock[]
   payPeriods            PayPeriod[]
+  testerFeedbacks       TesterFeedback[]
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -669,5 +670,26 @@ model MarketingInquiry {
   createdAt      DateTime @default(now())
 
   @@index([email, createdAt])
+  @@index([createdAt])
+}
+
+/// In-app feedback from design-partner testers (authenticated tenant users).
+model TesterFeedback {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orgName        String
+  userEmail      String
+  /// `bug` | `question` | `idea`
+  category       String       @default("question")
+  message        String
+  /// Page path when the user submitted (e.g. `/roster`).
+  pageUrl        String?
+  /// Triage status: `open` | `triaged` | `closed`
+  status         String       @default("open")
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([status, createdAt])
   @@index([createdAt])
 }

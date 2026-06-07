@@ -11,11 +11,12 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/ops/billing", label: "Billing" },
   { href: "/ops/devices", label: "Devices & Ingest" },
   { href: "/ops/audit", label: "Audit Log" },
+  { href: "/ops/feedback", label: "Feedback" },
 ];
 
 // Items that are part of the documented roadmap but not built yet. Shown disabled so the
 // information architecture from docs/OPERATOR_CONSOLE.md is visible.
-const SOON_ITEMS = ["Users", "Feature Flags", "Support"] as const;
+const SOON_ITEMS = ["Users", "Feature Flags"] as const;
 
 export function OpsNav() {
   const pathname = usePathname();

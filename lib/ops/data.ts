@@ -605,3 +605,40 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     dunning,
   };
 }
+
+// --- Tester feedback (design-partner intake) -----------------------------------
+
+export type TesterFeedbackRow = {
+  id: string;
+  organizationId: string;
+  orgName: string;
+  userEmail: string;
+  category: string;
+  message: string;
+  pageUrl: string | null;
+  status: string;
+  createdAt: Date;
+};
+
+export async function listTesterFeedback(opts?: {
+  limit?: number;
+  status?: string;
+}): Promise<TesterFeedbackRow[]> {
+  const limit = opts?.limit ?? 100;
+  return prisma.testerFeedback.findMany({
+    where: opts?.status ? { status: opts.status } : undefined,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      organizationId: true,
+      orgName: true,
+      userEmail: true,
+      category: true,
+      message: true,
+      pageUrl: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}

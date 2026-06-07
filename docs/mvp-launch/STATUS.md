@@ -11,8 +11,8 @@
 | 05 | [step-05-roster-publish-share.md](./step-05-roster-publish-share.md) | 1 | `completed` | cursor-2026-06-01 | 2026-06-01 | Publish API + share token link `/share/roster/[token]` + print; gap modal |
 | 06 | [step-06-zkteco-live-test.md](./step-06-zkteco-live-test.md) | 1 | `completed` | cursor-2026-06-01 | 2026-06-01 | 2026-06-01 | ADMS curl sim on non-seed org; see field-test-log.md + scripts/zkteco-field-test.ts |
 | 07 | [step-07-first-run-ux.md](./step-07-first-run-ux.md) | 1 | `completed` | cursor-2026-06-02 | 2026-06-02 | 2026-06-02 | Home: clearer “roster not started” + first-week CTA; Staff: removed seed copy; Roster: “Auto scheduler” (no AI promise) |
-| 08 | [step-08-marketing-site-ready.md](./step-08-marketing-site-ready.md) | 1 | `pending` | | | | Contact form + truthful copy + SEO + domain |
-| 09 | [step-09-feedback-intake.md](./step-09-feedback-intake.md) | 1 | `pending` | | | | A channel testers use; we triage |
+| 08 | [step-08-marketing-site-ready.md](./step-08-marketing-site-ready.md) | 1 | `completed` | cursor-2026-06-02 | 2026-06-02 | 2026-06-02 | Early-access form → `/api/marketing/contact`; truthful copy; SEO meta. Domain: stay on Vercel until owner buys simplerosterplus.com |
+| 09 | [step-09-feedback-intake.md](./step-09-feedback-intake.md) | 1 | `completed` | cursor-2026-06-07 | 2026-06-07 | 2026-06-07 | In-app Send feedback + `/ops/feedback` triage; see feedback-loop.md |
 | 10 | [step-10-clerk-auth.md](./step-10-clerk-auth.md) | 2 | `blocked` | | | | Gate 2 — awaiting owner go-ahead |
 | 11 | [step-11-self-serve-demo-trial.md](./step-11-self-serve-demo-trial.md) | 2 | `blocked` | | | | Gate 2 — self-serve signup + free tier + demo (PRICING.md) |
 | 12 | [step-12-stripe-pricing-live.md](./step-12-stripe-pricing-live.md) | 2 | `blocked` | | | | Gate 2 — plan-limit enforcement + Stripe (PRICING.md); may split 12a/12b |
@@ -36,6 +36,8 @@
 
 | Date | Step | Change |
 |------|------|--------|
+| 2026-06-07 | 09 | Tester feedback: footer form → `/api/feedback` → `TesterFeedback`; ops `/ops/feedback`; feedback-loop.md |
+| 2026-06-02 | 08 | Marketing site: contact API + early-access form, freemium copy, SEO/favicon; migration `20260602120000_marketing_inquiry` |
 | 2026-06-01 | 06 | ADMS field test on provisioned org; field-test-log.md + repeatable script |
 | 2026-06-01 | 05 | Roster publish/unpublish API, public share link, print view, Home draft/published |
 | 2026-06-01 | 04 | App error boundaries; generic API 500s; roster + iclock hardened |
