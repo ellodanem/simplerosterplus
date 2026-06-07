@@ -1,5 +1,6 @@
 import type { AppUserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
 import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
 
 const DEFAULT_LOCATION_NAME = "Main";
@@ -53,6 +54,18 @@ export async function ensureOrganizationFromClerk(args: {
       },
     });
     return created;
+  }).catch(async (err) => {
+    if (!isUniqueConstraintError(err)) throw err;
+    const raced = await prisma.organization.findUnique({
+      where: { clerkOrgId: args.clerkOrgId },
+      select: { id: true },
+    });
+    if (!raced) throw err;
+    await prisma.organization.update({
+      where: { id: raced.id },
+      data: { name },
+    });
+    return raced;
   });
 
   return { organizationId: org.id, created: true };
@@ -108,16 +121,31 @@ export async function ensureAppUserFromClerk(
   const memberCount = await prisma.appUser.count({ where: { organizationId } });
   const role: AppUserRole = memberCount === 0 ? "owner" : mappedRole;
 
-  const user = await prisma.appUser.create({
-    data: {
-      organizationId,
-      email,
-      clerkUserId: input.clerkUserId,
-      role,
-      passwordHash: null,
-    },
-    select: { id: true },
-  });
+  const user = await prisma.appUser
+    .create({
+      data: {
+        organizationId,
+        email,
+        clerkUserId: input.clerkUserId,
+        role,
+        passwordHash: null,
+      },
+      select: { id: true },
+    })
+    .catch(async (err) => {
+      if (!isUniqueConstraintError(err)) throw err;
+      const raced = await prisma.appUser.findUnique({
+        where: { clerkUserId: input.clerkUserId },
+        select: { id: true, organizationId: true },
+      });
+      if (!raced) throw err;
+      if (raced.organizationId !== organizationId) {
+        throw new Error(
+          `Clerk user ${input.clerkUserId} is already linked to a different organization.`,
+        );
+      }
+      return raced;
+    });
 
   return { organizationId, appUserId: user.id };
 }

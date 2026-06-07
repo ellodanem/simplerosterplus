@@ -13,3 +13,8 @@ export function tenantSignInPath(): string {
 export function tenantSignUpPath(): string {
   return process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL?.trim() || "/sign-up";
 }
+
+/** Clerk middleware requires an absolute sign-in URL. */
+export function tenantSignInAbsoluteUrl(requestUrl: string | URL): string {
+  return new URL(tenantSignInPath(), requestUrl).href;
+}

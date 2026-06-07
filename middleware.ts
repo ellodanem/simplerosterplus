@@ -11,7 +11,7 @@ import {
   OPERATOR_SESSION_COOKIE,
   OPERATOR_JWT_AUDIENCE,
 } from "@/lib/ops/auth-cookie";
-import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
+import { clerkConfigured, tenantSignInAbsoluteUrl, tenantSignInPath } from "@/lib/clerk/config";
 
 function secretKey(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -190,7 +190,7 @@ async function handleRequest(
     if (isClerkPublicRoute(request)) {
       return NextResponse.next();
     }
-    await auth!.protect({ unauthenticatedUrl: tenantSignInPath() });
+    await auth!.protect({ unauthenticatedUrl: tenantSignInAbsoluteUrl(request.url) });
     return NextResponse.next();
   }
 
