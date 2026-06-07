@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -54,7 +54,7 @@ export default async function AttendancePage({
   searchParams: Promise<SearchParams>;
 }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({
     organizationId: session.orgId,
@@ -65,7 +65,7 @@ export default async function AttendancePage({
     where: { id: session.orgId },
     select: { id: true, name: true, timeZone: true },
   });
-  if (!org) redirect("/login");
+  if (!org) redirectToSignIn();
 
   const params = await searchParams;
   const location = await resolveLocation(org.id, params.location);

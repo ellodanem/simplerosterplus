@@ -166,6 +166,7 @@ async function testLoginDisambiguation() {
   });
   const matching = [];
   for (const user of candidates) {
+    if (!user.passwordHash) continue;
     if (await verifyPassword(AUDIT_PASSWORD, user.passwordHash)) matching.push(user);
   }
   assert(matching.length >= 2, "password matches multiple orgs");

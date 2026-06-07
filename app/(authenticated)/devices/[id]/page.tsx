@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import {
@@ -17,7 +18,7 @@ type Params = Promise<{ id: string }>;
 
 export default async function EditDevicePage({ params }: { params: Params }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 

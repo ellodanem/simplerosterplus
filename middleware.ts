@@ -1,3 +1,8 @@
+import {
+  clerkMiddleware,
+  createRouteMatcher,
+  type ClerkMiddlewareAuth,
+} from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
@@ -6,6 +11,7 @@ import {
   OPERATOR_SESSION_COOKIE,
   OPERATOR_JWT_AUDIENCE,
 } from "@/lib/ops/auth-cookie";
+import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
 
 function secretKey(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -23,8 +29,6 @@ function operatorSecretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-// Tenant app routes that the middleware gates (everything else self-guards in its page/route).
-// Mirrors the previous explicit matcher so behavior on the customer plane is unchanged.
 const TENANT_GATED: RegExp[] = [
   /^\/staff(\/|$)/,
   /^\/roster(\/|$)/,
@@ -41,20 +45,25 @@ function isTenantGated(pathname: string): boolean {
   return TENANT_GATED.some((re) => re.test(pathname));
 }
 
-// The operator console is served on its own subdomain in production
-// (admin.simplerosterplus.com). Locally / on the app host it's reachable at /ops. The
-// subdomain is matched here so the edge gate runs regardless of host. ADMIN_HOST allows an
-// exact override. See docs/OPERATOR_CONSOLE.md.
+const isClerkPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/login(.*)",
+  "/share(.*)",
+  "/api/clerk/webhook(.*)",
+  "/api/stripe/webhook(.*)",
+  "/api/marketing(.*)",
+  "/iclock(.*)",
+  "/api/auth/login(.*)",
+  "/api/auth/end-impersonation(.*)",
+]);
+
 function isAdminHost(request: NextRequest): boolean {
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
   const configured = process.env.ADMIN_HOST?.toLowerCase();
   return host.startsWith("admin.") || (!!configured && host === configured);
 }
 
-// Operator gate. Separate secret (OPERATOR_AUTH_SECRET), separate cookie, audience-bound
-// JWT so a tenant session can never satisfy it. Layer 2 (the OperatorUser allow-list) is
-// enforced in lib/ops/context on the server. `opsPath` is the effective /ops… or /api/ops…
-// path; `rewriteTo` is set when an admin-host page path must be rewritten under /ops.
 async function gateOperator(
   request: NextRequest,
   opsPath: string,
@@ -62,7 +71,6 @@ async function gateOperator(
 ): Promise<NextResponse> {
   const proceed = () => (rewriteTo ? NextResponse.rewrite(rewriteTo) : NextResponse.next());
 
-  // Public within the operator plane: the login page and the login POST.
   if (opsPath === "/ops/login") return proceed();
   if (opsPath === "/api/ops/auth/login" && request.method === "POST") {
     return NextResponse.next();
@@ -101,19 +109,35 @@ async function gateOperator(
   }
 }
 
-export async function middleware(request: NextRequest) {
+async function verifyTenantJwt(
+  request: NextRequest,
+): Promise<{ valid: boolean; readOnly?: boolean }> {
+  const key = secretKey();
+  if (key.length === 0) return { valid: false };
+
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!token) return { valid: false };
+
+  try {
+    const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
+    return { valid: true, readOnly: payload.readOnly === true };
+  } catch {
+    return { valid: false };
+  }
+}
+
+async function handleRequest(
+  auth: ClerkMiddlewareAuth | null,
+  request: NextRequest,
+): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // ZKTeco ADMS device callbacks — no session, on any host.
   if (pathname.startsWith("/iclock")) {
     return NextResponse.next();
   }
 
-  // --- Operator console subdomain (admin.*) ---
-  // Pages are served bare (e.g. admin.host/organizations) and rewritten under /ops.
   if (isAdminHost(request)) {
     if (pathname.startsWith("/api")) {
-      // Only operator APIs are valid on the admin host; gate them, let others fall through.
       if (pathname.startsWith("/api/ops")) return gateOperator(request, pathname);
       return NextResponse.next();
     }
@@ -129,42 +153,47 @@ export async function middleware(request: NextRequest) {
     return gateOperator(request, effective, url);
   }
 
-  // --- App host: operator console at /ops (path-based, e.g. local dev) ---
   if (pathname.startsWith("/ops") || pathname.startsWith("/api/ops")) {
     return gateOperator(request, pathname);
   }
 
-  // Block mutating tenant API calls during read-only operator impersonation.
+  const jwtSession = await verifyTenantJwt(request);
+
   if (
     pathname.startsWith("/api/") &&
     !pathname.startsWith("/api/ops") &&
     !pathname.startsWith("/api/stripe/") &&
+    !pathname.startsWith("/api/clerk/") &&
     pathname !== "/api/auth/login" &&
     pathname !== "/api/auth/end-impersonation"
   ) {
     const method = request.method;
     if (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE") {
-      const key = secretKey();
-      if (key.length > 0) {
-        const token = request.cookies.get(SESSION_COOKIE)?.value;
-        if (token) {
-          try {
-            const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
-            if (payload.readOnly === true) {
-              return NextResponse.json(
-                { error: "Read-only operator session — changes are not allowed." },
-                { status: 403 },
-              );
-            }
-          } catch {
-            // Invalid token — let the route return 401.
-          }
-        }
+      if (jwtSession.valid && jwtSession.readOnly) {
+        return NextResponse.json(
+          { error: "Read-only operator session — changes are not allowed." },
+          { status: 403 },
+        );
       }
     }
   }
 
-  // --- Tenant app plane (existing custom auth) ---
+  if (pathname === "/login" && clerkConfigured()) {
+    return NextResponse.redirect(new URL(tenantSignInPath(), request.url));
+  }
+
+  if (jwtSession.valid) {
+    return NextResponse.next();
+  }
+
+  if (clerkConfigured()) {
+    if (isClerkPublicRoute(request)) {
+      return NextResponse.next();
+    }
+    await auth!.protect({ unauthenticatedUrl: tenantSignInPath() });
+    return NextResponse.next();
+  }
+
   if (pathname === "/login") {
     return NextResponse.next();
   }
@@ -172,7 +201,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Only the tenant-gated routes are protected here; everything else self-guards.
   if (!isTenantGated(pathname)) {
     return NextResponse.next();
   }
@@ -185,31 +213,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname + request.nextUrl.search);
-    return NextResponse.redirect(login);
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  try {
-    await jwtVerify(token, key, { algorithms: ["HS256"] });
-    return NextResponse.next();
-  } catch {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname + request.nextUrl.search);
-    return NextResponse.redirect(login);
-  }
+  const login = new URL("/login", request.url);
+  login.searchParams.set("next", pathname + request.nextUrl.search);
+  return NextResponse.redirect(login);
 }
 
+const useClerk = Boolean(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
+    process.env.CLERK_SECRET_KEY?.trim(),
+);
+
+export default useClerk
+  ? clerkMiddleware((auth, req) => handleRequest(auth, req))
+  : (req: NextRequest) => handleRequest(null, req);
+
 export const config = {
-  // Catch-all so the admin-host rewrite can map bare paths (e.g. "/") to /ops. Static assets
-  // and files with an extension are excluded. Non-gated paths early-return inside middleware.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

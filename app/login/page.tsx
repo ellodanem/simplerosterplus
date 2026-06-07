@@ -1,7 +1,13 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
+  if (clerkConfigured()) {
+    redirect(tenantSignInPath());
+  }
+
   return (
     <Suspense
       fallback={

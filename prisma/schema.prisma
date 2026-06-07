@@ -16,6 +16,8 @@ datasource db {
 model Organization {
   id        String   @id @default(cuid())
   name      String
+  /// Clerk organization id (`org_...`) when the tenant uses self-serve auth.
+  clerkOrgId String? @unique
   /// IANA timezone, e.g. America/Toronto or UTC. Default for child locations and used directly when
   /// a location does not provide its own override.
   timeZone  String   @default("UTC")
@@ -104,6 +106,13 @@ enum DeviceConnectionMode {
   pull_tcp
 }
 
+/// Tenant admin role (maps from Clerk org membership; audit FKs stay on AppUser.id).
+enum AppUserRole {
+  owner
+  admin
+  member
+}
+
 /// Attendance / access device (e.g. a ZKTeco terminal) attached to a single location.
 model Device {
   id                   String               @id @default(cuid())
@@ -171,7 +180,11 @@ model AppUser {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   email          String
-  passwordHash   String
+  /// Null for Clerk-only users; legacy password login uses bcrypt hash.
+  passwordHash   String?
+  /// Clerk user id (`user_...`) when linked to self-serve auth.
+  clerkUserId    String?      @unique
+  role           AppUserRole  @default(member)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 

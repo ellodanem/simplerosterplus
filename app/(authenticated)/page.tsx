@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { getHomeWeekSummary, homeGreetingName } from "@/lib/home-week-summary";
 import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
 import { rosterShareUrl } from "@/lib/roster-share";
@@ -20,7 +20,7 @@ function timeGreeting(): string {
 
 export default async function HomePage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/" });
 

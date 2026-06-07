@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getSetupCompleteness, getSetupState } from "@/lib/onboarding";
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function SetupPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   const state = await getSetupState(session.orgId);
   const completeness = getSetupCompleteness(state);

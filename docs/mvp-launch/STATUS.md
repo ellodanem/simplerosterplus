@@ -13,7 +13,7 @@
 | 07 | [step-07-first-run-ux.md](./step-07-first-run-ux.md) | 1 | `completed` | cursor-2026-06-02 | 2026-06-02 | 2026-06-02 | Home: clearer “roster not started” + first-week CTA; Staff: removed seed copy; Roster: “Auto scheduler” (no AI promise) |
 | 08 | [step-08-marketing-site-ready.md](./step-08-marketing-site-ready.md) | 1 | `completed` | cursor-2026-06-02 | 2026-06-02 | 2026-06-02 | Early-access form → `/api/marketing/contact`; truthful copy; SEO meta. Domain: stay on Vercel until owner buys simplerosterplus.com |
 | 09 | [step-09-feedback-intake.md](./step-09-feedback-intake.md) | 1 | `completed` | cursor-2026-06-07 | 2026-06-07 | 2026-06-07 | In-app Send feedback + `/ops/feedback` triage; see feedback-loop.md |
-| 10 | [step-10-clerk-auth.md](./step-10-clerk-auth.md) | 2 | `blocked` | | | | Gate 2 — awaiting owner go-ahead |
+| 10 | [step-10-clerk-auth.md](./step-10-clerk-auth.md) | 2 | `completed` | cursor-2026-06-08 | 2026-06-08 | 2026-06-08 | Clerk middleware + SignIn/Up + webhook provisioning; legacy JWT only for impersonation |
 | 11 | [step-11-self-serve-demo-trial.md](./step-11-self-serve-demo-trial.md) | 2 | `blocked` | | | | Gate 2 — self-serve signup + free tier + demo (PRICING.md) |
 | 12 | [step-12-stripe-pricing-live.md](./step-12-stripe-pricing-live.md) | 2 | `blocked` | | | | Gate 2 — plan-limit enforcement + Stripe (PRICING.md); may split 12a/12b |
 | 13 | [step-13-roster-notifications.md](./step-13-roster-notifications.md) | Deferred | `blocked` | | | | Post-MVP: automated email/SMS/WhatsApp; see ROSTER_PUBLISH_SMS_NOTES.md |
@@ -36,6 +36,7 @@
 
 | Date | Step | Change |
 |------|------|--------|
+| 2026-06-08 | 10 | Clerk tenant auth: sign-in/up, webhook at /api/clerk/webhook, clerkOrgId/clerkUserId schema |
 | 2026-06-07 | 09 | Tester feedback: footer form → `/api/feedback` → `TesterFeedback`; ops `/ops/feedback`; feedback-loop.md |
 | 2026-06-02 | 08 | Marketing site: contact API + early-access form, freemium copy, SEO/favicon; migration `20260602120000_marketing_inquiry` |
 | 2026-06-01 | 06 | ADMS field test on provisioned org; field-test-log.md + repeatable script |

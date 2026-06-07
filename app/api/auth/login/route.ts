@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { clerkConfigured } from "@/lib/clerk/config";
 import { shouldRejectDemoLoginInProduction } from "@/lib/production-hardening";
 import { SESSION_COOKIE, sessionCookieOptions, SESSION_MAX_AGE_SEC } from "@/lib/auth-cookie";
 import { signSession } from "@/lib/session";
 
 export async function POST(request: Request) {
+  if (clerkConfigured()) {
+    return NextResponse.json(
+      { error: "Password login is disabled. Use Clerk sign-in." },
+      { status: 403 },
+    );
+  }
+
   if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 16) {
     return NextResponse.json({ error: "AUTH_SECRET is not configured" }, { status: 500 });
   }
@@ -42,6 +50,7 @@ export async function POST(request: Request) {
 
   const matching: typeof candidates = [];
   for (const user of candidates) {
+    if (!user.passwordHash) continue;
     if (await verifyPassword(password, user.passwordHash)) {
       matching.push(user);
     }

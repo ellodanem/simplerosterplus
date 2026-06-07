@@ -1,9 +1,31 @@
 "use client";
 
+import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-export function LogoutButton({ readOnly = false }: { readOnly?: boolean }) {
+const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+function ClerkSignOutButton() {
   const router = useRouter();
+  const { signOut } = useClerk();
+
+  return (
+    <button
+      type="button"
+      className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+      onClick={async () => {
+        await signOut({ redirectUrl: "/sign-in" });
+        router.refresh();
+      }}
+    >
+      Sign out
+    </button>
+  );
+}
+
+function LegacyLogoutButton({ readOnly }: { readOnly: boolean }) {
+  const router = useRouter();
+
   return (
     <button
       type="button"
@@ -23,4 +45,14 @@ export function LogoutButton({ readOnly = false }: { readOnly?: boolean }) {
       {readOnly ? "End session" : "Sign out"}
     </button>
   );
+}
+
+export function LogoutButton({ readOnly = false }: { readOnly?: boolean }) {
+  if (readOnly) {
+    return <LegacyLogoutButton readOnly />;
+  }
+  if (clerkEnabled) {
+    return <ClerkSignOutButton />;
+  }
+  return <LegacyLogoutButton readOnly={false} />;
 }

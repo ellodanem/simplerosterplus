@@ -2,6 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SEC } from "@/lib/auth-cookie";
+import { clerkConfigured } from "@/lib/clerk/config";
+import { resolveClerkSession } from "@/lib/clerk/resolve-session";
 
 export type SessionPayload = {
   sub: string;
@@ -76,8 +78,16 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  return verifySessionToken(token);
+  if (token) {
+    const jwtSession = await verifySessionToken(token);
+    if (jwtSession) return jwtSession;
+  }
+
+  if (clerkConfigured()) {
+    return resolveClerkSession();
+  }
+
+  return null;
 }
 
 /** Reject mutating handlers when the caller is in a read-only impersonation session. */

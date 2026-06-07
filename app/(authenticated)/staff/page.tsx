@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { StaffList, type StaffRow } from "@/app/components/staff-list";
 import { getStaffDeleteEligibilityMap } from "@/lib/staff-archive";
 import { ymdFromDate } from "@/lib/staff-input";
@@ -12,7 +12,7 @@ export const metadata = {
 
 export default async function StaffPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/staff" });
 

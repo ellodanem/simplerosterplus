@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { admsDeviceHint } from "@/lib/adms-health";
@@ -26,7 +26,7 @@ export const metadata = {
 
 export default async function DevicesPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 

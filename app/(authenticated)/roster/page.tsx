@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
 import { rosterSharePath, rosterShareUrl } from "@/lib/roster-share";
@@ -45,7 +45,7 @@ export default async function RosterPage({
   searchParams: Promise<SearchParams>;
 }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirectToSignIn();
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/roster" });
 
@@ -53,7 +53,7 @@ export default async function RosterPage({
     where: { id: session.orgId },
     select: { id: true, name: true, timeZone: true },
   });
-  if (!org) redirect("/login");
+  if (!org) redirectToSignIn();
 
   const [location, weekStartWeekday, overtimeSettings, minimumOffDaysSettings, addStaffLocations, addStaffRoles] =
     await Promise.all([

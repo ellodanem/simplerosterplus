@@ -4,6 +4,7 @@ import { AppNav } from "@/app/components/app-nav";
 import { FeedbackButton } from "@/app/components/feedback-button";
 import { ImpersonationBanner } from "@/app/components/impersonation-banner";
 import { LogoutButton } from "@/app/components/logout-button";
+import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
 import { getSession, isReadOnlySession } from "@/lib/session";
 
 export default async function AuthenticatedLayout({
@@ -13,7 +14,7 @@ export default async function AuthenticatedLayout({
 }>) {
   const session = await getSession();
   if (!session) {
-    redirect("/login");
+    redirect(clerkConfigured() ? tenantSignInPath() : "/login");
   }
 
   const readOnly = isReadOnlySession(session);
