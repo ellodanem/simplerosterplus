@@ -489,9 +489,19 @@ export function PayPeriodWorkspace({
           }
           .pay-period-table th,
           .pay-period-table td {
-            padding-left: 0.4rem;
-            padding-right: 0.4rem;
             vertical-align: top;
+          }
+          .pay-period-col-trans-ttl {
+            padding-right: 1.75rem !important;
+          }
+          .pay-period-col-vacation {
+            padding-left: 1.25rem !important;
+          }
+          .pay-period-col-sick-days {
+            padding-right: 1.75rem !important;
+          }
+          .pay-period-col-sick-leave {
+            padding-left: 1.25rem !important;
           }
         }
       `}</style>

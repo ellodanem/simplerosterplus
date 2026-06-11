@@ -17,6 +17,26 @@ function formatPrev(value: string | number): string {
   return String(value);
 }
 
+const cellPad = {
+  staff: "pay-period-col-staff px-2 py-2 font-medium text-zinc-900",
+  transTtl:
+    "pay-period-col-trans-ttl whitespace-nowrap px-2 py-2 pr-8 text-right tabular-nums",
+  vacation: "pay-period-col-vacation whitespace-nowrap px-2 py-2 pl-5 pr-2",
+  sickDays:
+    "pay-period-col-sick-days whitespace-nowrap px-2 py-2 pr-8 text-right tabular-nums",
+  sickLeave: "pay-period-col-sick-leave px-2 py-2 pl-5 pr-2 text-zinc-700",
+  shortage: "pay-period-col-shortage whitespace-nowrap px-2 py-2 text-right tabular-nums",
+} as const;
+
+const headPad = {
+  staff: "pay-period-col-staff px-2 py-2",
+  transTtl: "pay-period-col-trans-ttl whitespace-nowrap px-2 py-2 pr-8 text-right",
+  vacation: "pay-period-col-vacation whitespace-nowrap px-2 py-2 pl-5 pr-2",
+  sickDays: "pay-period-col-sick-days whitespace-nowrap px-2 py-2 pr-8 text-right",
+  sickLeave: "pay-period-col-sick-leave whitespace-nowrap px-2 py-2 pl-5 pr-2",
+  shortage: "pay-period-col-shortage whitespace-nowrap px-2 py-2 text-right",
+} as const;
+
 function CellWithPrevious({
   value,
   previous,
@@ -66,21 +86,21 @@ export function PayPeriodTable({
     <div className="pay-period-table-wrap overflow-x-auto print:overflow-visible">
       <table className="pay-period-table w-full table-fixed border-collapse text-sm">
         <colgroup>
-          <col className="w-[26%]" />
-          <col className="w-[11%]" />
-          <col className="w-[13%]" />
-          <col className="w-[9%]" />
-          <col className="w-[26%]" />
-          <col className="w-[10%]" />
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "15%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "22%" }} />
+          <col style={{ width: "12%" }} />
         </colgroup>
         <thead>
           <tr className="border-y-2 border-black text-left text-sm font-semibold text-zinc-900 print:border-black">
-            <th className="px-2 py-2">Staff</th>
-            <th className="whitespace-nowrap px-2 py-2 text-right">Trans Ttl</th>
-            <th className="whitespace-nowrap px-2 py-2">Vacation</th>
-            <th className="whitespace-nowrap px-2 py-2 text-right">Sick Days</th>
-            <th className="whitespace-nowrap px-2 py-2">Sick Leave</th>
-            <th className="whitespace-nowrap px-2 py-2 text-right">Shortage</th>
+            <th className={headPad.staff}>Staff</th>
+            <th className={headPad.transTtl}>Trans Ttl</th>
+            <th className={headPad.vacation}>Vacation</th>
+            <th className={headPad.sickDays}>Sick Days</th>
+            <th className={headPad.sickLeave}>Sick Leave</th>
+            <th className={headPad.shortage}>Shortage</th>
           </tr>
         </thead>
         <tbody>
@@ -92,7 +112,7 @@ export function PayPeriodTable({
                 key={row.staffId}
                 className="border-b border-zinc-200 hover:bg-zinc-50/80 print:border-zinc-300 print:hover:bg-transparent"
               >
-                <td className="px-2 py-2 font-medium text-zinc-900">
+                <td className={cellPad.staff}>
                   <Link
                     href={reportHref}
                     className="text-emerald-800 hover:underline print:text-inherit print:no-underline"
@@ -100,7 +120,7 @@ export function PayPeriodTable({
                     {row.staffName}
                   </Link>
                 </td>
-                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                <td className={cellPad.transTtl}>
                   <CellWithPrevious value={row.transTtl} previous={prev?.transTtl}>
                     {editable ? (
                       <input
@@ -118,7 +138,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="whitespace-nowrap px-2 py-2">
+                <td className={cellPad.vacation}>
                   <CellWithPrevious value={row.vacation} previous={prev?.vacation}>
                     {editable ? (
                       <input
@@ -132,7 +152,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                <td className={cellPad.sickDays}>
                   <CellWithPrevious value={row.sickLeaveDays} previous={prev?.sickLeaveDays}>
                     {editable ? (
                       <input
@@ -152,7 +172,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="px-2 py-2 text-zinc-700">
+                <td className={cellPad.sickLeave}>
                   <CellWithPrevious
                     value={row.sickLeaveRanges}
                     previous={prev?.sickLeaveRanges}
@@ -171,7 +191,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                <td className={cellPad.shortage}>
                   <CellWithPrevious value={row.shortage} previous={prev?.shortage}>
                     {editable ? (
                       <input
@@ -195,14 +215,14 @@ export function PayPeriodTable({
         </tbody>
         <tfoot>
           <tr className="border-y-2 border-black font-bold text-zinc-900 print:border-black">
-            <td className="px-2 py-2">Total</td>
-            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+            <td className={cellPad.staff}>Total</td>
+            <td className={cellPad.transTtl}>
               <CellWithPrevious value={totals.transTtl} previous={prevTotals?.transTtl}>
                 {formatHours(totals.transTtl)}
               </CellWithPrevious>
             </td>
-            <td className="px-2 py-2" />
-            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+            <td className={cellPad.vacation} />
+            <td className={cellPad.sickDays}>
               <CellWithPrevious
                 value={totals.sickLeaveDays}
                 previous={prevTotals?.sickLeaveDays}
@@ -210,8 +230,8 @@ export function PayPeriodTable({
                 {totals.sickLeaveDays}
               </CellWithPrevious>
             </td>
-            <td className="px-2 py-2" />
-            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+            <td className={cellPad.sickLeave} />
+            <td className={cellPad.shortage}>
               {totals.shortage > 0 ? (
                 <CellWithPrevious value={totals.shortage} previous={prevTotals?.shortage}>
                   {formatHours(totals.shortage)}
