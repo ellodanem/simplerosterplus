@@ -49,6 +49,7 @@ type AttendanceWeekViewState = Pick<
   | "graceMinutes"
   | "irregularCount"
   | "irregularByStaff"
+  | "filedYmds"
 >;
 
 const HHMM_RE = /^(\d{2}):(\d{2})$/;
@@ -72,6 +73,7 @@ export function AttendanceGrid({
   graceMinutes,
   irregularCount,
   irregularByStaff,
+  filedYmds,
   initialOvertimeSettings,
   locationId,
 }: {
@@ -94,6 +96,7 @@ export function AttendanceGrid({
   graceMinutes: number;
   irregularCount: number;
   irregularByStaff: Record<string, number>;
+  filedYmds: string[];
   initialOvertimeSettings: OvertimeSettings;
   locationId: string;
 }) {
@@ -116,6 +119,7 @@ export function AttendanceGrid({
     graceMinutes,
     irregularCount,
     irregularByStaff,
+    filedYmds,
   });
 
   const reloadWeek = useCallback(async () => {
@@ -140,6 +144,7 @@ export function AttendanceGrid({
       graceMinutes: body.graceMinutes ?? graceMinutes,
       irregularCount: body.irregularCount ?? irregularCount,
       irregularByStaff: body.irregularByStaff ?? irregularByStaff,
+      filedYmds: body.filedYmds ?? filedYmds,
     });
   }, [
     weekStartYmd,
@@ -154,6 +159,7 @@ export function AttendanceGrid({
     graceMinutes,
     irregularCount,
     irregularByStaff,
+    filedYmds,
     showArchivedStaff,
   ]);
 
@@ -167,6 +173,9 @@ export function AttendanceGrid({
   const currentGraceMinutes = weekData.graceMinutes;
   const currentIrregularCount = weekData.irregularCount;
   const currentIrregularByStaff = weekData.irregularByStaff;
+  const currentFiledYmds = weekData.filedYmds;
+
+  const filedYmdSet = useMemo(() => new Set(currentFiledYmds), [currentFiledYmds]);
 
   const staffById = useMemo(() => {
     const m = new Map<string, AttendanceStaff>();
@@ -446,12 +455,13 @@ export function AttendanceGrid({
                   const h = dayHeaderLabel(d, timeZone);
                   const isToday = d === todayYmd;
                   const closed = currentHolidays[d]?.stationClosed;
+                  const filed = filedYmdSet.has(d);
                   return (
                     <th
                       key={d}
                       aria-current={isToday ? "date" : undefined}
                       className={`min-w-[7rem] px-2 py-2 text-left ${
-                        closed ? "bg-zinc-100" : ""
+                        closed ? "bg-zinc-100" : filed ? "bg-zinc-50" : ""
                       }`}
                     >
                       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -461,6 +471,15 @@ export function AttendanceGrid({
                         <span className="text-sm font-medium normal-case text-zinc-800">
                           {h.date}
                         </span>
+                        {filed ? (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded bg-zinc-200/80 px-1 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-zinc-600"
+                            title="Filed in Extract Pay Period — read-only"
+                          >
+                            <span aria-hidden="true">🔒</span>
+                            Filed
+                          </span>
+                        ) : null}
                       </div>
                       {currentHolidays[d] ? (
                         <div
@@ -543,6 +562,7 @@ export function AttendanceGrid({
                         const cell = currentCells[key];
                         const expected = currentExpectedByCell[key] ?? null;
                         const cellPunches = punchesByKey.get(key) ?? [];
+                        const filed = filedYmdSet.has(d);
                         return (
                           <td key={d} className="p-1 align-top">
                             <AttendanceCellButton
@@ -551,8 +571,9 @@ export function AttendanceGrid({
                               punches={cellPunches}
                               timeZone={timeZone}
                               isToday={d === todayYmd}
+                              filed={filed}
                               onClick={() => {
-                                if (blockedReason(s, d)) {
+                                if (blockedReason(s, d) && !filed) {
                                   // Block reason cells aren't interactive — keeps parity
                                   // with roster grid where blocked cells are read-only.
                                   return;
@@ -574,8 +595,8 @@ export function AttendanceGrid({
         <p className="mt-3 text-xs text-zinc-500">
           Grace window: <span className="font-semibold">{currentGraceMinutes} min</span> after
           shift start before a punch counts as late; absent only after that window with no
-          in-punch. OT uses worked hours for the week. Click any unblocked cell to add a punch or
-          override the day.
+          in-punch. OT uses worked hours for the week. Click an open cell to add a punch or
+          override the day. Filed days (🔒) are read-only after Extract Pay Period is saved.
         </p>
       </div>
 
@@ -671,6 +692,7 @@ export function AttendanceGrid({
           cell={currentCells[cellKey(openCell.staffId, openCell.ymd)] ?? null}
           punches={punchesByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? []}
           override={overrideByKey.get(cellKey(openCell.staffId, openCell.ymd)) ?? null}
+          readOnly={filedYmdSet.has(openCell.ymd)}
           pending={pending}
           onError={setError}
           onNotice={setNotice}
@@ -709,6 +731,7 @@ function AttendanceCellButton({
   punches,
   timeZone,
   isToday,
+  filed,
   onClick,
 }: {
   status: PresenceStatus;
@@ -716,22 +739,33 @@ function AttendanceCellButton({
   punches: SerializedPunch[];
   timeZone: string;
   isToday: boolean;
+  filed: boolean;
   onClick: () => void;
 }) {
   const classes = presenceClasses(status);
-  const interactive =
-    status !== "station_closed" &&
-    status !== "on_vacation" &&
-    status !== "day_off";
+  const blocked =
+    status === "station_closed" || status === "on_vacation" || status === "day_off";
+  const interactive = filed || !blocked;
+  const title = filed
+    ? `${presenceLabel(status)} — filed in Extract Pay Period (read-only)`
+    : presenceLabel(status);
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!interactive}
-      title={presenceLabel(status)}
+      title={title}
       className={`flex min-h-16 w-full flex-col items-stretch gap-1 rounded-lg border px-2 py-1 text-left transition disabled:cursor-not-allowed ${
-        classes.soft || (isToday ? "bg-emerald-50/40" : "bg-white")
-      } ${interactive ? "border-zinc-200 hover:border-zinc-400" : "border-zinc-200/70 opacity-80"}`}
+        filed
+          ? "border-zinc-200/80 bg-zinc-50/90"
+          : classes.soft || (isToday ? "bg-emerald-50/40" : "bg-white")
+      } ${
+        interactive && !filed
+          ? "border-zinc-200 hover:border-zinc-400"
+          : interactive && filed
+            ? "border-zinc-200/80 hover:border-zinc-300"
+            : "border-zinc-200/70 opacity-80"
+      }`}
     >
       <div className="flex items-center gap-1.5">
         <span
@@ -743,6 +777,15 @@ function AttendanceCellButton({
         <span className="truncate text-[11px] font-medium text-zinc-700">
           {presenceLabel(status)}
         </span>
+        {filed ? (
+          <span
+            className="ml-auto shrink-0 text-[10px] text-zinc-400"
+            aria-hidden="true"
+            title="Filed — read-only"
+          >
+            🔒
+          </span>
+        ) : null}
       </div>
       {expected ? (
         <div className="truncate text-[10px] text-zinc-500">
@@ -802,6 +845,7 @@ function CellEditorModal({
   cell,
   punches,
   override,
+  readOnly,
   pending,
   onError,
   onNotice,
@@ -815,6 +859,7 @@ function CellEditorModal({
   cell: AttendanceCell | null;
   punches: SerializedPunch[];
   override: SerializedOverride | null;
+  readOnly: boolean;
   pending: boolean;
   onError: (msg: string) => void;
   onNotice: (msg: string) => void;
@@ -953,6 +998,12 @@ function CellEditorModal({
         </div>
 
         <div className="space-y-4 px-5 py-4">
+          {readOnly ? (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+              This day was filed in Extract Pay Period and is read-only. Open the saved pay
+              period to review or print.
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <span
               className={`inline-flex size-6 items-center justify-center rounded text-xs font-bold ${classes.solid}`}
@@ -1017,22 +1068,25 @@ function CellEditorModal({
                         <span aria-hidden="true">{methodGlyph(p.source, p.verifyMethod)}</span>
                       </span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => deletePunch(p.id)}
-                      disabled={pending}
-                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
-                      aria-label="Delete punch"
-                      title="Delete punch"
-                    >
-                      ✕
-                    </button>
+                    {!readOnly ? (
+                      <button
+                        type="button"
+                        onClick={() => deletePunch(p.id)}
+                        disabled={pending}
+                        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50"
+                        aria-label="Delete punch"
+                        title="Delete punch"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>
             )}
           </section>
 
+          {!readOnly ? (
           <section>
             <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Add a punch
@@ -1088,7 +1142,9 @@ function CellEditorModal({
               </button>
             </div>
           </section>
+          ) : null}
 
+          {!readOnly ? (
           <section>
             <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Override
@@ -1139,6 +1195,7 @@ function CellEditorModal({
               landed, or absent even when the staff punched in.
             </p>
           </section>
+          ) : null}
         </div>
       </div>
     </div>

@@ -7,6 +7,11 @@ import {
   getLatestStaffPunchType,
   suggestedPunchTypeAfter,
 } from "@/lib/attendance-manual-punch-default";
+import { formatYmdInZone } from "@/lib/datetime-policy";
+import {
+  FILED_PERIOD_EDIT_ERROR,
+  isYmdFiledInPayPeriod,
+} from "@/lib/pay-period-filed-lock";
 
 /**
  * GET /api/attendance/punches?staffId=...
@@ -92,6 +97,15 @@ export async function POST(request: Request) {
   }
 
   const location = await getDefaultLocation(session.orgId);
+  const org = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { timeZone: true },
+  });
+  const timeZone = location.timeZone ?? org?.timeZone ?? "UTC";
+  const punchYmd = formatYmdInZone(punchAt, timeZone);
+  if (await isYmdFiledInPayPeriod(location.id, punchYmd)) {
+    return NextResponse.json({ error: FILED_PERIOD_EDIT_ERROR }, { status: 409 });
+  }
 
   const staff = await prisma.staff.findFirst({
     where: {

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
+import { formatYmdInZone } from "@/lib/datetime-policy";
+import {
+  FILED_PERIOD_EDIT_ERROR,
+  isYmdFiledInPayPeriod,
+} from "@/lib/pay-period-filed-lock";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -13,7 +18,6 @@ async function loadPunch(id: string, organizationId: string, locationId: string)
       punchAt: true,
       punchType: true,
       originalPunchAt: true,
-      extractedAt: true,
     },
   });
 }
@@ -34,8 +38,18 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   const { id } = await params;
   const location = await getDefaultLocation(session.orgId);
+  const org = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { timeZone: true },
+  });
+  const timeZone = location.timeZone ?? org?.timeZone ?? "UTC";
   const existing = await loadPunch(id, session.orgId, location.id);
   if (!existing) return NextResponse.json({ error: "Punch not found" }, { status: 404 });
+
+  const existingYmd = formatYmdInZone(existing.punchAt, timeZone);
+  if (await isYmdFiledInPayPeriod(location.id, existingYmd)) {
+    return NextResponse.json({ error: FILED_PERIOD_EDIT_ERROR }, { status: 409 });
+  }
 
   let body: Record<string, unknown>;
   try {
@@ -67,6 +81,10 @@ export async function PATCH(request: Request, { params }: Ctx) {
       return NextResponse.json({ error: "punchAt cannot be more than a day in the future" }, { status: 400 });
     }
     if (next.getTime() !== existing.punchAt.getTime()) {
+      const nextYmd = formatYmdInZone(next, timeZone);
+      if (await isYmdFiledInPayPeriod(location.id, nextYmd)) {
+        return NextResponse.json({ error: FILED_PERIOD_EDIT_ERROR }, { status: 409 });
+      }
       data.punchAt = next;
       timeChanged = true;
     }
@@ -140,9 +158,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
 /**
  * DELETE /api/attendance/punches/[id]
- * Hard delete. Punches are immutable events from a payroll perspective once filed, but
- * v1 doesn't have a pay period yet so there's no "extracted, can't delete" check to make.
- * When pay period lands, gate this on `extractedAt == null`.
+ * Hard delete. Blocked for any punch on a calendar day inside a filed pay period.
  */
 export async function DELETE(_request: Request, { params }: Ctx) {
   const session = await getSession();
@@ -150,13 +166,17 @@ export async function DELETE(_request: Request, { params }: Ctx) {
 
   const { id } = await params;
   const location = await getDefaultLocation(session.orgId);
+  const org = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { timeZone: true },
+  });
+  const timeZone = location.timeZone ?? org?.timeZone ?? "UTC";
   const existing = await loadPunch(id, session.orgId, location.id);
   if (!existing) return NextResponse.json({ error: "Punch not found" }, { status: 404 });
-  if (existing.extractedAt) {
-    return NextResponse.json(
-      { error: "This punch was filed in an Extract Pay Period and cannot be deleted." },
-      { status: 409 },
-    );
+
+  const punchYmd = formatYmdInZone(existing.punchAt, timeZone);
+  if (await isYmdFiledInPayPeriod(location.id, punchYmd)) {
+    return NextResponse.json({ error: FILED_PERIOD_EDIT_ERROR }, { status: 409 });
   }
 
   await prisma.attendanceLog.delete({ where: { id, organizationId: session.orgId } });

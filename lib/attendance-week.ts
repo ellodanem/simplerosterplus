@@ -17,6 +17,7 @@ import {
 } from "@/lib/staff-archive";
 import { daysOfWeek, shiftYmd, ymdForDbDate } from "./roster-week";
 import { getApprovedBlockMap } from "./leave-blocks";
+import { getFiledYmdsForWeek } from "./pay-period-filed-lock";
 import {
   computePresence,
   type PresenceStatus,
@@ -106,6 +107,8 @@ export type AttendanceWeekData = {
   irregularCount: number;
   /** Per-staff irregular counts for the right rail. */
   irregularByStaff: Record<string, number>;
+  /** Calendar days in this week that fall inside a filed Extract Pay Period. */
+  filedYmds: string[];
 };
 
 /**
@@ -143,7 +146,8 @@ export async function getAttendanceWeekData(args: {
   const punchWindowStart = new Date(weekStartDate.getTime() - 24 * 60 * 60_000);
   const punchWindowEnd = new Date(weekEndDate.getTime() + 2 * 24 * 60 * 60_000);
 
-  const [staffRows, rosterWeek, holidays, punches, overrides, graceMinutes] = await Promise.all([
+  const [staffRows, rosterWeek, holidays, punches, overrides, graceMinutes, filedYmds] =
+    await Promise.all([
     prisma.staff.findMany({
       where: { organizationId, locationId },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -212,6 +216,7 @@ export async function getAttendanceWeekData(args: {
       },
     }),
     getGraceMinutes(organizationId),
+    getFiledYmdsForWeek(locationId, weekStartYmd),
   ]);
 
   const visibleStaffRows = showArchivedStaff
@@ -366,5 +371,6 @@ export async function getAttendanceWeekData(args: {
     cells,
     irregularCount,
     irregularByStaff,
+    filedYmds,
   };
 }

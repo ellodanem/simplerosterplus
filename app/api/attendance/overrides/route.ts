@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
 import { utcDateFromYmd } from "@/lib/datetime-policy";
 import { isYmdAfterArchiveDay } from "@/lib/staff-archive";
+import {
+  FILED_PERIOD_EDIT_ERROR,
+  isYmdFiledInPayPeriod,
+} from "@/lib/pay-period-filed-lock";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -68,6 +72,10 @@ export async function PUT(request: Request) {
       { error: "Cannot change attendance after this staff member was archived." },
       { status: 403 },
     );
+  }
+
+  if (await isYmdFiledInPayPeriod(location.id, date)) {
+    return NextResponse.json({ error: FILED_PERIOD_EDIT_ERROR }, { status: 409 });
   }
 
   if (statusRaw === null) {

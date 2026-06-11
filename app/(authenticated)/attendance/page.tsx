@@ -160,7 +160,8 @@ async function FiledPayPeriodBanner({ locationId }: { locationId: string }) {
       <span className="font-semibold">
         {start} – {end}
       </span>{" "}
-      on {filed}. The active log hides punches filed in earlier periods.
+      on {filed}. Days in this range are read-only in week view. The active log hides filed
+      punches by default.
     </div>
   );
 }
@@ -308,6 +309,7 @@ async function WeekTab({
       graceMinutes={data.graceMinutes}
       irregularCount={data.irregularCount}
       irregularByStaff={data.irregularByStaff}
+      filedYmds={data.filedYmds}
       initialOvertimeSettings={overtimeSettings}
       locationId={location.id}
     />
