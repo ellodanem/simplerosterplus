@@ -1,33 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { utcDateFromYmd } from "@/lib/datetime-policy";
+import {
+  formatPayPeriodHours,
+  formatPeriodBound,
+  formatReportDateLabel,
+} from "@/lib/pay-period-format";
 import type { PayPeriodRow } from "@/lib/pay-period-types";
 import { payPeriodTotals } from "@/lib/pay-period-rows";
 
-const REPORT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
-
-const PERIOD_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-function formatReportDateLabel(ymd: string): string {
-  return REPORT_DATE_FORMAT.format(utcDateFromYmd(ymd));
-}
-
-function formatPeriodBound(ymd: string, time: string): string {
-  return `${PERIOD_DATE_FORMAT.format(utcDateFromYmd(ymd))} ${time}`;
-}
-
-/** Trim trailing zeros while keeping up to 2 decimal places (e.g. 673.70 → 673.7). */
 function formatHours(value: number): string {
-  return String(parseFloat(value.toFixed(2)));
+  return formatPayPeriodHours(value);
 }
 
 function formatPrev(value: string | number): string {

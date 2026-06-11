@@ -3,9 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/app/components/modal";
+import {
+  buildPayPeriodWhatsAppMessage,
+  downloadPayPeriodCsv,
+} from "@/lib/pay-period-export";
 import type { PayPeriodListItem, PayPeriodRow } from "@/lib/pay-period-types";
 import type { PayPeriodDetail } from "@/lib/pay-period-db";
 import { PayPeriodPrintHeader, PayPeriodTable } from "./pay-period-table";
+import { PayPeriodSavedList } from "./pay-period-saved-list";
 
 type Draft = {
   startDate: string;
@@ -45,6 +50,7 @@ export function PayPeriodWorkspace({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
 
   const locationQuery = `location=${encodeURIComponent(locationId)}`;
 
@@ -89,17 +95,21 @@ export function PayPeriodWorkspace({
     }
   }
 
+  async function fetchPeriodDetail(id: string): Promise<PayPeriodDetail> {
+    const res = await fetch(`/api/attendance/pay-period/${id}`);
+    const body = (await res.json().catch(() => ({}))) as {
+      period?: PayPeriodDetail;
+      error?: string;
+    };
+    if (!res.ok || !body.period) throw new Error(body.error || "Could not load period");
+    return body.period;
+  }
+
   async function openEdit(id: string) {
     setError(null);
     setBusy(true);
     try {
-      const res = await fetch(`/api/attendance/pay-period/${id}`);
-      const body = (await res.json().catch(() => ({}))) as {
-        period?: PayPeriodDetail;
-        error?: string;
-      };
-      if (!res.ok || !body.period) throw new Error(body.error || "Could not load period");
-      const p = body.period;
+      const p = await fetchPeriodDetail(id);
       setDraft({
         startDate: p.startDate,
         endDate: p.endDate,
@@ -169,16 +179,57 @@ export function PayPeriodWorkspace({
     }
     setError(null);
     try {
-      const res = await fetch(`/api/attendance/pay-period/${id}`);
-      const body = (await res.json().catch(() => ({}))) as {
-        period?: PayPeriodDetail;
-        error?: string;
-      };
-      if (!res.ok || !body.period) throw new Error(body.error || "Could not load period");
+      const period = await fetchPeriodDetail(id);
       setExpandedId(id);
-      setExpandedDetail(body.period);
+      setExpandedDetail(period);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Load failed");
+    }
+  }
+
+  async function ensurePeriodDetail(id: string): Promise<PayPeriodDetail> {
+    if (expandedId === id && expandedDetail) return expandedDetail;
+    return fetchPeriodDetail(id);
+  }
+
+  async function handlePrintPeriod(id: string) {
+    setError(null);
+    try {
+      if (expandedId !== id) {
+        const period = await fetchPeriodDetail(id);
+        setExpandedId(id);
+        setExpandedDetail(period);
+      }
+      window.setTimeout(() => window.print(), 300);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Print failed");
+    }
+  }
+
+  async function handleExcelExport(id: string) {
+    setError(null);
+    setActionBusyId(id);
+    try {
+      const period = await ensurePeriodDetail(id);
+      downloadPayPeriodCsv(period);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setActionBusyId(null);
+    }
+  }
+
+  async function handleWhatsAppShare(id: string) {
+    setError(null);
+    setActionBusyId(id);
+    try {
+      const period = await ensurePeriodDetail(id);
+      const text = buildPayPeriodWhatsAppMessage(period);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not open WhatsApp");
+    } finally {
+      setActionBusyId(null);
     }
   }
 
@@ -230,7 +281,6 @@ export function PayPeriodWorkspace({
         <h2 className="text-sm font-semibold text-zinc-900">New report</h2>
         <p className="mt-1 text-sm text-zinc-600">
           Generate from live punches, review and adjust, then save to file punches for this period.
-          Email and Excel export are not available yet.
         </p>
         <div className="mt-4 flex flex-wrap items-end gap-4">
           <label className="block text-sm">
@@ -263,78 +313,19 @@ export function PayPeriodWorkspace({
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">Saved periods</h2>
-        {periods.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">No saved Extract Pay Period reports yet.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-zinc-100">
-            {periods.map((p) => (
-              <li key={p.id} className="py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-zinc-900">
-                      {p.startDate} – {p.endDate}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      Saved {new Date(p.createdAt).toLocaleString()} · {p.rowCount} staff
-                      {p.emailSentAt ? (
-                        <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-zinc-700">
-                          Emailed
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void toggleView(p.id)}
-                      className="rounded-md border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-50"
-                    >
-                      {expandedId === p.id ? "Hide" : "View"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void openEdit(p.id)}
-                      className="rounded-md border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void openEdit(p.id).then(() => {
-                          setTimeout(() => handlePrint(), 300);
-                        });
-                      }}
-                      className="rounded-md border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-50"
-                    >
-                      Print
-                    </button>
-                  </div>
-                </div>
-                {expandedId === p.id && expandedDetail ? (
-                  <div className="pay-period-print-root mt-4">
-                    <PayPeriodPrintHeader
-                      reportDate={expandedDetail.reportDate}
-                      startYmd={expandedDetail.startDate}
-                      endYmd={expandedDetail.endDate}
-                      entityName={expandedDetail.entityName}
-                      notes={expandedDetail.notes}
-                    />
-                    <PayPeriodTable
-                      rows={expandedDetail.rows}
-                      previousRows={expandedDetail.rowsBeforeLastEdit}
-                      startYmd={expandedDetail.startDate}
-                      endYmd={expandedDetail.endDate}
-                      locationId={locationId}
-                      editable={false}
-                    />
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
+        <h2 className="text-sm font-semibold text-zinc-900">Saved pay periods</h2>
+        <PayPeriodSavedList
+          periods={periods}
+          expandedId={expandedId}
+          expandedDetail={expandedDetail}
+          locationId={locationId}
+          actionBusyId={actionBusyId}
+          onToggleView={(id) => void toggleView(id)}
+          onEdit={(id) => void openEdit(id)}
+          onPrint={(id) => void handlePrintPeriod(id)}
+          onExcel={(id) => void handleExcelExport(id)}
+          onWhatsApp={(id) => void handleWhatsAppShare(id)}
+        />
       </section>
 
       <Modal
