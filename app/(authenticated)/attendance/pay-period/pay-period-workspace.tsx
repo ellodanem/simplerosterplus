@@ -483,6 +483,16 @@ export function PayPeriodWorkspace({
             -webkit-appearance: none;
             margin: 0;
           }
+          .pay-period-table {
+            table-layout: fixed;
+            width: 100%;
+          }
+          .pay-period-table th,
+          .pay-period-table td {
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+            vertical-align: top;
+          }
         }
       `}</style>
     </div>

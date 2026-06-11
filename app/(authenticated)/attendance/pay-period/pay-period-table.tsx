@@ -63,16 +63,24 @@ export function PayPeriodTable({
   const prevTotals = previousRows ? payPeriodTotals(previousRows) : null;
 
   return (
-    <div className="pay-period-table-wrap overflow-x-auto">
-      <table className="pay-period-table min-w-full w-full border-collapse text-sm">
+    <div className="pay-period-table-wrap overflow-x-auto print:overflow-visible">
+      <table className="pay-period-table w-full table-fixed border-collapse text-sm">
+        <colgroup>
+          <col className="w-[26%]" />
+          <col className="w-[11%]" />
+          <col className="w-[13%]" />
+          <col className="w-[9%]" />
+          <col className="w-[26%]" />
+          <col className="w-[10%]" />
+        </colgroup>
         <thead>
           <tr className="border-y-2 border-black text-left text-sm font-semibold text-zinc-900 print:border-black">
-            <th className="px-2 py-2 print:px-0 print:py-1.5">Staff</th>
-            <th className="px-2 py-2 text-right print:px-0 print:py-1.5">Trans Ttl</th>
-            <th className="px-2 py-2 print:px-0 print:py-1.5">Vacation</th>
-            <th className="px-2 py-2 text-right print:px-0 print:py-1.5">Sick Days</th>
-            <th className="px-2 py-2 print:px-0 print:py-1.5">Sick Leave</th>
-            <th className="px-2 py-2 text-right print:px-0 print:py-1.5">Shortage</th>
+            <th className="px-2 py-2">Staff</th>
+            <th className="whitespace-nowrap px-2 py-2 text-right">Trans Ttl</th>
+            <th className="whitespace-nowrap px-2 py-2">Vacation</th>
+            <th className="whitespace-nowrap px-2 py-2 text-right">Sick Days</th>
+            <th className="whitespace-nowrap px-2 py-2">Sick Leave</th>
+            <th className="whitespace-nowrap px-2 py-2 text-right">Shortage</th>
           </tr>
         </thead>
         <tbody>
@@ -84,7 +92,7 @@ export function PayPeriodTable({
                 key={row.staffId}
                 className="border-b border-zinc-200 hover:bg-zinc-50/80 print:border-zinc-300 print:hover:bg-transparent"
               >
-                <td className="px-2 py-2 font-medium text-zinc-900 print:px-0 print:py-1">
+                <td className="px-2 py-2 font-medium text-zinc-900">
                   <Link
                     href={reportHref}
                     className="text-emerald-800 hover:underline print:text-inherit print:no-underline"
@@ -92,7 +100,7 @@ export function PayPeriodTable({
                     {row.staffName}
                   </Link>
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1">
+                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
                   <CellWithPrevious value={row.transTtl} previous={prev?.transTtl}>
                     {editable ? (
                       <input
@@ -110,7 +118,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="px-2 py-2 print:px-0 print:py-1">
+                <td className="whitespace-nowrap px-2 py-2">
                   <CellWithPrevious value={row.vacation} previous={prev?.vacation}>
                     {editable ? (
                       <input
@@ -124,7 +132,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1">
+                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
                   <CellWithPrevious value={row.sickLeaveDays} previous={prev?.sickLeaveDays}>
                     {editable ? (
                       <input
@@ -144,7 +152,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="px-2 py-2 text-zinc-700 print:px-0 print:py-1">
+                <td className="px-2 py-2 text-zinc-700">
                   <CellWithPrevious
                     value={row.sickLeaveRanges}
                     previous={prev?.sickLeaveRanges}
@@ -163,7 +171,7 @@ export function PayPeriodTable({
                     )}
                   </CellWithPrevious>
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1">
+                <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
                   <CellWithPrevious value={row.shortage} previous={prev?.shortage}>
                     {editable ? (
                       <input
@@ -187,14 +195,14 @@ export function PayPeriodTable({
         </tbody>
         <tfoot>
           <tr className="border-y-2 border-black font-bold text-zinc-900 print:border-black">
-            <td className="px-2 py-2 print:px-0 print:py-1.5">Total</td>
-            <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1.5">
+            <td className="px-2 py-2">Total</td>
+            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
               <CellWithPrevious value={totals.transTtl} previous={prevTotals?.transTtl}>
                 {formatHours(totals.transTtl)}
               </CellWithPrevious>
             </td>
-            <td className="px-2 py-2 print:px-0 print:py-1.5" />
-            <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1.5">
+            <td className="px-2 py-2" />
+            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
               <CellWithPrevious
                 value={totals.sickLeaveDays}
                 previous={prevTotals?.sickLeaveDays}
@@ -202,8 +210,8 @@ export function PayPeriodTable({
                 {totals.sickLeaveDays}
               </CellWithPrevious>
             </td>
-            <td className="px-2 py-2 print:px-0 print:py-1.5" />
-            <td className="px-2 py-2 text-right tabular-nums print:px-0 print:py-1.5">
+            <td className="px-2 py-2" />
+            <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
               {totals.shortage > 0 ? (
                 <CellWithPrevious value={totals.shortage} previous={prevTotals?.shortage}>
                   {formatHours(totals.shortage)}
