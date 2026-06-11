@@ -5,8 +5,17 @@ import type { PayPeriodDetail } from "@/lib/pay-period-db";
 import { formatPayPeriodRangeLabel } from "@/lib/pay-period-format";
 import { PayPeriodPrintHeader, PayPeriodTable } from "./pay-period-table";
 
-const actionBtnClass =
-  "rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50";
+const actionBtnBase =
+  "rounded-md border px-2.5 py-1 text-sm font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50";
+
+const actionStyles = {
+  view: `${actionBtnBase} border-zinc-300 bg-zinc-100 text-zinc-800 hover:bg-zinc-200`,
+  edit: `${actionBtnBase} border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100`,
+  print: `${actionBtnBase} border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100`,
+  excel: `${actionBtnBase} border-emerald-400 bg-emerald-50 text-emerald-900 hover:bg-emerald-100`,
+  email: `${actionBtnBase} border-violet-200 bg-violet-50 text-violet-400`,
+  whatsapp: `${actionBtnBase} border-green-400 bg-green-50 text-green-900 hover:bg-green-100`,
+} as const;
 
 type Props = {
   periods: PayPeriodListItem[];
@@ -67,7 +76,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled={busy}
                   onClick={() => onToggleView(period.id)}
-                  className={actionBtnClass}
+                  className={actionStyles.view}
                 >
                   {expanded ? "Hide" : "View"}
                 </button>
@@ -75,7 +84,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled={busy}
                   onClick={() => onEdit(period.id)}
-                  className={actionBtnClass}
+                  className={actionStyles.edit}
                 >
                   Edit
                 </button>
@@ -83,7 +92,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled={busy}
                   onClick={() => onPrint(period.id)}
-                  className={actionBtnClass}
+                  className={actionStyles.print}
                 >
                   Print
                 </button>
@@ -91,7 +100,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled={busy}
                   onClick={() => onExcel(period.id)}
-                  className={actionBtnClass}
+                  className={actionStyles.excel}
                 >
                   Excel
                 </button>
@@ -99,7 +108,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled
                   title="Email with attachment — coming soon"
-                  className={actionBtnClass}
+                  className={actionStyles.email}
                 >
                   Email
                 </button>
@@ -107,7 +116,7 @@ export function PayPeriodSavedList({
                   type="button"
                   disabled={busy}
                   onClick={() => onWhatsApp(period.id)}
-                  className={actionBtnClass}
+                  className={actionStyles.whatsapp}
                 >
                   WhatsApp
                 </button>
