@@ -313,7 +313,7 @@ export function PayPeriodWorkspace({
                   </div>
                 </div>
                 {expandedId === p.id && expandedDetail ? (
-                  <div className="mt-4 print:hidden">
+                  <div className="pay-period-print-root mt-4">
                     <PayPeriodPrintHeader
                       reportDate={expandedDetail.reportDate}
                       startYmd={expandedDetail.startDate}
@@ -351,14 +351,14 @@ export function PayPeriodWorkspace({
       >
         {draft ? (
           <div className="space-y-4">
-            <PayPeriodPrintHeader
-              reportDate={draft.reportDate}
-              startYmd={draft.startDate}
-              endYmd={draft.endDate}
-              entityName={draft.entityName}
-              notes={draft.notes}
-            />
-            <div ref={printRef} className="print-area">
+            <div ref={printRef} className="pay-period-print-root">
+              <PayPeriodPrintHeader
+                reportDate={draft.reportDate}
+                startYmd={draft.startDate}
+                endYmd={draft.endDate}
+                entityName={draft.entityName}
+                notes={draft.notes}
+              />
               <PayPeriodTable
                 rows={draft.rows}
                 previousRows={draft.rowsBeforeLastEdit}
@@ -441,18 +441,56 @@ export function PayPeriodWorkspace({
 
       <style jsx global>{`
         @media print {
+          header:not(.pay-period-print-header),
+          nav,
+          .no-print {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+          }
           body * {
             visibility: hidden;
           }
-          .print-area,
-          .print-area * {
+          .pay-period-print-root,
+          .pay-period-print-root * {
             visibility: visible;
           }
-          .print-area {
+          .pay-period-print-root {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
+            padding: 0.5in 0.75in;
+            color: #000 !important;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          [role="dialog"] {
+            position: static !important;
+            max-width: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          [role="dialog"] > div:first-child {
+            display: none !important;
+          }
+          [role="dialog"] > div:last-child {
+            padding: 0 !important;
+          }
+          .pay-period-cell-input {
+            border: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            appearance: textfield;
+            -moz-appearance: textfield;
+          }
+          .pay-period-cell-input::-webkit-outer-spin-button,
+          .pay-period-cell-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
           }
         }
       `}</style>
