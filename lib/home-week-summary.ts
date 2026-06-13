@@ -300,8 +300,6 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     attendance,
     todayYmd,
     timeZone,
-    entries,
-    templates,
   });
 
   return {

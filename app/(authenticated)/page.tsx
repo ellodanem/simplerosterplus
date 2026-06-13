@@ -298,7 +298,6 @@ export default async function HomePage() {
 
           <HomeTodayShiftCard
             todayShift={summary.todayShift}
-            timeZone={summary.timeZone}
             attendanceHref={attendanceHref}
           />
         </aside>
