@@ -22,9 +22,33 @@ import {
   currentWeekStartYmd,
   dayHeaderLabel,
   daysOfWeek,
+  shiftYmd,
   weekEndYmd,
   ymdForDbDate,
 } from "./roster-week";
+
+export const HOME_PREVIEW_STAFF_LIMIT = 8;
+
+export type HomeRosterPreview = {
+  days: string[];
+  staff: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    role: string | null;
+  }>;
+  totalStaffCount: number;
+  templates: Array<{
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    color: string | null;
+  }>;
+  entries: Record<string, string>;
+  holidays: Record<string, { name: string; stationClosed: boolean }>;
+  blockMap: Record<string, "vacation" | "dayOff">;
+};
 
 export type HomeWeekSummary = {
   orgName: string;
@@ -33,6 +57,10 @@ export type HomeWeekSummary = {
   weekStartYmd: string;
   weekEndYmd: string;
   weekRangeLabel: string;
+  weekStartBadgeLabel: string;
+  prevWeekYmd: string;
+  nextWeekYmd: string;
+  thisWeekYmd: string;
   todayYmd: string;
   graceMinutes: number;
   lateCount: number;
@@ -45,10 +73,14 @@ export type HomeWeekSummary = {
   pendingRequestsCount: number;
   rosterStatus: "draft" | "published" | null;
   rosterShareToken: string | null;
+  rosterPreview: HomeRosterPreview | null;
 };
 
 type RosterStaffRow = {
   id: string;
+  firstName: string;
+  lastName: string;
+  role: string | null;
   startDate: Date | null;
   archivedAt: Date | null;
   excludeFromRoster: boolean;
@@ -89,13 +121,14 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
 
   const timeZone = location.timeZone ?? org.timeZone;
   const weekStartYmd = currentWeekStartYmd(timeZone, weekStartWeekday);
+  const thisWeekYmd = currentWeekStartYmd(timeZone, weekStartWeekday);
   const weekEnd = weekEndYmd(weekStartYmd);
   const days = daysOfWeek(weekStartYmd);
   const todayYmd = formatYmdInZone(new Date(), timeZone);
   const weekStartDate = utcDateFromYmd(weekStartYmd);
   const weekEndDate = utcDateFromYmd(weekEnd);
 
-  const [attendance, rosterWeek, staffRows, holidays, pendingVacation, pendingDayOff] =
+  const [attendance, rosterWeek, staffRows, holidays, templates, pendingVacation, pendingDayOff] =
     await Promise.all([
       getAttendanceWeekData({
         organizationId,
@@ -118,8 +151,12 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
       }),
       prisma.staff.findMany({
         where: { organizationId, locationId: location.id },
+        orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
         select: {
           id: true,
+          firstName: true,
+          lastName: true,
+          role: true,
           startDate: true,
           archivedAt: true,
           excludeFromRoster: true,
@@ -131,7 +168,18 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
           locationId: location.id,
           date: { gte: weekStartDate, lte: weekEndDate },
         },
-        select: { date: true, stationClosed: true },
+        select: { date: true, name: true, stationClosed: true },
+      }),
+      prisma.shiftTemplate.findMany({
+        where: { organizationId },
+        orderBy: [{ name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+          color: true,
+        },
       }),
       prisma.staffVacation.count({
         where: {
@@ -177,9 +225,12 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     rangeEndDate: weekEndDate,
   });
 
+  const holidayMap: Record<string, { name: string; stationClosed: boolean }> = {};
   const closedDays = new Set<string>();
   for (const h of holidays) {
-    if (h.stationClosed) closedDays.add(ymdForDbDate(h.date));
+    const ymd = ymdForDbDate(h.date);
+    holidayMap[ymd] = { name: h.name, stationClosed: h.stationClosed };
+    if (h.stationClosed) closedDays.add(ymd);
   }
 
   const offByDay = new Map<string, number>();
@@ -218,6 +269,28 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
         })
       : null;
 
+  const rosterPreviewStaff = visibleStaff.map((s) => ({
+    id: s.id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    role: s.role,
+  }));
+
+  const rosterPreview: HomeRosterPreview | null =
+    rosterPreviewStaff.length > 0
+      ? {
+          days,
+          staff: rosterPreviewStaff,
+          totalStaffCount: rosterPreviewStaff.length,
+          templates,
+          entries,
+          holidays: holidayMap,
+          blockMap,
+        }
+      : null;
+
+  const weekStartBadge = dayHeaderLabel(weekStartYmd, timeZone);
+
   return {
     orgName: org.name,
     locationName: location.name,
@@ -225,6 +298,10 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     weekStartYmd,
     weekEndYmd: weekEnd,
     weekRangeLabel: formatWeekRangeLabel(weekStartYmd, weekEnd, timeZone),
+    weekStartBadgeLabel: `${weekStartBadge.date}`,
+    prevWeekYmd: shiftYmd(weekStartYmd, -7),
+    nextWeekYmd: shiftYmd(weekStartYmd, 7),
+    thisWeekYmd,
     todayYmd,
     graceMinutes: attendance.graceMinutes,
     lateCount,
@@ -239,5 +316,6 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
       rosterWeek?.status === "published" && rosterWeek.shareToken
         ? rosterWeek.shareToken
         : null,
+    rosterPreview,
   };
 }

@@ -75,28 +75,48 @@ function ReadOnlyCell({
 export function RosterShareTable({
   data,
   todayYmd,
+  showShiftCountBadges = false,
+  maxStaffRows,
 }: {
   data: RosterShareViewData;
   todayYmd?: string;
+  /** Colored per-template count badges (manager roster grid style). */
+  showShiftCountBadges?: boolean;
+  /** Limit rendered staff rows; day counts still use the full staff list. */
+  maxStaffRows?: number;
 }) {
   const templateById = new Map(data.templates.map((t) => [t.id, t]));
+  const staffRows =
+    maxStaffRows != null ? data.staff.slice(0, maxStaffRows) : data.staff;
 
-  const dayCounts: Record<string, { offCount: number; isClosed: boolean }> = {};
+  const dayCounts: Record<
+    string,
+    { offCount: number; isClosed: boolean; templateCounts: Map<string, number> }
+  > = {};
   for (const ymd of data.days) {
     const isClosed = !!data.holidays[ymd]?.stationClosed;
     let assigned = 0;
     let unavailable = 0;
+    const templateCounts = new Map<string, number>();
     if (!isClosed) {
       for (const s of data.staff) {
         if (data.blockMap[`${s.id}__${ymd}`]) {
           unavailable++;
           continue;
         }
-        if (data.entries[cellKey(s.id, ymd)]) assigned++;
+        const tplId = data.entries[cellKey(s.id, ymd)];
+        if (tplId) {
+          assigned++;
+          templateCounts.set(tplId, (templateCounts.get(tplId) ?? 0) + 1);
+        }
       }
     }
     const active = isClosed ? 0 : data.staff.length - unavailable;
-    dayCounts[ymd] = { offCount: Math.max(0, active - assigned), isClosed };
+    dayCounts[ymd] = {
+      offCount: Math.max(0, active - assigned),
+      isClosed,
+      templateCounts,
+    };
   }
 
   return (
@@ -144,21 +164,64 @@ export function RosterShareTable({
                 </td>
                 {data.days.map((d) => {
                   const c = dayCounts[d]!;
+                  const isToday = todayYmd ? d === todayYmd : false;
                   if (c.isClosed) {
                     return (
-                      <td key={d} className="bg-zinc-100 px-2 py-2 text-center text-xs text-zinc-400">
+                      <td
+                        key={d}
+                        className={`bg-zinc-100 px-2 py-2 text-center text-xs text-zinc-400 ${isToday ? "bg-zinc-100" : ""}`}
+                      >
                         —
                       </td>
                     );
                   }
+                  if (showShiftCountBadges) {
+                    const items = Array.from(c.templateCounts.entries())
+                      .map(([tplId, count]) => ({
+                        template: templateById.get(tplId),
+                        count,
+                      }))
+                      .filter((x): x is { template: Template; count: number } => !!x.template)
+                      .sort((a, b) => a.template.name.localeCompare(b.template.name));
+                    return (
+                      <td
+                        key={d}
+                        className={`px-2 py-2 align-middle ${isToday ? "bg-emerald-50" : ""}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-1">
+                          {items.map(({ template, count }) => (
+                            <span
+                              key={template.id}
+                              title={`${template.name}: ${count}`}
+                              className="inline-flex size-5 items-center justify-center rounded text-[10px] font-bold text-white shadow-sm"
+                              style={{ background: template.color || FALLBACK_COLOR }}
+                            >
+                              {count}
+                            </span>
+                          ))}
+                          {c.offCount > 0 ? (
+                            <span className="text-[11px] font-medium text-zinc-500">
+                              Off: {c.offCount}
+                            </span>
+                          ) : null}
+                          {items.length === 0 && c.offCount === 0 ? (
+                            <span className="text-[11px] text-zinc-400">—</span>
+                          ) : null}
+                        </div>
+                      </td>
+                    );
+                  }
                   return (
-                    <td key={d} className="px-2 py-2 text-center text-xs text-zinc-600">
+                    <td
+                      key={d}
+                      className={`px-2 py-2 text-center text-xs text-zinc-600 ${isToday ? "bg-emerald-50" : ""}`}
+                    >
                       {c.offCount > 0 ? `Off: ${c.offCount}` : "—"}
                     </td>
                   );
                 })}
               </tr>
-              {data.staff.map((s) => (
+              {staffRows.map((s) => (
                 <tr key={s.id} className="border-t border-zinc-100">
                   <td className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-3 py-2 print:static">
                     <div className="truncate font-semibold text-zinc-900">
