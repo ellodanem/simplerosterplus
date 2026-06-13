@@ -56,6 +56,7 @@ export async function resolveClerkSession(): Promise<SessionPayload | null> {
     clerkUserId: userId,
     email,
     clerkRole: membership?.role,
+    firstName: user.firstName,
   });
 
   const appUser = await prisma.appUser.findUniqueOrThrow({

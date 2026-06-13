@@ -13,6 +13,8 @@ Use this as the product filter for new features and UX decisions:
 
 **Home dashboard (planned):** See [DASHBOARD_RECOMMENDATIONS.md](./DASHBOARD_RECOMMENDATIONS.md) for the landing mock review, target “week at a glance” UX, visual alignment with the app, and implementation order.
 
+**Roster publish & SMS/WhatsApp (not built):** See [ROSTER_PUBLISH_SMS_NOTES.md](./ROSTER_PUBLISH_SMS_NOTES.md) for market context, recommended v1 scope (personal schedule notifications vs full-grid blast), and current codebase gaps.
+
 ## Holiday calendar (country import)
 
 - Each default **location** can set a country in **Holiday calendar** (roster menu). SRP imports public/bank holidays from the `date-holidays` package for the sync window (current year −1 through +5).

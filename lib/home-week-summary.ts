@@ -19,6 +19,10 @@ import {
   summarizeOpenShiftsFromToday,
 } from "./roster-coverage";
 import {
+  buildHomeTodayShift,
+  type HomeTodayShift,
+} from "./home-today-shift";
+import {
   currentWeekStartYmd,
   dayHeaderLabel,
   daysOfWeek,
@@ -74,6 +78,7 @@ export type HomeWeekSummary = {
   rosterStatus: "draft" | "published" | null;
   rosterShareToken: string | null;
   rosterPreview: HomeRosterPreview | null;
+  todayShift: HomeTodayShift;
 };
 
 type RosterStaffRow = {
@@ -291,6 +296,14 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
 
   const weekStartBadge = dayHeaderLabel(weekStartYmd, timeZone);
 
+  const todayShift = buildHomeTodayShift({
+    attendance,
+    todayYmd,
+    timeZone,
+    entries,
+    templates,
+  });
+
   return {
     orgName: org.name,
     locationName: location.name,
@@ -317,5 +330,6 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
         ? rosterWeek.shareToken
         : null,
     rosterPreview,
+    todayShift,
   };
 }

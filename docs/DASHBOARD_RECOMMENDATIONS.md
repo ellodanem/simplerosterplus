@@ -234,6 +234,7 @@ Suggested order when building in the app repo (no commitment on dates):
 | Doc                                                                                                     | Relevance                                       |
 | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | [PRODUCT_NOTES.md](./PRODUCT_NOTES.md)                                                                  | Requests workflow, timezone, multi-user roadmap |
+| [PRICING.md](./PRICING.md)                                                                              | Canonical tiers, limits, Stripe SKUs            |
 | [AGENT_CONTEXT_GTM_AUTH_PRICING.md](./AGENT_CONTEXT_GTM_AUTH_PRICING.md)                                | Clerk, onboarding, demo → trial                 |
 | [../landing page/MAPPING.md](../landing%20page/MAPPING.md)                                              | Landing structure; illustrative visuals         |
 | [PROJECT_OPTIMIZATION_GUIDE.md](../PROJECT_OPTIMIZATION_GUIDE.md)                                       | Dashboard bootstrap pattern                     |

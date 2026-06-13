@@ -4,15 +4,15 @@
 // (see docs/OPERATOR_CONSOLE.md §3.2), the console renders from the MIRRORED columns on
 // `Organization` (plan, subscriptionStatus, currentPeriodEnd, trialEndsAt). The plan→price
 // map below is a PLACEHOLDER for display/estimation only; real amounts come from Stripe
-// invoices once wired. Pricing itself is still open (AGENT_CONTEXT_GTM_AUTH_PRICING.md).
+// invoices once wired. Canonical tiers: docs/PRICING.md (Free / Plus / Pro).
 
 export type PlanSlug = "trial" | "starter" | "pro";
 
-// Placeholder monthly USD by plan. Replace with Stripe price data when integrated.
+// Placeholder monthly USD by plan slug (Stripe mirror is authoritative). `starter` ≈ Plus, `pro` ≈ Pro.
 const PLAN_MONTHLY_USD: Record<PlanSlug, number> = {
   trial: 0,
-  starter: 19,
-  pro: 39,
+  starter: 19.99,
+  pro: 49.99,
 };
 
 export function planMonthlyUsd(plan: string | null | undefined): number {

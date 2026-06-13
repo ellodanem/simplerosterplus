@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
       case "organizationMembership.created": {
         const data = event.data as {
           organization: { id: string; name?: string };
-          public_user_data: { user_id: string; identifier?: string };
+          public_user_data: {
+            user_id: string;
+            identifier?: string;
+            first_name?: string | null;
+          };
           role?: string;
         };
         const email =
@@ -54,6 +58,7 @@ export async function POST(request: NextRequest) {
           clerkUserId: data.public_user_data.user_id,
           email,
           clerkRole: data.role,
+          firstName: data.public_user_data.first_name,
         });
         break;
       }

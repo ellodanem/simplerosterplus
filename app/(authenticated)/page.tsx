@@ -13,6 +13,7 @@ import { getSession } from "@/lib/session";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import { RosterShareTable } from "@/app/components/roster-share-table";
 import type { RosterShareViewData } from "@/lib/roster-share-data";
+import { HomeTodayShiftCard } from "./home-today-shift-card";
 
 export const metadata = {
   title: "Home | Simple Roster Plus",
@@ -70,6 +71,7 @@ export default async function HomePage() {
   const hasLate = summary.lateCount > 0;
   const hasAbsences = summary.absentCount > 0;
   const hasOpenShifts = summary.openShiftCount > 0;
+  const hasPendingRequests = summary.pendingRequestsCount > 0;
   const hasAttendanceIssues = hasLate || hasAbsences;
   const hasExceptions = hasAttendanceIssues || hasOpenShifts;
   const exceptionsHref = hasAttendanceIssues ? attendanceHref : rosterHref;
@@ -263,6 +265,24 @@ export default async function HomePage() {
                 muted={!hasAbsences && !summary.coverageRangeLabel}
                 href={hasAbsences ? attendanceHref : hasOpenShifts ? rosterHref : undefined}
               />
+              <ExceptionRow
+                tone="rose"
+                icon={
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                  </svg>
+                }
+                title={
+                  hasPendingRequests
+                    ? summary.pendingRequestsCount === 1
+                      ? "1 request to review"
+                      : `${summary.pendingRequestsCount} requests to review`
+                    : "No pending requests"
+                }
+                muted={!hasPendingRequests}
+                href={hasPendingRequests ? requestsHref : undefined}
+              />
             </ul>
 
             {hasExceptions ? (
@@ -276,24 +296,11 @@ export default async function HomePage() {
             ) : null}
           </section>
 
-          {summary.pendingRequestsCount > 0 ? (
-            <section className="rounded-xl border border-rose-100 bg-rose-50/60 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-rose-900">
-                {summary.pendingRequestsCount} pending request
-                {summary.pendingRequestsCount === 1 ? "" : "s"}
-              </p>
-              <p className="mt-1 text-xs text-rose-800">
-                Vacation and day-off requests waiting for a decision.
-              </p>
-              <Link
-                href={requestsHref}
-                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-rose-800 hover:text-rose-950"
-              >
-                Review on roster
-                <ChevronRightIcon />
-              </Link>
-            </section>
-          ) : null}
+          <HomeTodayShiftCard
+            todayShift={summary.todayShift}
+            timeZone={summary.timeZone}
+            attendanceHref={attendanceHref}
+          />
         </aside>
 
         <section className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -418,11 +425,17 @@ function ExceptionRow({
   const inner = (
     <>
       <span className={`shrink-0 ${muted ? "text-zinc-400" : toneClasses}`}>{icon}</span>
-      <span className={`min-w-0 flex-1 text-sm font-medium ${muted ? "text-zinc-500" : "text-zinc-900"}`}>
+      <span
+        className={`min-w-0 flex-1 text-sm font-medium ${
+          muted ? "text-zinc-500" : tone === "rose" ? "text-rose-800" : "text-zinc-900"
+        }`}
+      >
         {title}
       </span>
       {href ? (
-        <ChevronRightIcon className={`shrink-0 ${muted ? "text-zinc-300" : "text-zinc-400"}`} />
+        <ChevronRightIcon
+          className={`shrink-0 ${muted ? "text-zinc-300" : tone === "rose" ? "text-rose-500" : "text-zinc-400"}`}
+        />
       ) : null}
     </>
   );

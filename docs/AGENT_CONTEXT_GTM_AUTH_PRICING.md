@@ -4,7 +4,7 @@
 
 **Product:** Simple Roster Plus (SR+) — B2B roster + attendance (ZKTeco / ADMS), Next.js + Prisma + PostgreSQL, multi-tenant via `Organization`.
 
-**Related docs:** `docs/PRODUCT_NOTES.md`, `README.md`, `prisma/schema.prisma`
+**Related docs:** [`PRICING.md`](./PRICING.md) (canonical tiers & SKUs), `docs/PRODUCT_NOTES.md`, `README.md`, `prisma/schema.prisma`
 
 ---
 
@@ -19,7 +19,7 @@
 | **Logins at launch** | **Admin-only** (handful per site); roster `Staff` ≠ Clerk members |
 | **Devices** | Outside Clerk; 100+ devices do not affect auth billing |
 | **Clerk cost (early)** | Likely **$0** (Hobby); Pro ~$20–25/mo when MFA/branding needed |
-| **Pricing** | **Not finalized**; user indicated ARPU likely **below $29/mo** |
+| **Pricing** | **Finalized direction** — see [`PRICING.md`](./PRICING.md): Free (≤10 staff), Plus **$19.99/mo** (≤100 staff), Pro **$49.99/mo** (unlimited staff); device/admin/WhatsApp add-ons |
 
 ---
 
@@ -267,18 +267,31 @@ Clerk **included B2B**: ≤20 members/org, invitations, basic RBAC. **Enhanced B
 
 ---
 
-## 8. Open questions for pricing agent
+## 8. Pricing decisions & open items
 
-1. **Exact ARPU** — user said below $29; explore tiers (e.g. $9 / $15 / $19) and annual discount.
-2. **Per org vs per location vs per device** — schema supports multi-`Location`; device count may correlate with value.
-3. **Included admins** — how many Clerk members included in base (1? 2?) before seat add-on.
-4. **Attendance / device add-on** — separate SKU vs bundled.
-5. **Demo → trial → paid** — single brand or separate CTAs; trial length (14 vs 30).
-6. **Markets** — Caribbean notes in PRODUCT_NOTES (sick leave culture, etc.) may affect packaging.
-7. **Agency / multi-org per user** — PRODUCT_NOTES mentions future; pricing TBD.
-8. **Clerk COGS** — model $0 → $25 → $125 scenarios vs customer count and logins/org.
-9. **Support cost** — trial + device setup may dominate margin more than Clerk at low ARPU.
-10. **Competitive positioning** — roster-only vs roster+attendance pricing split.
+**Canonical spec:** [`PRICING.md`](./PRICING.md) (May 2026).
+
+### Resolved (owner-approved)
+
+| Topic | Decision |
+|-------|----------|
+| **Hero paid tier** | Plus **$19.99/mo** (monthly default; optional annual) |
+| **Free tier** | ≤10 staff, ≤2 locations (soft at 3+), 1 admin, 30-day device sync trial (+ one extension) |
+| **Staff caps** | Plus ≤**100** staff; Pro **unlimited** |
+| **Locations (paid)** | **Unlimited** on Plus/Pro — not a billing axis |
+| **Devices** | Plus: 1 included; Pro: 3 included; **+$5/mo** each additional |
+| **Admins** | Free: 1; Plus: 2; Pro: 5; **+$2/mo** each additional |
+| **SMS / WhatsApp** | SMS on Plus/Pro (caps TBD); WhatsApp **+$5/mo** on Plus, included on Pro |
+| **Competitive frame** | Roster-first + monthly billing vs Timetaag annual attendance pricing |
+
+### Still open (see PRICING.md § Open items)
+
+1. **AI metering** — action definition and Plus/Pro fair-use caps.
+2. **SMS volume caps** and TCPA/opt-in before roster publish ships.
+3. **Device trial** legal copy (extension rule, post-trial behavior).
+4. **Agency / multi-org per user** — PRODUCT_NOTES future; pricing TBD.
+5. **Clerk COGS** at scale — admin-only launch stays Hobby; employee self-service → Enhanced B2B.
+6. **Demo → trial → paid** — 14-day real org trial unchanged; Free tier is separate forever-free path.
 
 ---
 
@@ -299,7 +312,8 @@ Clerk **included B2B**: ≤20 members/org, invitations, basic RBAC. **Enhanced B
 7. Demo flow: email → provision seeded org → Clerk invite or sign-in token.
 8. Demo vs trial: **hybrid** — demo-first for cold traffic, 14-day trial for serious buyers, devices post-sale or limited on trial.
 9. User requested this file for later pricing agent.
+10. Pricing tiers finalized — see [`PRICING.md`](./PRICING.md) (Free / Plus / Pro, device trial, staff caps).
 
 ---
 
-*Last updated: 2026-05-15. Update this file when pricing, auth, or GTM decisions change.*
+*Last updated: 2026-05-30. Update this file when pricing, auth, or GTM decisions change.*

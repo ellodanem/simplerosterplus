@@ -32,7 +32,9 @@
 | PITR / backups enabled | ☐ Yes — date verified: ________ |
 | Retention | e.g. 7 days / per Neon plan |
 
-`npm run build` runs `prisma migrate deploy` only — it does **not** run `db:seed`.
+`npm run build` runs `prisma migrate deploy` on **Vercel Production** only (Preview skips migrations unless `RUN_DB_MIGRATE=1`). It does **not** run `db:seed`.
+
+If Production build fails with **P1002** (advisory lock timeout), check for overlapping deploys or a stuck lock in Neon (`pg_locks` objid `72707369`); the build script attempts to terminate idle holders before each migrate attempt.
 
 ---
 
@@ -64,7 +66,8 @@ If either succeeds, run `prod:remove-demo-creds` against prod DB and redeploy.
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | Postgres (Neon); pooled URL is fine for the app |
-| `DIRECT_URL` | Optional but recommended when `DATABASE_URL` is a Neon **pooler** host; use the direct (non-`-pooler`) connection string. Vercel build auto-derives it if omitted. |
+| `DIRECT_URL` | **Recommended** when `DATABASE_URL` is a Neon **pooler** host; use the direct (non-`-pooler`) connection string from the Neon console. Build auto-derives if omitted, but explicit is more reliable. |
+| `RUN_DB_MIGRATE` | Optional. Set to `1` on a Vercel **Preview** deployment only if that preview must run `prisma migrate deploy` (default: skipped to avoid P1002 lock fights with Production). |
 | `AUTH_SECRET` | Tenant JWT (≥ 16 chars, not `.env.example` placeholder) |
 | `OPERATOR_AUTH_SECRET` | Operator JWT (≥ 16 chars, separate from tenant) |
 

@@ -1,4 +1,5 @@
 import type { AppUserRole } from "@prisma/client";
+import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
 import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
@@ -12,11 +13,14 @@ export type ClerkProvisionInput = {
   email: string;
   clerkRole?: string | null;
   role?: AppUserRole;
+  firstName?: string | null;
 };
 
 export type ClerkProvisionResult = {
   organizationId: string;
   appUserId: string;
+  created: boolean;
+  role: AppUserRole;
 };
 
 /** Idempotent: ensure Organization + default Location exist for a Clerk org. */
@@ -101,7 +105,7 @@ export async function ensureAppUserFromClerk(
       where: { id: byClerk.id },
       data: { email, role: mappedRole },
     });
-    return { organizationId, appUserId: byClerk.id };
+    return { organizationId, appUserId: byClerk.id, created: false, role: mappedRole };
   }
 
   const byEmail = await prisma.appUser.findUnique({
@@ -115,12 +119,13 @@ export async function ensureAppUserFromClerk(
       where: { id: byEmail.id },
       data: { clerkUserId: input.clerkUserId, role: mappedRole },
     });
-    return { organizationId, appUserId: byEmail.id };
+    return { organizationId, appUserId: byEmail.id, created: false, role: mappedRole };
   }
 
   const memberCount = await prisma.appUser.count({ where: { organizationId } });
   const role: AppUserRole = memberCount === 0 ? "owner" : mappedRole;
 
+  let created = true;
   const user = await prisma.appUser
     .create({
       data: {
@@ -134,6 +139,7 @@ export async function ensureAppUserFromClerk(
     })
     .catch(async (err) => {
       if (!isUniqueConstraintError(err)) throw err;
+      created = false;
       const raced = await prisma.appUser.findUnique({
         where: { clerkUserId: input.clerkUserId },
         select: { id: true, organizationId: true },
@@ -147,5 +153,16 @@ export async function ensureAppUserFromClerk(
       return raced;
     });
 
-  return { organizationId, appUserId: user.id };
+  if (created) {
+    void sendWelcomeEmail({
+      email,
+      firstName: input.firstName,
+      orgName: input.orgName,
+      role,
+    }).catch((err) => {
+      console.error("[welcome] send failed", { email, err });
+    });
+  }
+
+  return { organizationId, appUserId: user.id, created, role };
 }
