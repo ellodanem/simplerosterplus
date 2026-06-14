@@ -29,6 +29,7 @@ import {
   weekStartFromYmd,
   ymdForDbDate,
 } from "@/lib/roster-week";
+import { buildBirthdayByStaffId } from "@/lib/staff-birthday";
 import { RosterGrid } from "./roster-grid";
 
 export const metadata = {
@@ -136,6 +137,7 @@ export default async function RosterPage({
         firstName: true,
         lastName: true,
         role: true,
+        dateOfBirth: true,
         startDate: true,
         archivedAt: true,
         excludeFromRoster: true,
@@ -225,6 +227,8 @@ export default async function RosterPage({
     role: s.role,
   }));
 
+  const birthdayByStaffId = buildBirthdayByStaffId(visibleStaff, days);
+
   const blockMap = await getApprovedBlockMap({
     staffIds: visibleStaff.map((s) => s.id),
     rangeStartDate: weekStartDate,
@@ -257,6 +261,7 @@ export default async function RosterPage({
         todayYmd={todayYmd}
         weekLocked={weekLocked}
         staff={staffForClient}
+        birthdayByStaffId={birthdayByStaffId}
         templates={templates}
         initialEntries={initialEntries}
         initialPreviousWeekEntries={initialPreviousWeekEntries}

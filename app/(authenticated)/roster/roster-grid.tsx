@@ -35,6 +35,7 @@ import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
+import { birthdayLabel } from "@/lib/staff-birthday";
 
 type Staff = {
   id: string;
@@ -102,6 +103,33 @@ function LockIcon({ className }: { className?: string }) {
   );
 }
 
+function BirthdayIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+      <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1" />
+      <path d="M2 21h20" />
+      <path d="M7 8v3" />
+      <path d="M12 8v3" />
+      <path d="M17 8v3" />
+      <path d="M7 4h.01" />
+      <path d="M12 4h.01" />
+      <path d="M17 4h.01" />
+    </svg>
+  );
+}
+
 export function RosterGrid({
   weekId,
   weekStartYmd,
@@ -119,6 +147,7 @@ export function RosterGrid({
   todayYmd,
   weekLocked,
   staff,
+  birthdayByStaffId,
   templates: initialTemplates,
   initialEntries,
   initialPreviousWeekEntries,
@@ -149,6 +178,7 @@ export function RosterGrid({
   todayYmd: string;
   weekLocked: boolean;
   staff: Staff[];
+  birthdayByStaffId: Record<string, string>;
   templates: Template[];
   initialEntries: Record<string, string>;
   initialPreviousWeekEntries: Record<string, string | null>;
@@ -1099,6 +1129,10 @@ export function RosterGrid({
                 {staffRows.map((s) => {
                   const overtimeSummary = overtimeByStaff[s.id];
                   const staffFullName = formatStaffFullName(s.firstName, s.lastName);
+                  const birthdayYmd = birthdayByStaffId[s.id];
+                  const birthdayTitle = birthdayYmd
+                    ? `${staffFullName}'s birthday — ${birthdayLabel(birthdayYmd, timeZone)}`
+                    : null;
                   const belowMinimumOffDays = staffBelowMinimumOffDays(
                     s.id,
                     days,
@@ -1136,14 +1170,25 @@ export function RosterGrid({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div
-                          className={`truncate font-semibold ${
+                          className={`flex min-w-0 items-center gap-1 truncate font-semibold ${
                             belowMinimumOffDays
                               ? "animate-roster-off-days-blink"
                               : "text-zinc-900"
                           }`}
-                          title={offDaysTitle}
+                          title={birthdayTitle ?? offDaysTitle}
                         >
-                          {formatRosterStaffName(s.firstName, s.lastName)}
+                          <span className="truncate">
+                            {formatRosterStaffName(s.firstName, s.lastName)}
+                          </span>
+                          {birthdayYmd ? (
+                            <span
+                              className="inline-flex shrink-0 text-pink-600"
+                              title={birthdayTitle ?? undefined}
+                              aria-label={birthdayTitle ?? undefined}
+                            >
+                              <BirthdayIcon className="size-3.5" />
+                            </span>
+                          ) : null}
                         </div>
                         {s.role ? (
                           <div className="truncate text-xs text-zinc-500" title={s.role}>
@@ -1214,6 +1259,8 @@ export function RosterGrid({
                           tpl={tpl}
                           blocked={blocked}
                           holidayName={holidays[d]?.name ?? null}
+                          isBirthday={birthdayYmd === d}
+                          birthdayTitle={birthdayYmd === d ? birthdayTitle : null}
                           pending={isPending}
                           readOnly={dayLocked}
                           lastWeekTitle={lastWeekHoverText(s.id, d)}
@@ -1372,10 +1419,31 @@ function overtimePillClasses(status: OvertimeStatus): string {
     : "bg-amber-100 text-amber-800";
 }
 
+function BirthdayBadge({
+  isBirthday,
+  birthdayTitle,
+}: {
+  isBirthday: boolean;
+  birthdayTitle: string | null;
+}) {
+  if (!isBirthday || !birthdayTitle) return null;
+  return (
+    <span
+      className="absolute left-1 top-1 inline-flex rounded-full bg-white/90 p-0.5 text-pink-600 shadow-sm"
+      title={birthdayTitle}
+      aria-label={birthdayTitle}
+    >
+      <BirthdayIcon className="size-3" />
+    </span>
+  );
+}
+
 function CellButton({
   tpl,
   blocked,
   holidayName,
+  isBirthday,
+  birthdayTitle,
   pending,
   readOnly,
   lastWeekTitle,
@@ -1384,6 +1452,8 @@ function CellButton({
   tpl: Template | undefined;
   blocked: BlockReason | null;
   holidayName: string | null;
+  isBirthday: boolean;
+  birthdayTitle: string | null;
   pending: boolean;
   readOnly: boolean;
   lastWeekTitle: string;
@@ -1404,10 +1474,11 @@ function CellButton({
           : "Approved day off";
     return (
       <div
-        className="flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"
+        className="relative flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"
         aria-label={ariaLabel}
         title={lastWeekTitle}
       >
+        <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
             {holidayName}
@@ -1422,10 +1493,11 @@ function CellButton({
     if (readOnly) {
       return (
         <div
-          className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400"
+          className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400"
           aria-label="Off"
           title={lastWeekTitle}
         >
+          <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
           {holidayName ? (
             <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
               {holidayName}
@@ -1439,10 +1511,11 @@ function CellButton({
       <button
         type="button"
         onClick={onClick}
-        className="flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
+        className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
         aria-label="Assign shift"
         title={lastWeekTitle}
       >
+        <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
             {holidayName}
@@ -1456,6 +1529,7 @@ function CellButton({
   const bg = tpl.color || FALLBACK_COLOR;
   const inner = (
     <>
+      <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
       {holidayName ? (
         <span className="truncate text-[10px] font-medium leading-tight text-white/85">
           {holidayName}
