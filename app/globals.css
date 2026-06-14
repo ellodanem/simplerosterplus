@@ -25,19 +25,30 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@keyframes roster-off-days-row-blink {
+  0%,
+  100% {
+    background-color: rgb(255 228 230);
+  }
+  50% {
+    background-color: rgb(254 205 211);
+  }
+}
+
+.animate-roster-off-days-row-blink {
+  animation: roster-off-days-row-blink 1.2s ease-in-out infinite;
+}
+
 @keyframes roster-off-days-blink {
   0%,
   100% {
     color: rgb(190 18 60);
-    background-color: rgb(255 241 242);
   }
   50% {
     color: rgb(159 18 57);
-    background-color: rgb(254 226 226);
   }
 }
 
 .animate-roster-off-days-blink {
   animation: roster-off-days-blink 1.2s ease-in-out infinite;
-  border-radius: 0.25rem;
 }

@@ -1118,10 +1118,19 @@ export function RosterGrid({
                     ? `${staffFullName} — ${minimumOffDaysShortfallMessage(offDaysCount, minimumOffDaysSettings)}`
                     : staffFullName;
                   return (
-                <tr key={s.id} className="hover:bg-zinc-50/40">
+                <tr
+                  key={s.id}
+                  className={
+                    belowMinimumOffDays
+                      ? "animate-roster-off-days-row-blink"
+                      : "hover:bg-zinc-50/40"
+                  }
+                >
                   <td
                     className={`sticky left-0 z-10 border-r border-zinc-200 px-3 py-2 ${
-                      belowMinimumOffDays ? "bg-rose-50/60" : "bg-white"
+                      belowMinimumOffDays
+                        ? "animate-roster-off-days-row-blink border-l-4 border-l-rose-500"
+                        : "bg-white"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1193,7 +1202,14 @@ export function RosterGrid({
                     const isPending = !!pending[key];
                     const dayLocked = weekLocked || isDayLocked(d, weekStartYmd, todayYmd);
                     return (
-                      <td key={d} className="p-1 align-top">
+                      <td
+                        key={d}
+                        className={`p-1 align-top ${
+                          belowMinimumOffDays
+                            ? "animate-roster-off-days-row-blink ring-1 ring-inset ring-rose-300/70"
+                            : ""
+                        }`}
+                      >
                         <CellButton
                           tpl={tpl}
                           blocked={blocked}
