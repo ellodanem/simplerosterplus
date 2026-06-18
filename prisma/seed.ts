@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../lib/password";
 import { assertSeedAllowedInProduction } from "../lib/production-hardening";
+import { provisionOperator } from "../lib/ops/provision-operator";
 
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
@@ -49,17 +50,11 @@ async function main() {
     update: { passwordHash },
   });
 
-  // Operator console (platform admin plane) seed — separate identity store from AppUser.
-  // See docs/OPERATOR_CONSOLE.md. Set OPERATOR_AUTH_SECRET (16+ chars) to enable login.
-  const operatorPasswordHash = await hashPassword(operatorPassword);
-  await prisma.operatorUser.upsert({
-    where: { email: operatorEmail },
-    create: {
-      email: operatorEmail,
-      passwordHash: operatorPasswordHash,
-      role: "superadmin",
-    },
-    update: { passwordHash: operatorPasswordHash, role: "superadmin", disabledAt: null },
+  // Operator console (platform admin plane) seed — or use `npm run provision-operator`.
+  await provisionOperator({
+    email: operatorEmail,
+    password: operatorPassword,
+    role: "superadmin",
   });
 
   const defaultLocation = await prisma.location.upsert({

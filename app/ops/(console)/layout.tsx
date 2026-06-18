@@ -39,6 +39,12 @@ export default async function OperatorConsoleLayout({
               <p className="text-[10px] uppercase tracking-wide text-zinc-500">
                 {operator.role}
               </p>
+              <Link
+                href="/ops/account"
+                className="mt-1 inline-block text-[10px] font-medium text-emerald-400 hover:text-emerald-300"
+              >
+                Account
+              </Link>
             </div>
             <OpsLogoutButton />
           </div>

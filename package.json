@@ -14,6 +14,7 @@
     "db:studio": "node scripts/run-prisma.mjs studio",
     "db:seed": "node scripts/run-prisma.mjs db seed",
     "provision-org": "tsx scripts/provision-org.ts",
+    "provision-operator": "tsx scripts/provision-operator.ts",
     "link-tenant-to-clerk": "tsx scripts/link-tenant-to-clerk.ts",
     "prod:env-audit": "tsx scripts/prod-env-audit.ts",
     "prod:secret-scan": "tsx scripts/secret-hygiene-scan.ts",

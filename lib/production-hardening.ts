@@ -50,6 +50,31 @@ export function seedUsesDefaultCredentials(config: {
 }
 
 /**
+ * Refuse operator provisioning in production with demo credentials or @demo.local emails.
+ */
+export function assertOperatorProvisionAllowed(config: {
+  operatorEmail: string;
+  operatorPassword: string;
+}): void {
+  if (!isProductionDeploy()) return;
+  const operatorEmail = config.operatorEmail.trim().toLowerCase();
+  if (
+    operatorEmail === DEMO_OPERATOR_EMAIL &&
+    config.operatorPassword === DEMO_OPERATOR_PASSWORD
+  ) {
+    throw new Error(
+      "Refusing operator provision in production with default demo credentials (ops@demo.local/ops). " +
+        "Set PROVISION_OPERATOR_* to a real email and strong password.",
+    );
+  }
+  if (isDemoLocalEmail(operatorEmail)) {
+    throw new Error(
+      "Refusing operator provision in production with @demo.local email. Use a real address.",
+    );
+  }
+}
+
+/**
  * Refuse `npm run db:seed` in production when it would (re)create default demo logins.
  * Set non-default SEED_* values to seed a real production admin, or run only in dev/preview.
  */
