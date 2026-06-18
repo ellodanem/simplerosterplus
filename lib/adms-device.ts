@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { startDeviceTrialOnFirstConnect } from "@/lib/device-trial";
 
 export type AdmsResolvedDevice = {
   id: string;
@@ -66,6 +67,14 @@ export function resolveDeviceTimeZone(device: AdmsResolvedDevice): string {
 }
 
 export async function touchDeviceLastSeen(deviceId: string): Promise<void> {
+  const device = await prisma.device.findUnique({
+    where: { id: deviceId },
+    select: { organizationId: true },
+  });
+  if (!device) return;
+
+  await startDeviceTrialOnFirstConnect(device.organizationId);
+
   await prisma.device.update({
     where: { id: deviceId },
     data: { lastSeenAt: new Date() },

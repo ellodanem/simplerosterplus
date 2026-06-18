@@ -6,18 +6,22 @@
 // map below is a PLACEHOLDER for display/estimation only; real amounts come from Stripe
 // invoices once wired. Canonical tiers: docs/PRICING.md (Free / Plus / Pro).
 
-export type PlanSlug = "trial" | "starter" | "pro";
+import { planLabel as canonicalPlanLabel } from "@/lib/plans";
 
-// Placeholder monthly USD by plan slug (Stripe mirror is authoritative). `starter` ≈ Plus, `pro` ≈ Pro.
-const PLAN_MONTHLY_USD: Record<PlanSlug, number> = {
+export type PlanSlug = "free" | "trial" | "starter" | "plus" | "pro";
+
+// Placeholder monthly USD by plan slug (Stripe mirror is authoritative).
+const PLAN_MONTHLY_USD: Record<string, number> = {
+  free: 0,
   trial: 0,
   starter: 19.99,
+  plus: 19.99,
   pro: 49.99,
 };
 
 export function planMonthlyUsd(plan: string | null | undefined): number {
   if (!plan) return 0;
-  return PLAN_MONTHLY_USD[plan as PlanSlug] ?? 0;
+  return PLAN_MONTHLY_USD[plan] ?? 0;
 }
 
 // Exact monthly USD for an org: prefer the Stripe-mirrored `mrrCents`, fall back to the
@@ -28,8 +32,7 @@ export function orgMonthlyUsd(o: { plan?: string | null; mrrCents?: number | nul
 }
 
 export function planLabel(plan: string | null | undefined): string {
-  if (!plan) return "No plan";
-  return plan.charAt(0).toUpperCase() + plan.slice(1);
+  return canonicalPlanLabel(plan);
 }
 
 export function formatUsd(amount: number): string {

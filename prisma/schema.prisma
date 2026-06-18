@@ -46,6 +46,12 @@ model Organization {
   isDemo               Boolean  @default(false)
   /// When a demo sandbox should be auto-reclaimed.
   demoExpiresAt        DateTime?
+  /// When the free-tier device sync trial started (first terminal contact). See PRICING.md.
+  deviceTrialStartedAt DateTime?
+  /// When live device ingest ends for free orgs without a paid plan.
+  deviceTrialExpiresAt DateTime?
+  /// Whether the one-time +30 day extension (never published roster) was used.
+  deviceTrialExtensionUsed Boolean @default(false)
   /// Operator suspended this org (non-payment, abuse). Non-null = access blocked.
   suspendedAt          DateTime?
 

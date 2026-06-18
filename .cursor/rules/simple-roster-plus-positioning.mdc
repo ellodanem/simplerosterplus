@@ -7,11 +7,24 @@ alwaysApply: true
 
 Use this positioning statement as the product lens for feature and UX decisions:
 
-> Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.
+> Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with Auto Scheduler keeping the process fast and simple.
 
 - Prefer features that help managers schedule a week faster, review attendance faster, or fix exceptions faster.
 - Keep setup light. Favor one clear default over many settings, tiers, or policy branches.
 - Treat complexity as a cost. If a feature starts to feel like payroll, compliance, or enterprise configuration software, simplify it or split it out.
-- Prefer summaries, alerts, and AI-assisted suggestions over heavy workflows.
+- Prefer summaries, alerts, and Auto Scheduler suggestions over heavy workflows.
 - Use language and UI that are easy to scan and understand in under a minute.
 - When proposing new work, ask whether it keeps the core experience fast and simple for a manager using the app weekly.
+
+## Landing page
+
+**Canonical marketing site:** `srp/landing-page/` — see `srp/landing-page/LANDING-PAGE.md` for structure, changelog, and experiment vs production notes.
+
+- Lead with **managers**, **weekly schedules**, **attendance in minutes**, and **Auto Scheduler** (speed and simplicity)—not implementation services, device setup quotes, or enterprise HR.
+- Customer-facing copy must **not** say “AI”; use **Auto Scheduler** for the product feature.
+- **Gate 1 (current):** CTAs say **Start Free** → `#contact` early-access form or app `/sign-up`; **Explore demo** optional. Honest “request early access” copy until self-serve Gate 2.
+- **Gate 2 (future):** Flip to **Start Free Trial** → self-serve signup; reduce or remove lead-capture form per `MAPPING.md`.
+- Header: **Log in** (ghost, app `/login`) before primary CTA when both are shown.
+- App base: `https://simplerosterplus.vercel.app` — update `SRP_APP_*` / `SRP_MARKETING_API` in `srp/landing-page/index.html` when routes change.
+- Honest scope: roster + attendance for managers; not full payroll, not bloated HR suites.
+- Legacy path `landing page/` (repo sibling) is **not** canonical—session experiments only.

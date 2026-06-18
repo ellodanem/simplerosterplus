@@ -11,6 +11,7 @@ import {
   parseOptionalString,
 } from "@/lib/device-input";
 import { buildAdmsIclockUrls, resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import { checkDeviceSlotLimit } from "@/lib/plan-limits";
 
 const DEVICE_LIST_SELECT = {
   id: true,
@@ -146,6 +147,14 @@ export async function POST(request: Request) {
   if (connectionMode === "adms_push") {
     plaintextCommKey = crypto.randomBytes(8).toString("hex");
     commPasswordHash = await hashPassword(plaintextCommKey);
+  }
+
+  const deviceLimit = await checkDeviceSlotLimit(session.orgId);
+  if (deviceLimit) {
+    return NextResponse.json(
+      { error: deviceLimit.message, code: "plan_limit", kind: deviceLimit.kind },
+      { status: 403 },
+    );
   }
 
   try {

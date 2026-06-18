@@ -80,6 +80,16 @@ export default async function OrganizationDetailPage({
             />
             <Row label="Trial ends" value={formatDate(org.trialEndsAt)} />
             <Row label="Demo expires" value={formatDate(org.demoExpiresAt)} />
+            <Row
+              label="Device trial"
+              value={
+                org.deviceTrialStartedAt
+                  ? `${formatDate(org.deviceTrialStartedAt)} → ${formatDate(org.deviceTrialExpiresAt)}${
+                      org.deviceTrialExtensionUsed ? " (+ext)" : ""
+                    }`
+                  : "—"
+              }
+            />
           </dl>
         </Card>
 

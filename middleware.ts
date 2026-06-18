@@ -48,11 +48,14 @@ function isTenantGated(pathname: string): boolean {
 const isClerkPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/create-organization(.*)",
+  "/demo(.*)",
   "/login(.*)",
   "/share(.*)",
   "/api/clerk/webhook(.*)",
   "/api/stripe/webhook(.*)",
   "/api/marketing(.*)",
+  "/api/cron/reclaim-demos(.*)",
   "/iclock(.*)",
   "/api/auth/login(.*)",
   "/api/auth/end-impersonation(.*)",
@@ -191,6 +194,19 @@ async function handleRequest(
       return NextResponse.next();
     }
     await auth!.protect({ unauthenticatedUrl: tenantSignInAbsoluteUrl(request.url) });
+
+    if (!jwtSession.valid) {
+      const { userId, orgId } = await auth!();
+      const allowWithoutOrg =
+        pathname.startsWith("/create-organization") ||
+        pathname.startsWith("/demo/") ||
+        pathname.startsWith("/sign-up") ||
+        pathname.startsWith("/sign-in");
+      if (userId && !orgId && !allowWithoutOrg && !pathname.startsWith("/api/")) {
+        return NextResponse.redirect(new URL("/create-organization", request.url));
+      }
+    }
+
     return NextResponse.next();
   }
 

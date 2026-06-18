@@ -20,6 +20,7 @@ import {
   touchDeviceLastSeen,
 } from "@/lib/adms-device";
 import { formatYmdInZone } from "@/lib/datetime-policy";
+import { isDeviceIngestAllowed } from "@/lib/device-trial";
 import { recordAdmsRequest } from "@/lib/adms-last-request";
 import { prisma } from "@/lib/prisma";
 
@@ -221,6 +222,14 @@ export async function zkPushPOST(request: NextRequest) {
     }
 
     await touchDeviceLastSeen(device.id);
+
+    const ingestAllowed = await isDeviceIngestAllowed(device.organizationId);
+    if (!ingestAllowed) {
+      console.log(
+        `[ADMS] ingest paused for org ${device.organizationId} (device sync trial ended); SN=${sn}`,
+      );
+      return new NextResponse("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
+    }
 
     const receivedAt = new Date();
     const stationTz = resolveDeviceTimeZone(device);

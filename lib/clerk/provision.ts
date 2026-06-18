@@ -3,6 +3,7 @@ import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
 import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
+import { PLAN_FREE } from "@/lib/plans";
 
 const DEFAULT_LOCATION_NAME = "Main";
 
@@ -14,6 +15,8 @@ export type ClerkProvisionInput = {
   clerkRole?: string | null;
   role?: AppUserRole;
   firstName?: string | null;
+  /** When true, skip assigning the free self-serve plan (demo / operator orgs). */
+  skipFreePlan?: boolean;
 };
 
 export type ClerkProvisionResult = {
@@ -27,6 +30,7 @@ export type ClerkProvisionResult = {
 export async function ensureOrganizationFromClerk(args: {
   clerkOrgId: string;
   orgName: string;
+  skipFreePlan?: boolean;
 }): Promise<{ organizationId: string; created: boolean }> {
   const name = args.orgName.trim() || "My organization";
   const existing = await prisma.organization.findUnique({
@@ -47,6 +51,7 @@ export async function ensureOrganizationFromClerk(args: {
         name,
         clerkOrgId: args.clerkOrgId,
         timeZone: "UTC",
+        plan: args.skipFreePlan ? null : PLAN_FREE,
       },
     });
     await tx.location.create({
@@ -87,6 +92,7 @@ export async function ensureAppUserFromClerk(
   const { organizationId } = await ensureOrganizationFromClerk({
     clerkOrgId: input.clerkOrgId,
     orgName: input.orgName,
+    skipFreePlan: input.skipFreePlan,
   });
 
   const mappedRole = input.role ?? mapClerkRoleToAppUserRole(input.clerkRole);

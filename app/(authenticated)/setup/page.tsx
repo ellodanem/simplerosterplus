@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -8,12 +9,32 @@ export const metadata = {
   title: "Setup | Simple Roster Plus",
 };
 
-export default async function SetupPage() {
+type SearchParams = { next?: string };
+
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const session = await getSession();
   if (!session) redirectToSignIn();
 
+  const orgFlags = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { isDemo: true },
+  });
+  if (orgFlags?.isDemo) {
+    redirect("/roster");
+  }
+
   const state = await getSetupState(session.orgId);
   const completeness = getSetupCompleteness(state);
+
+  if (completeness.complete) {
+    const params = await searchParams;
+    const next = params.next?.startsWith("/") ? params.next : "/";
+    redirect(next);
+  }
 
   const [templates, staffCount, roles, locations] = await Promise.all([
     prisma.shiftTemplate.findMany({

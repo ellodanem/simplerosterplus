@@ -12,11 +12,11 @@
   <meta property="og:title" content="Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers">
   <meta property="og:description" content="Free for up to 10 staff. Build weekly schedules and track attendance in minutes—try your clock free for 30 days.">
   <meta property="og:url" content="https://simplerosterplus.vercel.app/">
-  <meta property="og:image" content="https://simplerosterplus.vercel.app/images/hero-weekly-schedule-attendance.png">
+  <meta property="og:image" content="https://simplerosterplus.vercel.app/images/solution-attendance.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers">
   <meta name="twitter:description" content="Free for up to 10 staff. Weekly schedules and attendance for shift managers—no HR bloat.">
-  <meta name="twitter:image" content="https://simplerosterplus.vercel.app/images/hero-weekly-schedule-attendance.png">
+  <meta name="twitter:image" content="https://simplerosterplus.vercel.app/images/solution-attendance.png">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,7 +166,24 @@
       box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
       transform: translateY(-1px);
     }
-    .btn-ghost {
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--accent-blue);
+      border: 1.5px solid var(--border);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .btn-secondary:hover {
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue-dark);
+      border-color: rgba(37, 99, 235, 0.35);
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: center;
+    }
       background: var(--surface);
       color: var(--text);
       font-weight: 600;
@@ -203,7 +220,7 @@
     .section-head-center .section-kicker { text-align: center; }
     #hero {
       position: relative;
-      padding: 4rem 0 3.25rem;
+      padding: 3.5rem 0 3.75rem;
       background: linear-gradient(165deg, var(--surface) 0%, var(--accent-blue-soft) 48%, var(--bg) 100%);
       border-bottom: 1px solid var(--border);
       overflow: hidden;
@@ -219,15 +236,18 @@
       mask-image: linear-gradient(180deg, #000 40%, transparent 100%);
       pointer-events: none;
     }
-    #hero .wrap { position: relative; z-index: 1; }
-    #trust {
-      padding: 2.25rem 0;
+    #hero .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: min(1280px, calc(100% - 2.5rem));
+    }
+    #audience {
+      padding: var(--section-y) 0;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
     }
     #pain, #how-it-works, #faq { background: var(--bg); }
-    #dream, #solution, #social-proof, #get-started { background: var(--surface); }
+    #dream, #solution, #in-action { background: var(--surface); }
     #pain { border-top: 1px solid var(--border-light); }
     #pain .pain-head { max-width: none; }
     #pain .section-lead { max-width: none; }
@@ -253,25 +273,41 @@
       margin: 0 auto 2rem;
     }
     .section-head-center .section-lead { margin-left: auto; margin-right: auto; }
+    .section-accent {
+      width: 3rem;
+      height: 4px;
+      margin: 0 auto 1.5rem;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #1a5276, #2980b9, var(--accent-blue));
+    }
 
     .hero-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 2.25rem;
-      align-items: start;
+      gap: 2rem;
+      align-items: center;
     }
     @media (min-width: 900px) {
-      .hero-grid { grid-template-columns: 1fr 1.02fr; gap: 2.75rem; }
+      .hero-grid {
+        grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+        gap: 2rem 2.5rem;
+      }
+    }
+    @media (min-width: 1100px) {
+      .hero-grid {
+        grid-template-columns: minmax(0, 0.4fr) minmax(0, 0.6fr);
+        gap: 2.5rem 3rem;
+      }
     }
     .hero h1 {
-      font-size: clamp(2rem, 4.5vw, 2.85rem);
-      line-height: 1.1;
-      margin: 0 0 1.15rem;
+      font-size: clamp(2rem, 4.2vw, 2.75rem);
+      line-height: 1.08;
+      margin: 0 0 1rem;
       font-weight: 800;
       letter-spacing: -0.04em;
     }
     .lead {
-      font-size: 1.08rem;
+      font-size: 1.02rem;
       color: var(--text-muted);
       margin: 0 0 1.35rem;
       max-width: 34em;
@@ -279,7 +315,12 @@
     }
     .lead strong { color: var(--text); font-weight: 600; }
     .hero .lead { max-width: none; }
-    .hero-cta { margin: 0 0 1rem; }
+    .hero-cta { margin: 0 0 0.65rem; }
+    .hero-meta {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
     .hero-badges {
       display: flex;
       flex-wrap: wrap;
@@ -299,13 +340,23 @@
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
+    .hero-visual {
+      width: 100%;
+      min-width: 0;
+    }
+    @media (min-width: 900px) {
+      .hero-visual {
+        width: calc(100% + clamp(0px, (100vw - 1280px) / 2, 4rem));
+        margin-right: calc(-1 * clamp(0px, (100vw - 1280px) / 2, 4rem));
+      }
+    }
     .hero-visual .media-placeholder {
       min-height: 280px;
       border: 1px solid rgba(37, 99, 235, 0.12);
       box-shadow: var(--shadow-xl);
     }
     @media (min-width: 900px) {
-      .hero-visual .media-placeholder { min-height: 320px; }
+      .hero-visual .media-placeholder { min-height: 380px; }
     }
 
     .media-placeholder {
@@ -351,23 +402,105 @@
       font-size: 0.75rem;
       color: #94a3b8;
     }
-    .media-shot {
+    .hero-visual .media-shot,
+    .hero-visual .hero-shot {
       display: block;
       width: 100%;
       height: auto;
+      max-width: none;
+      border-radius: calc(var(--radius) + 4px);
+      border: 1px solid rgba(37, 99, 235, 0.14);
+      box-shadow:
+        var(--shadow-xl),
+        0 28px 70px rgba(37, 99, 235, 0.14);
+      background: var(--surface);
+    }
+    .media-shot {
+      display: block;
+      width: 100%;
       border-radius: calc(var(--radius) + 2px);
-      border: 1px solid rgba(37, 99, 235, 0.12);
+      border: 1px solid rgba(37, 99, 235, 0.1);
       box-shadow: var(--shadow-md);
       background: var(--surface);
     }
-    .hero-visual .media-shot { box-shadow: var(--shadow-xl); }
     .pain-visual .media-shot { aspect-ratio: 4 / 3; object-fit: cover; }
     .solution-block .media-shot { aspect-ratio: 16 / 10; object-fit: cover; }
 
-    .trust-eyebrow {
-      margin: 0 0 0.75rem;
-      font-size: 0.9rem;
+    .audience-grid {
+      display: grid;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    @media (min-width: 720px) { .audience-grid { grid-template-columns: 1fr 1fr; } }
+    .audience-card {
+      padding: 1.5rem 1.35rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .audience-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .audience-card--blue { background: rgba(37, 99, 235, 0.04); }
+    .audience-card--green { background: rgba(5, 150, 105, 0.04); }
+    .audience-card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      margin-bottom: 0.85rem;
+    }
+    .audience-icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .audience-card--blue .audience-icon {
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue);
+    }
+    .audience-card--green .audience-icon {
+      background: var(--accent-green-soft);
+      color: var(--accent-green);
+    }
+    .audience-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .audience-card h3 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+    .audience-card > p { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
+    .audience-chips {
+      list-style: none;
+      margin: 0.85rem 0 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .audience-chips li {
+      font-size: 0.72rem;
+      font-weight: 600;
       color: var(--text-muted);
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .industries-head {
+      margin: 0 0 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
       text-align: center;
     }
     .trust-chips {
@@ -414,20 +547,26 @@
     }
     .pain-list li {
       margin: 0;
-      padding-left: 1.35rem;
+      padding-left: 1.75rem;
       position: relative;
       line-height: 1.55;
     }
     .pain-list li::before {
-      content: "";
+      content: "?";
       position: absolute;
       left: 0;
-      top: 0.6em;
-      width: 6px;
-      height: 6px;
+      top: 0.05em;
+      width: 1.1rem;
+      height: 1.1rem;
       border-radius: 50%;
-      background: var(--accent-blue);
-      opacity: 0.75;
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue);
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
     }
     .pain-visual .media-placeholder {
       min-height: 260px;
@@ -536,108 +675,161 @@
     .scope-aside strong { color: var(--text); }
     .scope-aside ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
 
-    .features-list {
-      max-width: 36rem;
-      margin: 0 auto 2.5rem;
-      padding: 1.5rem 1.5rem;
-      background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-md);
-    }
-    .features-list h2 { margin: 0 0 0.75rem; font-size: 1.15rem; }
-    .features-list ul { margin: 0; padding-left: 1.2rem; color: var(--text-muted); }
-    .features-list li { margin-bottom: 0.4rem; }
-
-    .testimonials {
-      display: grid;
-      gap: 1.25rem;
-      max-width: 52rem;
-      margin: 0 auto 2rem;
-    }
-    @media (min-width: 700px) { .testimonials { grid-template-columns: 1fr 1fr; } }
-    .testimonial-placeholder {
-      margin: 0;
-      padding: 1.5rem 1.35rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      text-align: center;
-      box-shadow: var(--shadow);
-      position: relative;
-    }
-    .testimonial-placeholder::before {
-      content: "“";
-      position: absolute;
-      top: 0.5rem;
-      left: 1rem;
-      font-size: 2.5rem;
-      line-height: 1;
-      color: var(--accent-blue-soft);
-      font-weight: 800;
-    }
-    .testimonial-placeholder blockquote {
-      margin: 0 0 0.75rem;
-      font-size: 0.95rem;
-      font-style: italic;
-      color: var(--text-muted);
-      line-height: 1.55;
-    }
-    .testimonial-placeholder figcaption {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .testimonial-placeholder .placeholder-note {
-      display: block;
-      margin-top: 0.35rem;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #94a3b8;
-    }
-    .logo-placeholder {
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 1.25rem;
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      text-align: center;
-      background: var(--bg);
-    }
-    .logo-placeholder p { margin: 0; font-size: 0.88rem; color: var(--text-muted); }
-    .logo-slots {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.65rem;
-      margin-top: 0.85rem;
-    }
-    .logo-slot {
-      width: 88px;
-      height: 36px;
-      border-radius: 8px;
-      background: var(--surface);
-      border: 1px dashed #cbd5e1;
+    .scenario-carousel { margin-top: 0.5rem; }
+    .scenario-carousel-row {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: #94a3b8;
+      gap: 0.65rem;
     }
-
-    .get-started-panel {
-      max-width: 34rem;
-      margin: 0 auto;
-      text-align: center;
-      padding: 2.5rem 2rem;
+    @media (min-width: 600px) { .scenario-carousel-row { gap: 1rem; } }
+    .scenario-carousel-viewport {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .scenario-track {
+      display: flex;
+      gap: 1rem;
+      transition: transform 0.5s ease;
+      will-change: transform;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .scenario-track { transition: none; }
+    }
+    .scenario-card {
+      flex: 0 0 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .scenario-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(37, 99, 235, 0.15);
+    }
+    .scenario-card .media-shot {
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      border-bottom: 1px solid var(--border);
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: top;
+    }
+    .scenario-body { padding: 1rem 1.1rem 1.15rem; }
+    .scenario-pill {
+      display: inline-block;
+      margin: 0 0 0.5rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent-amber);
+      background: var(--accent-amber-soft);
+      padding: 0.22rem 0.55rem;
+      border-radius: 999px;
+    }
+    .scenario-card h3 { margin: 0 0 0.35rem; font-size: 0.98rem; }
+    .scenario-card p { margin: 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; }
+    .scenario-nav {
+      flex-shrink: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
       background: var(--surface);
-      border: 1px solid rgba(37, 99, 235, 0.12);
-      border-radius: calc(var(--radius) + 4px);
-      box-shadow: var(--shadow-xl);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, opacity 0.2s;
     }
-    .get-started-panel .section-lead { margin-left: auto; margin-right: auto; }
-    .get-started-note { margin: 1.25rem 0 0; font-size: 0.9rem; color: var(--text-muted); }
+    .scenario-nav:hover:not(:disabled) {
+      background: var(--accent-blue-soft);
+      border-color: rgba(37, 99, 235, 0.2);
+      box-shadow: var(--shadow-md);
+    }
+    .scenario-nav:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .scenario-nav svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .scenario-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.45rem;
+      margin-top: 1.15rem;
+    }
+    .scenario-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      padding: 0;
+      border: none;
+      border-radius: 999px;
+      background: #cbd5e1;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .scenario-dot:hover { background: #94a3b8; }
+    .scenario-dot.is-active {
+      background: var(--accent-blue);
+      transform: scale(1.15);
+    }
+    .section-cta { margin-top: 1.75rem; text-align: center; }
+
+    .faq-layout {
+      display: grid;
+      gap: 2rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    @media (min-width: 800px) {
+      .faq-layout { grid-template-columns: 1fr 1.4fr; align-items: start; }
+    }
+    .support-cards {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .support-card {
+      display: block;
+      padding: 1.1rem 1.15rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    }
+    a.support-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.2);
+      color: inherit;
+    }
+    .support-card h3 {
+      margin: 0 0 0.25rem;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .support-card p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+    .support-card strong { color: var(--accent-blue); font-weight: 600; }
 
     .steps {
       display: grid;
@@ -674,7 +866,110 @@
     .step h3 { margin: 0 0 0.35rem; font-size: 1rem; }
     .step p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
 
-    .faq-list { max-width: 720px; margin: 0 auto; }
+    #pricing {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .pricing-grid {
+      display: grid;
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    @media (min-width: 720px) { .pricing-grid { grid-template-columns: repeat(3, 1fr); align-items: stretch; } }
+    .plan-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1.35rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .plan-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .plan-card.featured {
+      background: var(--surface);
+      border-color: rgba(37, 99, 235, 0.35);
+      box-shadow: var(--shadow-xl);
+    }
+    .plan-badge {
+      position: absolute;
+      top: -0.65rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.2rem 0.65rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fff;
+      background: linear-gradient(180deg, #3b82f6 0%, var(--accent-blue) 100%);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .plan-name {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .plan-price {
+      margin: 0 0 0.15rem;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .plan-price span {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0;
+    }
+    .plan-note {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-height: 2.5em;
+    }
+    .plan-features {
+      margin: 0 0 1.25rem;
+      padding: 0;
+      list-style: none;
+      flex: 1;
+    }
+    .plan-features li {
+      position: relative;
+      padding: 0.35rem 0 0.35rem 1.35rem;
+      font-size: 0.9rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.72rem;
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+    .plan-card .btn { width: 100%; margin-top: auto; }
+    .pricing-footnote {
+      margin: 1.5rem auto 0;
+      max-width: 42rem;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .faq-list { margin: 0; }
     .faq-list details {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -741,6 +1036,12 @@
       color: #fff;
     }
     #cta-close p { margin: 0 0 1.35rem; opacity: 0.95; max-width: 28em; margin-left: auto; margin-right: auto; }
+    #cta-close .cta-note {
+      margin: 1.1rem 0 0;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    #cta-close .cta-note a { color: #fff; }
     #cta-close .btn-primary {
       background: #fff;
       color: var(--accent-blue);
@@ -748,30 +1049,19 @@
     }
     #cta-close .btn-primary:hover { background: #f0f7ff; color: var(--accent-blue-dark); }
 
-    footer {
-      background: #0f172a;
-      color: #cbd5e1;
-      padding: 2.5rem 1.25rem 1.5rem;
-      font-size: 0.9rem;
+    #cta-close .btn-primary:hover { background: #f0f7ff; color: var(--accent-blue-dark); }
+    #cta-close .btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      box-shadow: none;
     }
-    .footer-inner { max-width: var(--max); margin: 0 auto; text-align: center; }
-    .footer-mission {
-      margin: 0.75rem auto 0;
-      color: #e2e8f0;
-      max-width: 32em;
-      line-height: 1.55;
-      font-size: 0.95rem;
+    #cta-close .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-color: #fff;
     }
-    .footer-links {
-      margin-top: 1.25rem;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.5rem 1.25rem;
-    }
-    .footer-links a { color: #94a3b8; text-decoration: none; }
-    .footer-links a:hover { color: #fff; }
-    .footer-copy { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
+    #cta-close .cta-row { margin-top: 0.25rem; }
 
     #contact { background: var(--bg); border-top: 1px solid var(--border-light); }
     .contact-panel {
@@ -783,7 +1073,28 @@
       border-radius: calc(var(--radius) + 4px);
       box-shadow: var(--shadow-xl);
     }
-    .contact-form { display: grid; gap: 1rem; margin-top: 1.25rem; text-align: left; }
+    .contact-self-serve {
+      margin: 0 0 1.25rem;
+      padding: 1.1rem 1.25rem;
+      background: var(--accent-blue-soft);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .contact-self-serve p {
+      margin: 0 0 0.85rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .contact-divider {
+      margin: 0 0 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+    }
+    .contact-form { display: grid; gap: 1rem; margin-top: 0; text-align: left; }
     .contact-form label {
       display: block;
       font-size: 0.85rem;
@@ -811,13 +1122,8 @@
       outline-offset: 1px;
       border-color: var(--accent-blue);
     }
-    .form-row-2 {
-      display: grid;
-      gap: 1rem;
-    }
-    @media (min-width: 520px) {
-      .form-row-2 { grid-template-columns: 1fr 1fr; }
-    }
+    .form-row-2 { display: grid; gap: 1rem; }
+    @media (min-width: 520px) { .form-row-2 { grid-template-columns: 1fr 1fr; } }
     .form-note { margin: 0.85rem 0 0; font-size: 0.85rem; color: var(--text-muted); text-align: center; }
     .form-status {
       margin: 0.75rem 0 0;
@@ -839,24 +1145,6 @@
       color: #9f1239;
       border: 1px solid #fecdd3;
     }
-    .setup-includes {
-      max-width: 36rem;
-      margin: 0 auto 2rem;
-      padding: 1.5rem 1.35rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
-      box-shadow: var(--shadow-md);
-    }
-    .setup-includes h3 { margin: 0 0 0.75rem; font-size: 1.05rem; }
-    .setup-includes ul { margin: 0; padding-left: 1.2rem; color: var(--text-muted); }
-    .setup-includes li { margin-bottom: 0.35rem; }
-    .setup-includes .eyebrow-note {
-      display: block;
-      margin-top: 0.65rem;
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
     .pricing-line {
       margin: 0 0 1rem;
       padding: 0.85rem 1rem;
@@ -867,15 +1155,39 @@
       line-height: 1.5;
     }
     .pricing-line strong { color: var(--text); }
+
+    footer {
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 2.5rem 1.25rem 1.5rem;
+      font-size: 0.9rem;
+    }
+    .footer-inner { max-width: var(--max); margin: 0 auto; text-align: center; }
+    .footer-mission {
+      margin: 0.75rem auto 0;
+      color: #e2e8f0;
+      max-width: 32em;
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+    .footer-links {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem 1.25rem;
+    }
+    .footer-links a { color: #94a3b8; text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+    .footer-copy { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
   </style>
 </head>
 <body>
-  <!-- Site + app URLs — update SRP_SITE_URL when marketing domain goes live -->
+  <!-- App URLs — update when custom domain or Clerk signup route is live -->
   <script>
-    window.SRP_SITE_URL = "https://simplerosterplus.vercel.app";
     window.SRP_APP_ORIGIN = "https://simplerosterplus.vercel.app";
     window.SRP_APP_LOGIN_URL = "https://simplerosterplus.vercel.app/login";
-    window.SRP_MARKETING_API = "https://simplerosterplus.vercel.app/api/marketing/contact";
+    window.SRP_APP_SIGNUP_URL = "https://simplerosterplus.vercel.app/login";
   </script>
   <a class="skip-link" href="#main">Skip to main content</a>
 
@@ -902,20 +1214,21 @@
       </a>
       <div class="header-actions">
         <a class="btn btn-ghost" id="app-login" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
-        <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
+        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <section id="hero" aria-labelledby="hero-heading">
+    <section id="hero" class="hero" aria-labelledby="hero-heading">
       <div class="wrap hero-grid">
         <div>
           <h1 id="hero-heading">Build the weekly schedule and track attendance—in minutes.</h1>
-          <p class="lead"><strong>Free for up to 10 staff.</strong> Simple Roster Plus helps managers publish the weekly roster and see plan vs. actual attendance in one place—try your clock free for 30 days. No payroll or HR bloat.</p>
+          <p class="lead"><strong>Free for up to 10 staff.</strong> Simple Roster Plus gives shift managers one place to publish the week’s roster and see who was scheduled, who clocked in, and who needs attention—without payroll bloat or HR suite noise. Try your clock free for 30 days.</p>
           <p class="hero-cta">
-            <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
+            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
           </p>
+          <p class="hero-meta">No credit card · Up and running in minutes</p>
           <ul class="hero-badges" aria-label="Highlights">
             <li>Weekly roster + attendance</li>
             <li>ZKTeco-ready</li>
@@ -923,15 +1236,66 @@
           </ul>
         </div>
         <div class="hero-visual">
-          <img class="media-shot" src="images/hero-weekly-schedule-attendance.png" width="1200" height="800" alt="Weekly schedule grid with attendance status indicators showing who is scheduled and who has clocked in.">
+          <img
+            class="media-shot hero-shot"
+            src="images/solution-attendance.png"
+            srcset="images/solution-attendance.png 1536w, images/solution-attendance@2x.png 3072w"
+            sizes="(min-width: 1100px) 720px, (min-width: 900px) 58vw, 100vw"
+            width="1536"
+            height="1024"
+            alt="Simple Roster Plus attendance week view with on-time, late, and absent status beside planned shifts."
+            decoding="async"
+            fetchpriority="high"
+          >
         </div>
       </div>
     </section>
 
-    <section id="trust" aria-labelledby="trust-heading">
-      <div class="wrap text-center">
-        <h2 id="trust-heading" class="visually-hidden">Who it is for</h2>
-        <p class="trust-eyebrow">For managers running shift teams in retail, food service, clinics, security, and other multi-shift workplaces.</p>
+    <section id="audience" aria-labelledby="audience-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">Built for shift managers</p>
+          <h2 id="audience-heading" class="section-title">Who runs the week on your team?</h2>
+          <div class="section-accent" aria-hidden="true"></div>
+          <p class="section-lead">If you build the roster, chase late arrivals, and hand hours to payroll or admin—you’re who we built this for.</p>
+        </div>
+        <div class="audience-grid">
+          <article class="audience-card audience-card--blue">
+            <div class="audience-card-head">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 10h18"/><path d="M5 10V8a2 2 0 012-2h10a2 2 0 012 2v2"/><path d="M7 14h.01M12 14h.01M17 14h.01"/><path d="M5 10v8a2 2 0 002 2h10a2 2 0 002-2v-8"/></svg>
+              </div>
+              <div>
+                <h3>Single-site managers</h3>
+                <p>Run one location’s week. Publish shifts, see clock-ins beside the plan, and fix gaps before the floor feels it.</p>
+              </div>
+            </div>
+            <ul class="audience-chips">
+              <li>Fill open shifts</li>
+              <li>Late alerts</li>
+              <li>SMS roster publish</li>
+              <li>Quick weekly edits</li>
+            </ul>
+          </article>
+          <article class="audience-card audience-card--green">
+            <div class="audience-card-head">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="7" width="7" height="14" rx="1"/><path d="M7 7h.01M7 11h.01M17 11h.01"/></svg>
+              </div>
+              <div>
+                <h3>Multi-shift &amp; multi-site leads</h3>
+                <p>Keep teams aligned across sites with the same lightweight flow—without turning rostering into a second job.</p>
+              </div>
+            </div>
+            <ul class="audience-chips">
+              <li>Plan vs. actual</li>
+              <li>Device sync</li>
+              <li>Exception summaries</li>
+              <li>Simple exports</li>
+            </ul>
+          </article>
+        </div>
+        <p class="industries-head">Built for shift teams in</p>
         <ul class="trust-chips" aria-label="Example workplaces">
           <li>Retail &amp; gas</li>
           <li>Restaurants</li>
@@ -948,19 +1312,20 @@
         <div class="section-head-center pain-head">
           <p class="section-kicker">The problem</p>
           <h2 id="pain-heading" class="section-title">Scheduling the week shouldn’t eat your Monday</h2>
-          <p class="section-lead">Many managers still build rosters in spreadsheets or group chats, then check attendance somewhere else. Small tasks pile up—copying last week, filling gaps, chasing who’s late—and the floor waits.</p>
+          <div class="section-accent" aria-hidden="true"></div>
+          <p class="section-lead">Too many managers still build the roster in a spreadsheet or group chat, then check attendance somewhere else. Copying last week, filling gaps, and chasing who’s late piles up—and the shift waits on you.</p>
           <p class="pain-familiar">Sound familiar?</p>
         </div>
         <div class="pain-split">
           <ul class="pain-list">
             <li>Does building next week’s schedule take longer than it should?</li>
             <li>Do you check attendance in a different place than where you planned shifts?</li>
-            <li>When someone’s late or missing, do you find out late—or only when payroll asks?</li>
+            <li>When someone’s late or missing, do you find out on the floor—or days later?</li>
             <li>Are you retyping hours instead of reviewing exceptions quickly?</li>
             <li>Would a simpler weekly routine free you to run the shift, not the spreadsheet?</li>
           </ul>
           <div class="pain-visual">
-            <img class="media-shot" src="images/pain-before-workflow.png" width="800" height="600" alt="Desk with spreadsheet roster on laptop and shift messages on phone, showing a split scheduling workflow.">
+            <img class="media-shot" src="images/pain-before-workflow.png" width="800" height="600" alt="Split workflow: spreadsheet roster on a laptop and shift messages on a phone.">
           </div>
         </div>
         <p class="bridge-line">What if the whole week—schedule and attendance—took minutes, not hours?</p>
@@ -971,13 +1336,14 @@
       <div class="wrap">
         <div class="section-head-center">
           <p class="section-kicker">After</p>
-          <h2 id="dream-heading" class="section-title">A fast weekly rhythm managers can keep</h2>
+          <h2 id="dream-heading" class="section-title">A fast weekly rhythm you can actually keep</h2>
+          <div class="section-accent" aria-hidden="true"></div>
         </div>
         <div class="outcomes">
           <article class="outcome">
             <div class="check" aria-hidden="true">✓</div>
             <h3>Schedule the week quickly</h3>
-            <p>Build or adjust the roster in minutes—the auto scheduler helps you fill gaps and repeat what worked last week.</p>
+            <p>Build or adjust the roster in minutes—with Auto Scheduler helping you fill gaps and repeat what worked last week.</p>
           </article>
           <article class="outcome">
             <div class="check" aria-hidden="true">✓</div>
@@ -997,7 +1363,8 @@
       <div class="wrap">
         <p class="section-kicker">How it works</p>
         <h2 id="solution-heading" class="section-title">One app for the week: schedule, attendance, clarity</h2>
-        <p class="section-lead">Simple Roster Plus keeps managers in one lightweight flow—create the weekly schedule, track attendance as people clock in, and use built-in suggestions and summaries to cut the busywork. <a href="#how-it-works">See how it works</a></p>
+        <div class="section-accent" aria-hidden="true"></div>
+        <p class="section-lead">Simple Roster Plus keeps managers in one lightweight flow—build the weekly schedule, track attendance as people clock in, and use Auto Scheduler to cut the busywork. <a href="#how-it-works">See the weekly loop</a></p>
 
         <div class="solution-stack">
           <article class="solution-block">
@@ -1007,10 +1374,10 @@
               </div>
               <div>
                 <h3>Create the weekly schedule in minutes</h3>
-                <p>Start from last week, drop in shifts, and use the auto scheduler to suggest fills and adjustments so you’re not rebuilding from scratch every time.</p>
+                <p>Start from last week, adjust shifts, and let Auto Scheduler suggest fills so you’re not starting from zero every Monday.</p>
               </div>
             </div>
-            <img class="media-shot" src="images/solution-schedule-builder.png" width="1280" height="800" alt="Simple Roster Plus weekly roster grid with shift blocks, staff rows, and week navigation.">
+            <img class="media-shot" src="images/app-roster-week.png" width="1400" height="900" alt="Simple Roster Plus roster view with shift presets, auto scheduler, coverage counts, and color-coded shift blocks.">
           </article>
           <article class="solution-block">
             <div class="solution-block-head">
@@ -1022,7 +1389,7 @@
                 <p>See planned shifts next to real clock-ins—on time, late, or missing—so you can fix issues while the week is still running.</p>
               </div>
             </div>
-            <img class="media-shot" src="images/solution-attendance.png" width="1280" height="800" alt="Simple Roster Plus attendance week view with planned shifts, absences, and vacation status.">
+            <img class="media-shot" src="images/solution-attendance.png" width="1280" height="800" alt="Simple Roster Plus attendance week view with on-time, late, and absent status beside planned shifts.">
           </article>
           <article class="solution-block">
             <div class="solution-block-head">
@@ -1030,11 +1397,11 @@
                 <svg viewBox="0 0 24 24"><path d="M12 3l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z"/><circle cx="12" cy="12" r="9"/></svg>
               </div>
               <div>
-                <h3>Clear summaries, not HR bloat</h3>
-                <p>Rule-based weekly summaries and exception highlights surface what needs attention—without turning rostering into enterprise configuration software.</p>
+                <h3>Auto Scheduler keeps it fast and simple</h3>
+                <p>Auto Scheduler surfaces smart suggestions and clear summaries for what needs attention next—without turning rostering into enterprise configuration software.</p>
               </div>
             </div>
-            <img class="media-shot" src="images/solution-ai-assist.png" width="1280" height="800" alt="Simple Roster Plus home dashboard with weekly exception summary for late arrivals, open slots, and coverage—illustrative.">
+            <img class="media-shot" src="images/solution-auto-scheduler.png" width="1280" height="800" alt="Simple Roster Plus home dashboard with Auto Scheduler and weekly exception summary for late arrivals, open slots, and absences.">
           </article>
         </div>
 
@@ -1050,32 +1417,69 @@
       </div>
     </section>
 
-    <section id="social-proof" aria-labelledby="social-proof-heading">
+    <section id="in-action" aria-labelledby="in-action-heading">
       <div class="wrap">
         <div class="section-head-center">
-          <p class="section-kicker">What you get</p>
-          <h2 id="social-proof-heading" class="section-title">Built for managers who run the week</h2>
+          <p class="section-kicker">See it in action</p>
+          <h2 id="in-action-heading" class="section-title">A manager’s week, start to finish</h2>
+          <div class="section-accent" aria-hidden="true"></div>
+          <p class="section-lead">Four moments where Simple Roster Plus earns its keep—no feature tour required.</p>
         </div>
-        <div class="features-list">
-          <h2 class="visually-hidden">Product highlights</h2>
-          <ul>
-            <li>Weekly schedule builder with auto-scheduler suggestions</li>
-            <li>Publish &amp; share the roster (link or print) when the week is ready</li>
-            <li>Attendance view tied to the roster—see plan vs. actual at a glance</li>
-            <li>Exception highlights (late, absent, hour gaps) without digging through sheets</li>
-            <li>Simple exports when you need to hand hours to payroll or admin</li>
-          </ul>
+        <div class="scenario-carousel" data-scenario-carousel>
+          <div class="scenario-carousel-row">
+            <button type="button" class="scenario-nav scenario-nav--prev" aria-label="Previous scenario" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="scenario-carousel-viewport" aria-live="polite">
+              <div class="scenario-track">
+                <article class="scenario-card">
+                  <img class="media-shot" src="images/app-roster-week.png" width="700" height="440" alt="Weekly roster grid for building the schedule.">
+                  <div class="scenario-body">
+                    <span class="scenario-pill">Monday morning</span>
+                    <h3>Build this week’s schedule</h3>
+                    <p>Copy last week, tweak shifts, fill gaps, and publish—most managers are done in minutes, not hours.</p>
+                  </div>
+                </article>
+                <article class="scenario-card">
+                  <img class="media-shot" src="images/solution-attendance.png" width="700" height="440" alt="Attendance view showing late and absent status beside planned shifts.">
+                  <div class="scenario-body">
+                    <span class="scenario-pill">Mid-shift</span>
+                    <h3>Spot who’s late or missing</h3>
+                    <p>Attendance sits beside the roster so exceptions stand out while you can still do something about them.</p>
+                  </div>
+                </article>
+                <article class="scenario-card">
+                  <img class="media-shot" src="images/solution-auto-scheduler.png" width="700" height="440" alt="Auto Scheduler dashboard with weekly exception summary.">
+                  <div class="scenario-body">
+                    <span class="scenario-pill">Friday close</span>
+                    <h3>Review the week and export hours</h3>
+                    <p>Scan late arrivals, absences, and totals—then hand clean hours to payroll or admin in a few clicks.</p>
+                  </div>
+                </article>
+                <article class="scenario-card">
+                  <img class="media-shot" src="images/app-roster-week.png" width="700" height="440" alt="Roster view for adding a new team member to the week." style="object-position: left 60%;">
+                  <div class="scenario-body">
+                    <span class="scenario-pill">New hire week</span>
+                    <h3>Add staff and get them on the roster</h3>
+                    <p>Light setup: add the person, assign shifts, publish the week—no heavy HR onboarding required.</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <button type="button" class="scenario-nav scenario-nav--next" aria-label="Next scenario">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="scenario-dots" role="tablist" aria-label="Scenario slides">
+            <button type="button" class="scenario-dot is-active" role="tab" aria-selected="true" aria-label="Slide 1: Monday morning"></button>
+            <button type="button" class="scenario-dot" role="tab" aria-selected="false" aria-label="Slide 2: Mid-shift"></button>
+            <button type="button" class="scenario-dot" role="tab" aria-selected="false" aria-label="Slide 3: Friday close"></button>
+            <button type="button" class="scenario-dot" role="tab" aria-selected="false" aria-label="Slide 4: New hire week"></button>
+          </div>
         </div>
-        <div class="setup-includes" aria-labelledby="setup-includes-heading">
-          <h3 id="setup-includes-heading">What you get from a typical setup</h3>
-          <ul>
-            <li>Short call on shifts, sites, and how your team clocks in</li>
-            <li>Staff and device configuration when you use a ZKTeco terminal</li>
-            <li>Roster and attendance views matched to your week</li>
-            <li>Manager handover so you can run the weekly loop yourself</li>
-          </ul>
-          <span class="eyebrow-note">Not a customer quote—we’ll add real stories when design partners are ready to share them.</span>
-        </div>
+        <p class="section-cta">
+          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        </p>
       </div>
     </section>
 
@@ -1083,8 +1487,9 @@
       <div class="wrap">
         <div class="section-head-center">
           <p class="section-kicker">Simple setup</p>
-          <h2 id="how-it-works-heading" class="section-title">How it works</h2>
-          <p class="section-lead">A short weekly loop—set up once, then stay fast every week.</p>
+          <h2 id="how-it-works-heading" class="section-title">Four steps, then a fast weekly loop</h2>
+          <div class="section-accent" aria-hidden="true"></div>
+          <p class="section-lead">Set up once. Stay fast every week.</p>
         </div>
         <div class="steps">
           <div class="step" data-step="1">
@@ -1093,7 +1498,7 @@
           </div>
           <div class="step" data-step="2">
             <h3>Build this week’s schedule</h3>
-            <p>Create or tweak shifts in minutes; the auto scheduler helps with repeats, gaps, and quick edits.</p>
+            <p>Create or tweak shifts in minutes; Auto Scheduler helps with repeats, gaps, and quick edits.</p>
           </div>
           <div class="step" data-step="3">
             <h3>Track attendance as people work</h3>
@@ -1104,9 +1509,68 @@
             <p>Scan exceptions, adjust if needed, and export or hand off hours in a few clicks.</p>
           </div>
         </div>
-        <p class="text-center" style="margin-top:1.75rem;">
-          <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
+        <p class="section-cta">
+          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
         </p>
+      </div>
+    </section>
+
+    <section id="pricing" aria-labelledby="pricing-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">Pricing</p>
+          <h2 id="pricing-heading" class="section-title">Simple plans for shift teams</h2>
+          <div class="section-accent" aria-hidden="true"></div>
+          <p class="section-lead">Free for up to 10 staff. Try your clock free for 30 days. Then <strong>$19.99/month</strong> for live attendance, SMS roster publish, and up to 100 staff on Plus—no annual contract required.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="plan-card">
+            <h3 class="plan-name">Free</h3>
+            <p class="plan-price">$0 <span>/ mo</span></p>
+            <p class="plan-note">Start scheduling with a small team—no credit card.</p>
+            <ul class="plan-features">
+              <li>Up to 10 staff</li>
+              <li>Up to 2 locations</li>
+              <li>1 admin</li>
+              <li>30-day device sync trial (1 clock)</li>
+              <li>Weekly roster + manual attendance after trial</li>
+              <li>5 Auto Scheduler actions per month</li>
+            </ul>
+            <a class="btn btn-ghost app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          </article>
+          <article class="plan-card featured">
+            <span class="plan-badge">Most popular</span>
+            <h3 class="plan-name">Plus</h3>
+            <p class="plan-price">$19.99 <span>/ mo</span></p>
+            <p class="plan-note">Monthly billing, cancel anytime. Or $199/yr (~2 months free).</p>
+            <ul class="plan-features">
+              <li>Up to 100 staff</li>
+              <li>Unlimited locations</li>
+              <li>2 admins included</li>
+              <li>1 device, full live sync</li>
+              <li>SMS roster publish included</li>
+              <li>Auto Scheduler included</li>
+              <li>WhatsApp publish +$5/mo add-on</li>
+            </ul>
+            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          </article>
+          <article class="plan-card">
+            <h3 class="plan-name">Pro</h3>
+            <p class="plan-price">$49.99 <span>/ mo</span></p>
+            <p class="plan-note">For larger teams and multi-site ops. Or $499/yr (~2 months free).</p>
+            <ul class="plan-features">
+              <li>Unlimited staff</li>
+              <li>Unlimited locations</li>
+              <li>5 admins included</li>
+              <li>3 devices included</li>
+              <li>SMS + WhatsApp publish included</li>
+              <li>Auto Scheduler included</li>
+              <li>Exports, API, priority support (coming)</li>
+            </ul>
+            <a class="btn btn-ghost app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+          </article>
+        </div>
+        <p class="pricing-footnote">Need more devices or admins? Add extra devices for <strong>+$5/mo</strong> each and extra admins for <strong>+$2/mo</strong> each. Roster and attendance only—no payroll or enterprise HR bundles.</p>
       </div>
     </section>
 
@@ -1114,19 +1578,35 @@
       <div class="wrap">
         <p class="section-kicker text-center">Questions</p>
         <h2 id="faq-heading" class="section-title text-center">Common questions</h2>
-        <p class="section-lead text-center" style="margin-left:auto;margin-right:auto;">Short answers before you request early access.</p>
-        <div class="faq-list">
+        <div class="section-accent" aria-hidden="true"></div>
+        <p class="section-lead text-center" style="margin-left:auto;margin-right:auto;">Short answers before you start your trial.</p>
+        <div class="faq-layout">
+          <div class="support-cards">
+            <a class="support-card" href="mailto:hello@simplerosterplus.com">
+              <h3>Email us</h3>
+              <p>Questions about setup, pricing, or your first week? <strong>hello@simplerosterplus.com</strong></p>
+            </a>
+            <a class="support-card" href="#faq">
+              <h3>Clock &amp; ZKTeco setup</h3>
+              <p>Using a terminal? See how device sync fits your weekly flow.</p>
+            </a>
+            <a class="support-card" href="#pricing">
+              <h3>See pricing</h3>
+              <p>Free for 10 staff. Plus from <strong>$19.99/mo</strong>.</p>
+            </a>
+          </div>
+          <div class="faq-list">
           <details open>
             <summary>Who is Simple Roster Plus for?</summary>
             <p class="faq-a">Managers at shift-based small businesses who need to publish a weekly schedule and track attendance without a bloated HR system. If you want payroll, hiring, and benefits in one suite, this isn’t that—and that’s intentional.</p>
           </details>
           <details>
-            <summary>How does the auto scheduler help?</summary>
-            <p class="faq-a">It speeds up the repetitive parts—suggesting shift fills from templates and last week, surfacing exceptions on Home, and keeping the UI focused on what to do next. Summaries are rule-based today, not a chatbot—so you spend less time clicking and more time running the floor.</p>
+            <summary>How does Auto Scheduler help?</summary>
+            <p class="faq-a">Auto Scheduler speeds up the repetitive parts—suggesting shift fills, surfacing exceptions, and keeping the UI focused on what to do next—so you spend less time clicking and more time running the floor.</p>
           </details>
           <details>
             <summary>How long does setup take?</summary>
-            <p class="faq-a">We keep onboarding light: add your team, set how clock-ins work, and you’re ready to build the first week. Most managers should be scheduling within minutes, not days of configuration.</p>
+            <p class="faq-a">We keep onboarding light: add your team, set how clock-ins work, and build your first week. Most managers should be scheduling within minutes, not days of configuration.</p>
           </details>
           <details>
             <summary>Will this replace our HR or payroll software?</summary>
@@ -1138,71 +1618,9 @@
           </details>
           <details>
             <summary>How much does it cost?</summary>
-            <p class="faq-a">Free for up to 10 staff (try your clock free for 30 days). Plus is <strong>$19.99/month</strong> — up to 100 staff, live attendance, SMS roster publish, and 1 device included. Pro is <strong>$49.99/month</strong> for unlimited staff and larger teams. Extra devices and WhatsApp are <strong>$5/month</strong> each. No payroll or annual contract required.</p>
+            <p class="faq-a"><strong>Free</strong> covers up to 10 staff and a 30-day device sync trial. <strong>Plus</strong> is <strong>$19.99/month</strong> (or $199/year) for up to 100 staff, live attendance sync, and SMS roster publish. <strong>Pro</strong> is <strong>$49.99/month</strong> (or $499/year) for unlimited staff, more devices and admins, and WhatsApp included. All paid plans bill monthly—cancel anytime. See <a href="#pricing">pricing</a> for details. No payroll or enterprise HR bundles.</p>
           </details>
-        </div>
-      </div>
-    </section>
-
-    <section id="contact" aria-labelledby="contact-heading">
-      <div class="wrap">
-        <div class="section-head-center">
-          <p class="section-kicker">Start free</p>
-          <h2 id="contact-heading" class="section-title">Request early access</h2>
-          <p class="section-lead">Self-serve signup is coming soon. For now, tell us about your team—we’ll reply with practical next steps and hand-onboard the first design partners.</p>
-        </div>
-        <div class="contact-panel">
-          <p class="pricing-line"><strong>Free for up to 10 staff.</strong> Try your clock free for 30 days. Then <strong>$19.99/month</strong> for Plus—up to 100 staff, live attendance, SMS roster publish, and one device included. No annual contract required.</p>
-          <form id="contact-form" class="contact-form" novalidate>
-            <input type="hidden" name="intent" value="early_access">
-            <div>
-              <label for="contact-name">Your name</label>
-              <input id="contact-name" name="name" type="text" autocomplete="name" required minlength="2">
-            </div>
-            <div>
-              <label for="contact-email">Work email</label>
-              <input id="contact-email" name="email" type="email" autocomplete="email" required>
-            </div>
-            <div class="form-row-2">
-              <div>
-                <label for="contact-business">Business name <span class="optional">(optional)</span></label>
-                <input id="contact-business" name="business" type="text" autocomplete="organization">
-              </div>
-              <div>
-                <label for="contact-phone">Phone <span class="optional">(optional)</span></label>
-                <input id="contact-phone" name="phone" type="tel" autocomplete="tel">
-              </div>
-            </div>
-            <div class="form-row-2">
-              <div>
-                <label for="contact-staff">Approx. staff count</label>
-                <select id="contact-staff" name="staffCount">
-                  <option value="">Select…</option>
-                  <option value="1-5">1–5</option>
-                  <option value="6-10">6–10</option>
-                  <option value="11-25">11–25</option>
-                  <option value="26-50">26–50</option>
-                  <option value="51-100">51–100</option>
-                  <option value="100+">100+</option>
-                </select>
-              </div>
-              <div>
-                <label for="contact-zkteco">Using ZKTeco (or similar) today?</label>
-                <select id="contact-zkteco" name="hasZkteco">
-                  <option value="unknown">Not sure</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label for="contact-message">Anything else? <span class="optional">(optional)</span></label>
-              <textarea id="contact-message" name="message" placeholder="Sites, shift pattern, or what you want to fix first…"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary" id="contact-submit">Send my request</button>
-            <p class="form-status" id="contact-status" role="status" aria-live="polite"></p>
-          </form>
-          <p class="form-note">Already have an account from us? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in to the app</a>. Prefer email? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
+          </div>
         </div>
       </div>
     </section>
@@ -1210,8 +1628,9 @@
     <section id="cta-close" aria-labelledby="cta-close-heading">
       <div class="wrap">
         <h2 id="cta-close-heading">Your week’s schedule and attendance—fast, simple, in one place.</h2>
-        <p>Free for up to 10 staff—request early access and we’ll get you running the weekly loop.</p>
-        <a class="btn btn-primary start-free-cta" href="#contact">Start Free</a>
+        <p>Start free for up to 10 staff. Build this week’s roster and see plan vs. actual in minutes—not another spreadsheet Sunday.</p>
+        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <p class="cta-note">Already have an account? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a> · Questions? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
       </div>
     </section>
   </main>
@@ -1235,10 +1654,11 @@
           <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
         </svg>
       </a>
-      <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes—with smart summaries that keep the process fast and simple.</p>
+      <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with Auto Scheduler keeping the process fast and simple.</p>
       <nav class="footer-links" aria-label="Footer">
+        <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
-        <a class="start-free-cta" href="#contact">Start Free</a>
+        <a class="app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
         <a href="privacy.html">Privacy policy</a>
         <a href="terms.html">Terms of service</a>
         <a id="app-login-footer" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
@@ -1250,66 +1670,72 @@
     document.getElementById("y").textContent = new Date().getFullYear();
     (function () {
       var origin = (window.SRP_APP_ORIGIN || "https://simplerosterplus.vercel.app").replace(/\/$/, "");
-      var siteUrl = (window.SRP_SITE_URL || origin).replace(/\/$/, "");
       var loginUrl = window.SRP_APP_LOGIN_URL || origin + "/login";
-      var marketingApi = window.SRP_MARKETING_API || origin + "/api/marketing/contact";
-
-      var canonical = document.querySelector('link[rel="canonical"]');
-      if (canonical) canonical.href = siteUrl + "/";
-
+      var signupUrl = window.SRP_APP_SIGNUP_URL || loginUrl;
+      document.querySelectorAll(".app-cta").forEach(function (el) {
+        el.href = signupUrl;
+      });
       ["app-login", "app-login-inline", "app-login-footer"].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.href = loginUrl;
       });
+    })();
 
-      var form = document.getElementById("contact-form");
-      var statusEl = document.getElementById("contact-status");
-      var submitBtn = document.getElementById("contact-submit");
-      if (!form || !statusEl) return;
+    (function () {
+      var carousel = document.querySelector("[data-scenario-carousel]");
+      if (!carousel) return;
 
-      function setStatus(state, message) {
-        statusEl.textContent = message;
-        statusEl.setAttribute("data-state", state);
+      var track = carousel.querySelector(".scenario-track");
+      var viewport = carousel.querySelector(".scenario-carousel-viewport");
+      var prevBtn = carousel.querySelector(".scenario-nav--prev");
+      var nextBtn = carousel.querySelector(".scenario-nav--next");
+      var dots = carousel.querySelectorAll(".scenario-dot");
+      var cards = carousel.querySelectorAll(".scenario-card");
+      var index = 0;
+      var maxIndex = cards.length - 1;
+
+      function slideOffset() {
+        if (!cards.length) return 0;
+        var gap = parseFloat(getComputedStyle(track).gap) || 16;
+        return index * (cards[0].getBoundingClientRect().width + gap);
       }
 
-      form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        setStatus("", "");
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Sending…";
+      function clampIndex() {
+        if (index > maxIndex) index = maxIndex;
+        if (index < 0) index = 0;
+      }
 
-        var fd = new FormData(form);
-        var payload = {
-          intent: fd.get("intent") || "early_access",
-          name: String(fd.get("name") || "").trim(),
-          email: String(fd.get("email") || "").trim(),
-          business: String(fd.get("business") || "").trim() || null,
-          phone: String(fd.get("phone") || "").trim() || null,
-          staffCount: String(fd.get("staffCount") || "").trim() || null,
-          hasZkteco: String(fd.get("hasZkteco") || "unknown"),
-          message: String(fd.get("message") || "").trim() || null,
-          source: "landing-page#contact",
-        };
+      function update() {
+        clampIndex();
+        track.style.transform = "translateX(-" + slideOffset() + "px)";
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index >= maxIndex;
+        dots.forEach(function (dot, i) {
+          var active = i === index;
+          dot.classList.toggle("is-active", active);
+          dot.setAttribute("aria-selected", active ? "true" : "false");
+        });
+      }
 
-        try {
-          var res = await fetch(marketingApi, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          var data = await res.json().catch(function () { return {}; });
-          if (!res.ok) {
-            throw new Error(data.error || "Could not send your request. Please try again or email hello@simplerosterplus.com.");
-          }
-          form.reset();
-          setStatus("success", "Thanks—we received your request and will reply soon.");
-        } catch (err) {
-          setStatus("error", err.message || "Something went wrong. Please email hello@simplerosterplus.com.");
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Send my request";
-        }
+      prevBtn.addEventListener("click", function () {
+        index -= 1;
+        update();
       });
+
+      nextBtn.addEventListener("click", function () {
+        index += 1;
+        update();
+      });
+
+      dots.forEach(function (dot, i) {
+        dot.addEventListener("click", function () {
+          index = i;
+          update();
+        });
+      });
+
+      window.addEventListener("resize", update);
+      update();
     })();
   </script>
 </body>

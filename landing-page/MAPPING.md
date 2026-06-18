@@ -1,9 +1,12 @@
 # Simple Roster Plus — Landing page map
 
+**Canonical directory:** `srp/landing-page/` — this file and `index.html` are the main marketing site.  
+**Master doc:** [`LANDING-PAGE.md`](./LANDING-PAGE.md) — structure, session changelog, experiment comparison, image inventory.  
 **Guide:** Craig Morrison *Step by Step Landing Page* (LP template = structure only)  
 **Build:** Modern HTML5 + existing `index.html` design tokens (no Bootstrap 3)  
-**Positioning:** See `.cursor/rules/simple-roster-plus-positioning.mdc` — product for **managers**, weekly schedules + attendance **in minutes**, **AI** for speed/simplicity.  
-**Mission (canonical):** *Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with AI keeping the process fast and simple.*  
+**Positioning:** See `srp/.cursor/rules/simple-roster-plus-positioning.mdc` — **managers**, weekly schedules + attendance **in minutes**, **Auto Scheduler** (not “AI”).  
+**Mission (canonical):** *Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with Auto Scheduler keeping the process fast and simple.*  
+**Legacy experiment:** `landing page/` (repo sibling) — not canonical; see `LANDING-PAGE.md` § Two copies.  
 **Out of scope for now:** Analytics / conversion tracking (Step 10)
 
 ---
@@ -14,10 +17,12 @@
 |------|--------|
 | **Persona** | **Manager** at a shift-based small business—builds the weekly schedule, tracks attendance, wants speed not HR bloat. |
 | **App origin** | `https://simplerosterplus.vercel.app` (custom marketing domain later) |
-| **One action** | **Start Free** — every `.start-free-cta` → `#contact` (early-access form; Gate 2 flips to self-serve signup URL) |
-| **Log in** | `SRP_APP_LOGIN_URL` → app `/login` (hand-onboarded testers only until Gate 2) |
-| **CTA label (everywhere)** | `Start Free` |
-| **Contact section** | `#contact` — early-access form POSTs to `SRP_MARKETING_API` (`/api/marketing/contact`) |
+| **Primary CTA label** | **Start Free** (same label everywhere) |
+| **Self-serve path** | `.cta-signup` → `SRP_APP_SIGNUP_URL` (`/sign-up`) — hero, `#contact` panel, `#cta-close` |
+| **Nurture path** | `.cta-contact` → `#contact` — header, how-it-works, footer |
+| **Demo path** | `.demo-cta` → `SRP_APP_DEMO_URL` (`/sign-up?intent=demo`) — hero, how-it-works, `#contact`, `#cta-close` |
+| **Log in** | `SRP_APP_LOGIN_URL` → app `/login` |
+| **Contact section** | `#contact` — self-serve row + form POSTs to `SRP_MARKETING_API` |
 | **Closing headline** | Alternate benefit line (see §11), not a second H1 |
 
 ---
@@ -27,23 +32,23 @@
 ```text
 header
   logo → #hero
-  Log in → `SRP_APP_LOGIN_URL` (Vercel app `/login`, before CTA)
-  .btn-primary → #contact — Start Free Trial
+  Log in → `SRP_APP_LOGIN_URL`
+  Start Free → `#contact` (`.cta-contact`)
 
 main
-  #hero           — Steps 3–6
-  #trust          — Step 8 (early)
-  #pain           — Step 7 (pain)
-  #dream          — Step 7 (dream)
-  #solution       — Step 7 (solution) + condensed features
-  #social-proof   — features list + testimonial placeholders + logo placeholders
-  #how-it-works   — weekly loop (4 steps)
-  #faq            — objections (short)
-  #get-started    — direct signup CTA panel
-  #cta-close      — Step 9 closing band
+  #hero           — Start Free (signup) + Explore demo
+  #trust          — workplace chips
+  #pain           — problem
+  #dream          — outcomes
+  #solution       — feature blocks
+  #social-proof   — setup includes
+  #how-it-works   — four steps; Start Free (contact) + Explore demo
+  #faq            — objections
+  #contact        — signup + demo row, then optional form
+  #cta-close      — Start Free (signup) + Explore demo
 
 footer
-  logo, one line, legal placeholders, text link → #contact
+  logo, mission, FAQ · Start Free (`#contact`) · legal · Log in
 ```
 
 **Rule:** No other in-page nav targets for v1 (remove Features / Workflow / Industries / Setup from header).
@@ -71,7 +76,7 @@ footer
 **HTML:** `<section id="hero" aria-labelledby="hero-heading">`  
 - One `<h1 id="hero-heading">`  
 - One `<p class="lead">` (supporting headline)  
-- One `<a class="btn btn-primary" href="#contact">`  
+- One `<a class="btn btn-primary cta-signup">` + `<a class="btn btn-secondary demo-cta">`  
 - One visual column (mock → real screenshots later)  
 - Optional: 3 short badges under CTA (ZKTeco-ready, roster + punches, small teams) — not a second button  
 
@@ -272,18 +277,18 @@ Label clearly: `What you get from a typical setup` — not a testimonial.
 
 ---
 
-### 10. `#contact` — Conversion
+### 10. `#contact` — Conversion (hybrid)
 
 **Book step:** 2 (action destination)
 
 **HTML:** `<section id="contact">`  
-- `<h2>` Get a setup quote  
-- Lead: reply with practical next steps, no pressure  
-- Form: keep current fields (name, business, email, phone, staff count, ZKTeco yes/no, message)  
-- Submit: `Send my request`  
-- Remove demo `alert()` when wiring backend; until then keep note in `.form-note`  
+- `<h2>` Start free—or tell us about your team  
+- Self-serve row: `.cta-signup` + `.demo-cta`  
+- Optional form for hand-onboard / multi-site questions  
+- Form fields unchanged; submit `Send my request`  
+- Backend: `POST` `SRP_MARKETING_API`  
 
-**Place:** After FAQ, before closing band (or closing band scrolls here).
+**Place:** After FAQ, before `#cta-close`.
 
 ---
 
@@ -294,7 +299,7 @@ Label clearly: `What you get from a typical setup` — not a testimonial.
 **HTML:** `<section id="cta-close" class="cta-band">`  
 - `<h2 id="cta-close-heading">` — use **Alt B** or Alt A from hero table  
 - One `<p>` — one sentence dream reminder  
-- One `.btn-primary` → `#contact` (same label as hero)  
+- `.cta-signup` + `.demo-cta` (self-serve path; not the contact form)  
 - Optional: reuse small attendance mock (decorative `aria-hidden="true"`)  
 
 **Do not:** Duplicate form here.
@@ -309,7 +314,7 @@ Label clearly: `What you get from a typical setup` — not a testimonial.
 - Logo, one-line positioning  
 - Links: Privacy, Terms (real URLs when ready)  
 - `© year Simple Roster Plus`  
-- Text link: Request a setup quote → `#contact`  
+- Text link: Start Free → `#contact`  
 
 **Remove:** Multi-column explore/company nav that competes with single CTA (or max 3 text links: FAQ, Contact, Privacy).
 
@@ -334,14 +339,15 @@ Label clearly: `What you get from a typical setup` — not a testimonial.
 
 ## CTA & copy consistency
 
-| Location | Label |
-|----------|--------|
-| Header | Start Free |
-| Hero | Start Free |
-| After how-it-works | Start Free |
-| `#cta-close` | Start Free |
-| Footer | Start Free |
-| Form submit | Send my request |
+| Location | Start Free target | Explore demo |
+|----------|-------------------|--------------|
+| Header | `#contact` (`.cta-contact`) | — |
+| Hero | `/sign-up` (`.cta-signup`) | yes |
+| After how-it-works | `#contact` (`.cta-contact`) | yes |
+| `#contact` panel | `/sign-up` (`.cta-signup`) | yes |
+| `#cta-close` | `/sign-up` (`.cta-signup`) | yes |
+| Footer | `#contact` (`.cta-contact`) | — |
+| Form submit | — | Send my request |
 
 ---
 

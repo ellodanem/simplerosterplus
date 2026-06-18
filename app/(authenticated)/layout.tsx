@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/app/components/app-nav";
+import { DemoSandboxBanner } from "@/app/components/demo-sandbox-banner";
 import { FeedbackButton } from "@/app/components/feedback-button";
 import { ImpersonationBanner } from "@/app/components/impersonation-banner";
 import { LogoutButton } from "@/app/components/logout-button";
 import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
+import { prisma } from "@/lib/prisma";
 import { getSession, isReadOnlySession } from "@/lib/session";
 
 export default async function AuthenticatedLayout({
@@ -19,6 +21,11 @@ export default async function AuthenticatedLayout({
 
   const readOnly = isReadOnlySession(session);
 
+  const org = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: { isDemo: true, demoExpiresAt: true },
+  });
+
   return (
     <div className="flex min-h-full flex-col">
       {readOnly ? (
@@ -26,6 +33,9 @@ export default async function AuthenticatedLayout({
           orgName={session.orgName ?? "Organization"}
           asEmail={session.email}
         />
+      ) : null}
+      {org?.isDemo && org.demoExpiresAt ? (
+        <DemoSandboxBanner demoExpiresAt={org.demoExpiresAt} />
       ) : null}
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">

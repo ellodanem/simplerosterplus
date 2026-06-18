@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
 import { allowStaffDeleteInDev } from "@/lib/staff-archive";
 import { parseOptionalString, parseOptionalYmd } from "@/lib/staff-input";
+import { checkStaffLimit } from "@/lib/plan-limits";
 
 const STAFF_SELECT = {
   id: true,
@@ -132,6 +133,14 @@ export async function POST(request: Request) {
     _max: { sortOrder: true },
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
+  const staffLimit = await checkStaffLimit(session.orgId);
+  if (staffLimit) {
+    return NextResponse.json(
+      { error: staffLimit.message, code: "plan_limit", kind: staffLimit.kind },
+      { status: 403 },
+    );
+  }
 
   try {
     const staff = await prisma.staff.create({

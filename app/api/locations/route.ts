@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { checkLocationLimit } from "@/lib/plan-limits";
 
 export async function GET() {
   const session = await getSession();
@@ -39,6 +40,14 @@ export async function POST(request: Request) {
 
   const timeZone =
     typeof body.timeZone === "string" && body.timeZone.trim() ? body.timeZone.trim() : null;
+
+  const locationLimit = await checkLocationLimit(session.orgId);
+  if (locationLimit) {
+    return NextResponse.json(
+      { error: locationLimit.message, code: "plan_limit", kind: locationLimit.kind },
+      { status: 403 },
+    );
+  }
 
   try {
     const location = await prisma.location.create({

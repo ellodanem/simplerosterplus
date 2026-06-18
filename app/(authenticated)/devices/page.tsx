@@ -9,12 +9,14 @@ import { AddDeviceButton } from "@/app/components/add-device-drawer";
 import { DeviceStatusCells } from "@/app/components/device-status-cells";
 import { UnmappedDevicePunchesPanel } from "@/app/components/unmapped-device-punches-panel";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
+import { getDeviceTrialStatusForOrg } from "@/lib/device-trial";
 import {
   getOrgPublicAppUrlOverride,
   publicAppUrlHostnameHyphenWarning,
 } from "@/lib/public-app-url-settings";
 import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
 import { PublicAppUrlSettingsButton } from "@/app/components/public-app-url-settings";
+import { DeviceTrialBanner } from "@/app/components/device-trial-banner";
 import {
   getStaffOptionsForUnmappedMapping,
   listUnmappedDeviceUsers,
@@ -30,7 +32,20 @@ export default async function DevicesPage() {
 
   await redirectToSetupIfIncomplete({ organizationId: session.orgId, nextPath: "/devices" });
 
-  const [devices, locations, punchCounts24h, unmappedRows] = await Promise.all([
+  const orgPlan = await prisma.organization.findUnique({
+    where: { id: session.orgId },
+    select: {
+      plan: true,
+      isDemo: true,
+      deviceTrialStartedAt: true,
+      deviceTrialExpiresAt: true,
+      deviceTrialExtensionUsed: true,
+    },
+  });
+
+  const deviceTrial = !orgPlan?.isDemo ? getDeviceTrialStatusForOrg(session.orgId) : null;
+
+  const [devices, locations, punchCounts24h, unmappedRows, trialStatus] = await Promise.all([
     prisma.device.findMany({
       where: { organizationId: session.orgId, deletedAt: null },
       orderBy: [{ name: "asc" }],
@@ -52,6 +67,7 @@ export default async function DevicesPage() {
       _count: { _all: true },
     }),
     listUnmappedDeviceUsers(session.orgId),
+    deviceTrial,
   ]);
 
   const unmappedLocationIds = [...new Set(unmappedRows.map((r) => r.locationId))];
@@ -104,6 +120,8 @@ export default async function DevicesPage() {
           <AddDeviceButton locations={locations} publicBaseUrl={publicBaseUrl} />
         </div>
       </div>
+
+      {trialStatus ? <DeviceTrialBanner trial={trialStatus} /> : null}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-zinc-200 bg-white">
         <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3">
