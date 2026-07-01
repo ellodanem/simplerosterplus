@@ -10,6 +10,7 @@ import {
   isRosterDayLocked,
   rosterLockedDays,
   rosterUnlockedDays,
+  type RosterLockOptions,
 } from "@/lib/roster-week-lock";
 import { dayHeaderLabel, dayHeaderLabelCompact, shiftYmd } from "@/lib/roster-week";
 import { dateTextColorFromYmd } from "@/lib/date-color";
@@ -79,8 +80,13 @@ function formatRosterDayList(ymds: string[], timeZone: string): string {
   return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
-function isDayLocked(ymd: string, weekStartYmd: string, todayYmd: string): boolean {
-  return isRosterDayLocked(ymd, weekStartYmd, todayYmd);
+function isDayLocked(
+  ymd: string,
+  weekStartYmd: string,
+  todayYmd: string,
+  lock: RosterLockOptions,
+): boolean {
+  return isRosterDayLocked(ymd, weekStartYmd, todayYmd, lock);
 }
 
 function LockIcon({ className }: { className?: string }) {
@@ -136,6 +142,7 @@ export function RosterGrid({
   weekStartWeekday,
   orgName,
   weekPublished,
+  weekEverPublished,
   sharePath,
   shareUrl,
   shareBaseUrl,
@@ -166,6 +173,8 @@ export function RosterGrid({
   weekStartWeekday: number;
   orgName: string;
   weekPublished: boolean;
+  /** True when this week was shared at least once; past-day locks apply only then. */
+  weekEverPublished: boolean;
   sharePath: string | null;
   shareUrl: string | null;
   /** Canonical public app origin (APP_URL / org override), not the browser host. */
@@ -309,13 +318,18 @@ export function RosterGrid({
     [staffRows, days, entries, blockMap, holidays, minimumOffDaysSettings],
   );
 
+  const rosterLock = useMemo<RosterLockOptions>(
+    () => ({ everPublished: weekEverPublished }),
+    [weekEverPublished],
+  );
+
   const lockedDays = useMemo(
-    () => rosterLockedDays(weekStartYmd, todayYmd),
-    [weekStartYmd, todayYmd],
+    () => rosterLockedDays(weekStartYmd, todayYmd, rosterLock),
+    [weekStartYmd, todayYmd, rosterLock],
   );
   const unlockedDays = useMemo(
-    () => rosterUnlockedDays(weekStartYmd, todayYmd),
-    [weekStartYmd, todayYmd],
+    () => rosterUnlockedDays(weekStartYmd, todayYmd, rosterLock),
+    [weekStartYmd, todayYmd, rosterLock],
   );
   const clearableShiftCount = useMemo(() => {
     let count = 0;
@@ -368,7 +382,7 @@ export function RosterGrid({
     ymd: string,
   ) {
     if (weekLocked) return;
-    if (isDayLocked(ymd, weekStartYmd, todayYmd)) return;
+    if (isDayLocked(ymd, weekStartYmd, todayYmd, rosterLock)) return;
     if (blockedReason(s, ymd)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchor({
@@ -417,7 +431,7 @@ export function RosterGrid({
 
   async function setCell(staffId: string, ymd: string, templateId: string | null) {
     if (weekLocked) return;
-    if (isDayLocked(ymd, weekStartYmd, todayYmd)) return;
+    if (isDayLocked(ymd, weekStartYmd, todayYmd, rosterLock)) return;
     const key = cellKey(staffId, ymd);
     const previous = entries[key];
     setEntries((s) => {
@@ -455,7 +469,7 @@ export function RosterGrid({
     const targets: string[] = [];
     const previousByKey: Record<string, string | undefined> = {};
     for (const ymd of days) {
-      if (isDayLocked(ymd, weekStartYmd, todayYmd)) continue;
+      if (isDayLocked(ymd, weekStartYmd, todayYmd, rosterLock)) continue;
       if (blockedReason(s, ymd)) continue;
       targets.push(ymd);
       previousByKey[cellKey(staffId, ymd)] = entries[cellKey(staffId, ymd)];
@@ -996,7 +1010,7 @@ export function RosterGrid({
                 const h = dayHeaderLabelCompact(d, timeZone);
                 const isToday = d === todayYmd;
                 const closed = holidays[d]?.stationClosed;
-                const dayLocked = !weekLocked && isDayLocked(d, weekStartYmd, todayYmd);
+                const dayLocked = !weekLocked && isDayLocked(d, weekStartYmd, todayYmd, rosterLock);
                 return (
                   <th
                     key={d}
@@ -1245,7 +1259,7 @@ export function RosterGrid({
                     const tpl = templateId ? templateById.get(templateId) : undefined;
                     const blocked = blockedReason(s, d);
                     const isPending = !!pending[key];
-                    const dayLocked = weekLocked || isDayLocked(d, weekStartYmd, todayYmd);
+                    const dayLocked = weekLocked || isDayLocked(d, weekStartYmd, todayYmd, rosterLock);
                     return (
                       <td
                         key={d}

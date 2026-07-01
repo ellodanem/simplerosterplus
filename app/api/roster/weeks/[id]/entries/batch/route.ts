@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
-import { isRosterDayLocked, isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { isRosterDayLocked, isRosterWeekLocked, rosterLockFromShareToken } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
@@ -38,6 +38,7 @@ async function postRosterEntriesBatch(request: Request, params: Promise<{ id: st
     select: {
       id: true,
       weekStart: true,
+      shareToken: true,
       locationId: true,
       location: { select: { timeZone: true } },
       organization: { select: { timeZone: true } },
@@ -48,7 +49,8 @@ async function postRosterEntriesBatch(request: Request, params: Promise<{ id: st
   const anchorYmd = ymdForDbDate(week.weekStart);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
   const todayYmd = formatYmdInZone(new Date(), timeZone);
-  if (isRosterWeekLocked(anchorYmd, timeZone)) {
+  const rosterLock = rosterLockFromShareToken(week.shareToken);
+  if (isRosterWeekLocked(anchorYmd, timeZone, rosterLock)) {
     return NextResponse.json(
       { error: "This roster week is locked (read-only)." },
       { status: 403 },
@@ -100,7 +102,7 @@ async function postRosterEntriesBatch(request: Request, params: Promise<{ id: st
   }
 
   const datesToApply = uniqueDates.filter(
-    (date) => !isRosterDayLocked(date, anchorYmd, todayYmd),
+    (date) => !isRosterDayLocked(date, anchorYmd, todayYmd, rosterLock),
   );
   if (datesToApply.length === 0) {
     return NextResponse.json(

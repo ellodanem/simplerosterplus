@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getApprovedBlockMap } from "@/lib/leave-blocks";
-import { isRosterWeekLocked, rosterUnlockedDays } from "@/lib/roster-week-lock";
+import { isRosterWeekLocked, rosterLockFromShareToken, rosterUnlockedDays } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { ymdForDbDate } from "@/lib/roster-week";
 
@@ -28,6 +28,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     select: {
       id: true,
       weekStart: true,
+      shareToken: true,
       locationId: true,
       location: { select: { timeZone: true } },
       organization: { select: { timeZone: true } },
@@ -37,7 +38,8 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const anchorYmd = ymdForDbDate(week.weekStart);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
-  if (isRosterWeekLocked(anchorYmd, timeZone)) {
+  const rosterLock = rosterLockFromShareToken(week.shareToken);
+  if (isRosterWeekLocked(anchorYmd, timeZone, rosterLock)) {
     return NextResponse.json(
       { error: "This roster week is locked (read-only)." },
       { status: 403 },
@@ -45,7 +47,7 @@ export async function POST(_request: Request, { params }: Ctx) {
   }
 
   const todayYmd = formatYmdInZone(new Date(), timeZone);
-  const unlockedYmds = rosterUnlockedDays(anchorYmd, todayYmd);
+  const unlockedYmds = rosterUnlockedDays(anchorYmd, todayYmd, rosterLock);
   if (unlockedYmds.length === 0) {
     return NextResponse.json({ error: "All days in this week are locked." }, { status: 403 });
   }

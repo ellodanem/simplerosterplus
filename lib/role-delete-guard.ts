@@ -1,5 +1,5 @@
 import { formatYmdInZone } from "@/lib/datetime-policy";
-import { isRosterDayLocked } from "@/lib/roster-week-lock";
+import { isRosterDayLocked, rosterLockFromShareToken } from "@/lib/roster-week-lock";
 import { prisma } from "@/lib/prisma";
 import { ymdFromDate } from "@/lib/staff-input";
 
@@ -30,6 +30,7 @@ export async function getRoleDeleteBlockReason(
           rosterWeek: {
             select: {
               weekStart: true,
+              shareToken: true,
               location: { select: { timeZone: true } },
             },
           },
@@ -47,7 +48,8 @@ export async function getRoleDeleteBlockReason(
       if (!anchorYmd || !entryYmd) continue;
       const timeZone = entry.rosterWeek.location.timeZone ?? org.timeZone;
       const todayForLoc = formatYmdInZone(new Date(), timeZone);
-      if (!isRosterDayLocked(entryYmd, anchorYmd, todayForLoc)) {
+      const rosterLock = rosterLockFromShareToken(entry.rosterWeek.shareToken);
+      if (!isRosterDayLocked(entryYmd, anchorYmd, todayForLoc, rosterLock)) {
         onUnlockedSchedule = true;
         break;
       }

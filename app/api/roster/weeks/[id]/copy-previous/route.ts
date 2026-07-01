@@ -6,6 +6,7 @@ import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
 import {
   isRosterDayLocked,
   isRosterWeekLocked,
+  rosterLockFromShareToken,
   rosterUnlockedDays,
 } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
@@ -35,6 +36,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     select: {
       id: true,
       weekStart: true,
+      shareToken: true,
       organizationId: true,
       locationId: true,
       location: { select: { timeZone: true } },
@@ -45,7 +47,8 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const anchorYmd = ymdForDbDate(target.weekStart);
   const timeZone = target.location.timeZone ?? target.organization.timeZone;
-  if (isRosterWeekLocked(anchorYmd, timeZone)) {
+  const rosterLock = rosterLockFromShareToken(target.shareToken);
+  if (isRosterWeekLocked(anchorYmd, timeZone, rosterLock)) {
     return NextResponse.json(
       { error: "This roster week is locked (read-only)." },
       { status: 403 },
@@ -54,7 +57,7 @@ export async function POST(_request: Request, { params }: Ctx) {
 
   const todayYmd = formatYmdInZone(new Date(), timeZone);
   const targetWeekEndYmd = weekEndYmd(anchorYmd);
-  const unlockedYmds = rosterUnlockedDays(anchorYmd, todayYmd);
+  const unlockedYmds = rosterUnlockedDays(anchorYmd, todayYmd, rosterLock);
   const unlockedDateUtc = unlockedYmds.map((ymd) => utcDateFromYmd(ymd));
   const emptyEntries = new Set<string>();
 
@@ -154,7 +157,7 @@ export async function POST(_request: Request, { params }: Ctx) {
     const targetDate = addDaysUtc(e.date, 7);
     const targetYmd = ymdForDbDate(targetDate);
 
-    if (isRosterDayLocked(targetYmd, anchorYmd, todayYmd)) {
+    if (isRosterDayLocked(targetYmd, anchorYmd, todayYmd, rosterLock)) {
       skipped++;
       continue;
     }

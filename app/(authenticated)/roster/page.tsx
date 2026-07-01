@@ -10,7 +10,7 @@ import {
   filterRosterStaffForWeek,
   staffIdsWithRosterEntries,
 } from "@/lib/roster-display-staff";
-import { isRosterWeekLocked } from "@/lib/roster-week-lock";
+import { isRosterWeekLocked, rosterLockFromShareToken } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import {
   getHolidaySyncYears,
@@ -92,7 +92,6 @@ export default async function RosterPage({
   const weekEndDate = utcDateFromYmd(weekEndYmdStr);
   const days = daysOfWeek(weekStartYmd);
   const todayYmd = formatYmdInZone(new Date(), effectiveTimeZone);
-  const weekLocked = isRosterWeekLocked(weekStartYmd, effectiveTimeZone);
 
   const week = await prisma.rosterWeek.upsert({
     where: {
@@ -110,6 +109,9 @@ export default async function RosterPage({
     update: {},
     select: { id: true, weekStart: true, status: true, shareToken: true, notes: true },
   });
+
+  const rosterLock = rosterLockFromShareToken(week.shareToken);
+  const weekLocked = isRosterWeekLocked(weekStartYmd, effectiveTimeZone, rosterLock);
 
   const headersList = await headers();
   const { url: publicBase } = await resolvePublicAppUrlForOrg(org.id, {
@@ -250,6 +252,7 @@ export default async function RosterPage({
         weekStartWeekday={weekStartWeekday}
         orgName={org.name}
         weekPublished={week.status === "published"}
+        weekEverPublished={rosterLock.everPublished}
         sharePath={sharePath}
         shareUrl={shareUrl}
         shareBaseUrl={publicBase || null}
