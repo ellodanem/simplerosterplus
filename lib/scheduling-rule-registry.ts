@@ -55,6 +55,7 @@ export type RuleTemplateMeta = {
   type: string;
   label: string;
   description: string;
+  category: "coverage" | "limits" | "rotation";
   defaultParams: Record<string, unknown>;
   evaluate: RuleEvaluator;
 };
@@ -407,6 +408,180 @@ const evaluateNoConsecutiveWorkDays: RuleEvaluator = (rule, person, ctx) => {
 };
 
 // ---------------------------------------------------------------------------
+// Rule type: max_staff_per_day
+// Params: { roleNames: string[], maxCount: number }
+// Caps how many people with certain roles can be scheduled on a single day.
+// ---------------------------------------------------------------------------
+
+export type MaxStaffPerDayParams = {
+  roleNames: string[];
+  maxCount: number;
+};
+
+function parseMaxStaffPerDayParams(raw: Record<string, unknown>): MaxStaffPerDayParams {
+  const roleNames = Array.isArray(raw.roleNames)
+    ? (raw.roleNames as string[]).filter((s) => typeof s === "string" && s.trim())
+    : [];
+  const maxCount = typeof raw.maxCount === "number" && Number.isInteger(raw.maxCount) && raw.maxCount >= 1
+    ? raw.maxCount
+    : 5;
+  return { roleNames, maxCount };
+}
+
+const evaluateMaxStaffPerDay: RuleEvaluator = (rule, _person, ctx) => {
+  const params = parseMaxStaffPerDayParams(rule.params);
+  const allRoles = params.roleNames.length === 0;
+  const roleLabel = allRoles ? "staff" : params.roleNames.join("/");
+
+  const qualifying = allRoles
+    ? ctx.staff
+    : ctx.staff.filter((s) => staffMatchesRoleNames(s.role, params.roleNames));
+  if (qualifying.length === 0) return [];
+
+  const violations: SchedulingRuleViolation[] = [];
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) continue;
+
+    const scheduled = qualifying.filter((s) => hasShift(ctx.entries, s.id, ymd));
+    if (scheduled.length <= params.maxCount) continue;
+
+    if (scheduled.some((s) => s.id === _person.id)) {
+      violations.push({
+        ruleId: rule.id,
+        ruleType: rule.type,
+        staffId: _person.id,
+        message: `${scheduled.length} ${roleLabel} on day (max ${params.maxCount})`,
+        dates: [ymd],
+      });
+    }
+  }
+
+  return violations;
+};
+
+// ---------------------------------------------------------------------------
+// Rule type: max_staff_per_shift
+// Params: { shiftTemplateIds: string[], maxCount: number }
+// Caps how many people can be assigned to specific shifts on any day.
+// ---------------------------------------------------------------------------
+
+export type MaxStaffPerShiftParams = {
+  shiftTemplateIds: string[];
+  maxCount: number;
+};
+
+function parseMaxStaffPerShiftParams(raw: Record<string, unknown>): MaxStaffPerShiftParams {
+  const shiftTemplateIds = Array.isArray(raw.shiftTemplateIds)
+    ? (raw.shiftTemplateIds as string[]).filter((s) => typeof s === "string" && s.trim())
+    : [];
+  const maxCount = typeof raw.maxCount === "number" && Number.isInteger(raw.maxCount) && raw.maxCount >= 1
+    ? raw.maxCount
+    : 3;
+  return { shiftTemplateIds, maxCount };
+}
+
+const evaluateMaxStaffPerShift: RuleEvaluator = (rule, _person, ctx) => {
+  const params = parseMaxStaffPerShiftParams(rule.params);
+  if (params.shiftTemplateIds.length === 0) return [];
+  const templateSet = new Set(params.shiftTemplateIds);
+
+  const violations: SchedulingRuleViolation[] = [];
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) continue;
+
+    let count = 0;
+    let personOnShift = false;
+    for (const s of ctx.staff) {
+      const tplId = ctx.entries[cellKey(s.id, ymd)];
+      if (tplId && templateSet.has(tplId)) {
+        count++;
+        if (s.id === _person.id) personOnShift = true;
+      }
+    }
+
+    if (count > params.maxCount && personOnShift) {
+      violations.push({
+        ruleId: rule.id,
+        ruleType: rule.type,
+        staffId: _person.id,
+        message: `${count} on shift (max ${params.maxCount})`,
+        dates: [ymd],
+      });
+    }
+  }
+
+  return violations;
+};
+
+// ---------------------------------------------------------------------------
+// Rule type: min_staff_per_shift
+// Params: { shiftTemplateIds: string[], roleNames: string[], minCount: number }
+// Ensures at least N people (optionally with a role) are on specific shifts.
+// ---------------------------------------------------------------------------
+
+export type MinStaffPerShiftParams = {
+  shiftTemplateIds: string[];
+  roleNames: string[];
+  minCount: number;
+};
+
+function parseMinStaffPerShiftParams(raw: Record<string, unknown>): MinStaffPerShiftParams {
+  const shiftTemplateIds = Array.isArray(raw.shiftTemplateIds)
+    ? (raw.shiftTemplateIds as string[]).filter((s) => typeof s === "string" && s.trim())
+    : [];
+  const roleNames = Array.isArray(raw.roleNames)
+    ? (raw.roleNames as string[]).filter((s) => typeof s === "string" && s.trim())
+    : [];
+  const minCount = typeof raw.minCount === "number" && Number.isInteger(raw.minCount) && raw.minCount >= 1
+    ? raw.minCount
+    : 1;
+  return { shiftTemplateIds, roleNames, minCount };
+}
+
+const evaluateMinStaffPerShift: RuleEvaluator = (rule, _person, ctx) => {
+  const params = parseMinStaffPerShiftParams(rule.params);
+  if (params.shiftTemplateIds.length === 0) return [];
+  const templateSet = new Set(params.shiftTemplateIds);
+  const allRoles = params.roleNames.length === 0;
+  const roleLabel = allRoles ? "staff" : params.roleNames.join("/");
+
+  const qualifying = allRoles
+    ? ctx.staff
+    : ctx.staff.filter((s) => staffMatchesRoleNames(s.role, params.roleNames));
+  if (qualifying.length === 0) return [];
+
+  const violations: SchedulingRuleViolation[] = [];
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) continue;
+
+    const onShift = qualifying.filter((s) => {
+      const tplId = ctx.entries[cellKey(s.id, ymd)];
+      return tplId && templateSet.has(tplId);
+    });
+
+    if (onShift.length >= params.minCount) continue;
+
+    const unscheduledForShift = qualifying.filter((s) => {
+      const tplId = ctx.entries[cellKey(s.id, ymd)];
+      return (!tplId || !templateSet.has(tplId)) && !ctx.blockMap[cellKey(s.id, ymd)];
+    });
+
+    for (const s of unscheduledForShift) {
+      if (s.id !== _person.id) continue;
+      violations.push({
+        ruleId: rule.id,
+        ruleType: rule.type,
+        staffId: s.id,
+        message: `Only ${onShift.length} ${roleLabel} on shift (need ${params.minCount})`,
+        dates: [ymd],
+      });
+    }
+  }
+
+  return violations;
+};
+
+// ---------------------------------------------------------------------------
 // Template registry
 // ---------------------------------------------------------------------------
 
@@ -415,13 +590,63 @@ export const RULE_TEMPLATES: Record<string, RuleTemplateMeta> = {
     type: "role_must_work_on_weekdays",
     label: "Required coverage by role",
     description: "Certain roles must be scheduled on specific weekdays unless they have an approved day off.",
+    category: "coverage",
     defaultParams: { roleNames: ["Supervisor"], weekdays: [5, 6], exceptApprovedDayOff: true },
     evaluate: evaluateRoleMustWork,
+  },
+  min_staff_with_role_per_day: {
+    type: "min_staff_with_role_per_day",
+    label: "Minimum staff per day",
+    description: "Ensure at least N people with a specific role are scheduled each open day.",
+    category: "coverage",
+    defaultParams: { roleNames: ["Supervisor"], minCount: 1 },
+    evaluate: evaluateMinStaffWithRole,
+  },
+  min_staff_per_shift: {
+    type: "min_staff_per_shift",
+    label: "Minimum staff per shift",
+    description: "Ensure at least N people (optionally with a role) are assigned to specific shifts each day.",
+    category: "coverage",
+    defaultParams: { shiftTemplateIds: [], roleNames: [], minCount: 1 },
+    evaluate: evaluateMinStaffPerShift,
+  },
+  max_scheduled_days_per_week: {
+    type: "max_scheduled_days_per_week",
+    label: "Max days per week",
+    description: "Limit how many days a person can be scheduled in a single week.",
+    category: "limits",
+    defaultParams: { maxDays: 5 },
+    evaluate: evaluateMaxScheduledDays,
+  },
+  max_staff_per_day: {
+    type: "max_staff_per_day",
+    label: "Max staff per day",
+    description: "Cap how many people (optionally with a role) can be scheduled on a single day.",
+    category: "limits",
+    defaultParams: { roleNames: [], maxCount: 5 },
+    evaluate: evaluateMaxStaffPerDay,
+  },
+  max_staff_per_shift: {
+    type: "max_staff_per_shift",
+    label: "Max staff per shift",
+    description: "Cap how many people can be assigned to specific shifts on any day.",
+    category: "limits",
+    defaultParams: { shiftTemplateIds: [], maxCount: 3 },
+    evaluate: evaluateMaxStaffPerShift,
+  },
+  no_consecutive_work_days: {
+    type: "no_consecutive_work_days",
+    label: "Max consecutive work days",
+    description: "Prevent scheduling someone for too many days in a row within the week.",
+    category: "limits",
+    defaultParams: { maxConsecutive: 6 },
+    evaluate: evaluateNoConsecutiveWorkDays,
   },
   anchor_xor_weekday_off: {
     type: "anchor_xor_weekday_off",
     label: "Anchor day or weekday off",
     description: "Each person either has the anchor day off, or works the anchor day with at least one weekday off.",
+    category: "rotation",
     defaultParams: { anchorWeekday: 0, weekdayOffCount: 1 },
     evaluate: evaluateAnchorXor,
   },
@@ -429,29 +654,9 @@ export const RULE_TEMPLATES: Record<string, RuleTemplateMeta> = {
     type: "rotate_anchor_week",
     label: "Rotate anchor day week to week",
     description: "Staff who worked the anchor day last week should be off that day this week.",
+    category: "rotation",
     defaultParams: { anchorWeekday: 0 },
     evaluate: evaluateRotateAnchor,
-  },
-  max_scheduled_days_per_week: {
-    type: "max_scheduled_days_per_week",
-    label: "Max scheduled days per week",
-    description: "Limit how many days a person can be scheduled in a single week.",
-    defaultParams: { maxDays: 5 },
-    evaluate: evaluateMaxScheduledDays,
-  },
-  min_staff_with_role_per_day: {
-    type: "min_staff_with_role_per_day",
-    label: "Minimum staff per role per day",
-    description: "Ensure at least N people with a specific role are scheduled each open day.",
-    defaultParams: { roleNames: ["Supervisor"], minCount: 1 },
-    evaluate: evaluateMinStaffWithRole,
-  },
-  no_consecutive_work_days: {
-    type: "no_consecutive_work_days",
-    label: "Max consecutive work days",
-    description: "Prevent scheduling someone for too many days in a row within the week.",
-    defaultParams: { maxConsecutive: 6 },
-    evaluate: evaluateNoConsecutiveWorkDays,
   },
 };
 

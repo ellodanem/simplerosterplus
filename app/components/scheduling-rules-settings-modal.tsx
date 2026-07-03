@@ -12,16 +12,20 @@ import { type SchedulingRulesSettings } from "@/lib/roster-scheduling-rules";
 
 type View = "list" | "add" | "edit";
 
+export type OrgShift = { id: string; name: string; color: string | null };
+
 export function SchedulingRulesSettingsModal({
   initialSettings,
   initialRules,
   orgRoles,
+  orgShifts,
   onClose,
   onSaved,
 }: {
   initialSettings: SchedulingRulesSettings;
   initialRules?: SchedulingRuleRecord[];
   orgRoles: Array<{ id: string; name: string }>;
+  orgShifts: OrgShift[];
   onClose: () => void;
   onSaved: (settings: SchedulingRulesSettings, rules: SchedulingRuleRecord[], message: string) => void;
 }) {
@@ -190,6 +194,7 @@ export function SchedulingRulesSettingsModal({
         <AddRuleView
           existingTypes={rules.map((r) => r.type)}
           orgRoles={orgRoles}
+          orgShifts={orgShifts}
           onSubmit={addRule}
           onBack={() => setView("list")}
           pending={pending}
@@ -199,6 +204,7 @@ export function SchedulingRulesSettingsModal({
         <EditRuleView
           rule={editingRule}
           orgRoles={orgRoles}
+          orgShifts={orgShifts}
           onSubmit={(name, params) => updateRule(editingRule.id, name, params)}
           onBack={() => {
             setEditingRule(null);
@@ -249,6 +255,24 @@ function ruleSummary(rule: SchedulingRuleRecord): string {
   if (rule.type === "no_consecutive_work_days") {
     const max = typeof p.maxConsecutive === "number" ? p.maxConsecutive : 6;
     return `Max ${max} consecutive work day${max !== 1 ? "s" : ""}`;
+  }
+  if (rule.type === "max_staff_per_day") {
+    const roles = Array.isArray(p.roleNames) && (p.roleNames as string[]).length > 0
+      ? (p.roleNames as string[]).join(", ")
+      : "staff";
+    const max = typeof p.maxCount === "number" ? p.maxCount : 5;
+    return `Max ${max} ${roles} per day`;
+  }
+  if (rule.type === "max_staff_per_shift") {
+    const max = typeof p.maxCount === "number" ? p.maxCount : 3;
+    return `Max ${max} per shift`;
+  }
+  if (rule.type === "min_staff_per_shift") {
+    const roles = Array.isArray(p.roleNames) && (p.roleNames as string[]).length > 0
+      ? (p.roleNames as string[]).join(", ")
+      : "staff";
+    const min = typeof p.minCount === "number" ? p.minCount : 1;
+    return `At least ${min} ${roles} per shift`;
   }
   return RULE_TEMPLATES[rule.type]?.description ?? "";
 }
@@ -360,6 +384,7 @@ function RuleListView({
 function AddRuleView({
   existingTypes,
   orgRoles,
+  orgShifts,
   onSubmit,
   onBack,
   pending,
@@ -367,6 +392,7 @@ function AddRuleView({
 }: {
   existingTypes: string[];
   orgRoles: Array<{ id: string; name: string }>;
+  orgShifts: OrgShift[];
   onSubmit: (type: string, name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
   pending: boolean;
@@ -376,32 +402,48 @@ function AddRuleView({
 
   if (!selectedType) {
     const templates = Object.values(RULE_TEMPLATES);
+    const categories = [
+      { key: "coverage", label: "Coverage" },
+      { key: "limits", label: "Limits" },
+      { key: "rotation", label: "Rotation" },
+    ] as const;
     return (
       <div className="space-y-4">
         <p className="text-sm text-zinc-600">Choose a rule type to add.</p>
-        <div className="space-y-2">
-          {templates.map((tpl) => {
-            const alreadyHas = existingTypes.includes(tpl.type);
-            return (
-              <button
-                key={tpl.type}
-                type="button"
-                onClick={() => setSelectedType(tpl.type)}
-                className="w-full rounded-xl border border-zinc-200 p-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-900">{tpl.label}</h3>
-                  {alreadyHas ? (
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
-                      already added
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-xs text-zinc-500">{tpl.description}</p>
-              </button>
-            );
-          })}
-        </div>
+        {categories.map((cat) => {
+          const catTemplates = templates.filter((t) => t.category === cat.key);
+          if (catTemplates.length === 0) return null;
+          return (
+            <div key={cat.key}>
+              <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                {cat.label}
+              </h3>
+              <div className="space-y-1.5">
+                {catTemplates.map((tpl) => {
+                  const alreadyHas = existingTypes.includes(tpl.type);
+                  return (
+                    <button
+                      key={tpl.type}
+                      type="button"
+                      onClick={() => setSelectedType(tpl.type)}
+                      className="w-full rounded-xl border border-zinc-200 p-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-zinc-900">{tpl.label}</h3>
+                        {alreadyHas ? (
+                          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+                            already added
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-xs text-zinc-500">{tpl.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
         <div className="border-t border-zinc-100 pt-3">
           <button
             type="button"
@@ -422,6 +464,7 @@ function AddRuleView({
       initialName={template.label}
       initialParams={{ ...template.defaultParams }}
       orgRoles={orgRoles}
+      orgShifts={orgShifts}
       submitLabel="Add rule"
       onSubmit={(name, params) => onSubmit(selectedType, name, params)}
       onBack={() => setSelectedType(null)}
@@ -438,6 +481,7 @@ function AddRuleView({
 function EditRuleView({
   rule,
   orgRoles,
+  orgShifts,
   onSubmit,
   onBack,
   pending,
@@ -445,6 +489,7 @@ function EditRuleView({
 }: {
   rule: SchedulingRuleRecord;
   orgRoles: Array<{ id: string; name: string }>;
+  orgShifts: OrgShift[];
   onSubmit: (name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
   pending: boolean;
@@ -456,6 +501,7 @@ function EditRuleView({
       initialName={rule.name}
       initialParams={{ ...(RULE_TEMPLATES[rule.type]?.defaultParams ?? {}), ...rule.params }}
       orgRoles={orgRoles}
+      orgShifts={orgShifts}
       submitLabel="Save changes"
       onSubmit={onSubmit}
       onBack={onBack}
@@ -474,6 +520,7 @@ function RuleParamsForm({
   initialName,
   initialParams,
   orgRoles,
+  orgShifts,
   submitLabel,
   onSubmit,
   onBack,
@@ -484,6 +531,7 @@ function RuleParamsForm({
   initialName: string;
   initialParams: Record<string, unknown>;
   orgRoles: Array<{ id: string; name: string }>;
+  orgShifts: OrgShift[];
   submitLabel: string;
   onSubmit: (name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
@@ -531,8 +579,14 @@ function RuleParamsForm({
         <RotateAnchorFields params={params} onChange={update} />
       ) : type === "max_scheduled_days_per_week" ? (
         <MaxScheduledDaysFields params={params} onChange={update} />
+      ) : type === "max_staff_per_day" ? (
+        <MaxStaffPerDayFields params={params} onChange={update} orgRoles={orgRoles} />
+      ) : type === "max_staff_per_shift" ? (
+        <MaxStaffPerShiftFields params={params} onChange={update} orgShifts={orgShifts} />
       ) : type === "min_staff_with_role_per_day" ? (
         <MinStaffWithRoleFields params={params} onChange={update} orgRoles={orgRoles} />
+      ) : type === "min_staff_per_shift" ? (
+        <MinStaffPerShiftFields params={params} onChange={update} orgRoles={orgRoles} orgShifts={orgShifts} />
       ) : type === "no_consecutive_work_days" ? (
         <NoConsecutiveWorkDaysFields params={params} onChange={update} />
       ) : (
@@ -891,6 +945,283 @@ function NoConsecutiveWorkDaysFields({
 }
 
 // ---------------------------------------------------------------------------
+// MaxStaffPerDayFields
+// ---------------------------------------------------------------------------
+
+function MaxStaffPerDayFields({
+  params,
+  onChange,
+  orgRoles,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+  orgRoles: Array<{ id: string; name: string }>;
+}) {
+  const selectedNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]) : [];
+  const maxCount = typeof params.maxCount === "number" ? params.maxCount : 5;
+
+  function toggleRole(roleName: string) {
+    const normalized = selectedNames.map((r) => r.toLowerCase());
+    if (normalized.includes(roleName.toLowerCase())) {
+      onChange("roleNames", selectedNames.filter((r) => r.toLowerCase() !== roleName.toLowerCase()));
+    } else {
+      onChange("roleNames", [...selectedNames, roleName]);
+    }
+  }
+
+  const isSelected = (name: string) =>
+    selectedNames.some((r) => r.toLowerCase() === name.toLowerCase());
+
+  return (
+    <>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Roles (optional — leave empty for all staff)
+        </label>
+        {orgRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgRoles.map((role) => {
+              const active = isSelected(role.name);
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => toggleRole(role.name)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                >
+                  {role.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No roles defined yet. Rule will apply to all staff.</p>
+        )}
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Maximum per day
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={20}
+            value={maxCount}
+            onChange={(e) => onChange("maxCount", Number(e.target.value))}
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+          />
+          <span className="w-8 text-center text-sm font-semibold text-zinc-800">{maxCount}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MaxStaffPerShiftFields
+// ---------------------------------------------------------------------------
+
+function MaxStaffPerShiftFields({
+  params,
+  onChange,
+  orgShifts,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+  orgShifts: OrgShift[];
+}) {
+  const selectedIds = Array.isArray(params.shiftTemplateIds) ? (params.shiftTemplateIds as string[]) : [];
+  const maxCount = typeof params.maxCount === "number" ? params.maxCount : 3;
+
+  function toggleShift(shiftId: string) {
+    if (selectedIds.includes(shiftId)) {
+      onChange("shiftTemplateIds", selectedIds.filter((id) => id !== shiftId));
+    } else {
+      onChange("shiftTemplateIds", [...selectedIds, shiftId]);
+    }
+  }
+
+  return (
+    <>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Shifts
+        </label>
+        {orgShifts.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgShifts.map((shift) => {
+              const active = selectedIds.includes(shift.id);
+              return (
+                <button
+                  key={shift.id}
+                  type="button"
+                  onClick={() => toggleShift(shift.id)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                  style={active && shift.color ? { borderColor: shift.color, backgroundColor: `${shift.color}15` } : undefined}
+                >
+                  {shift.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No shift templates defined yet.</p>
+        )}
+        {selectedIds.length === 0 ? (
+          <p className="mt-1 text-xs text-amber-600">Select at least one shift.</p>
+        ) : null}
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Maximum per shift
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={20}
+            value={maxCount}
+            onChange={(e) => onChange("maxCount", Number(e.target.value))}
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+          />
+          <span className="w-8 text-center text-sm font-semibold text-zinc-800">{maxCount}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MinStaffPerShiftFields
+// ---------------------------------------------------------------------------
+
+function MinStaffPerShiftFields({
+  params,
+  onChange,
+  orgRoles,
+  orgShifts,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+  orgRoles: Array<{ id: string; name: string }>;
+  orgShifts: OrgShift[];
+}) {
+  const selectedShiftIds = Array.isArray(params.shiftTemplateIds) ? (params.shiftTemplateIds as string[]) : [];
+  const selectedRoleNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]) : [];
+  const minCount = typeof params.minCount === "number" ? params.minCount : 1;
+
+  function toggleShift(shiftId: string) {
+    if (selectedShiftIds.includes(shiftId)) {
+      onChange("shiftTemplateIds", selectedShiftIds.filter((id) => id !== shiftId));
+    } else {
+      onChange("shiftTemplateIds", [...selectedShiftIds, shiftId]);
+    }
+  }
+
+  function toggleRole(roleName: string) {
+    const normalized = selectedRoleNames.map((r) => r.toLowerCase());
+    if (normalized.includes(roleName.toLowerCase())) {
+      onChange("roleNames", selectedRoleNames.filter((r) => r.toLowerCase() !== roleName.toLowerCase()));
+    } else {
+      onChange("roleNames", [...selectedRoleNames, roleName]);
+    }
+  }
+
+  const isRoleSelected = (name: string) =>
+    selectedRoleNames.some((r) => r.toLowerCase() === name.toLowerCase());
+
+  return (
+    <>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Shifts
+        </label>
+        {orgShifts.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgShifts.map((shift) => {
+              const active = selectedShiftIds.includes(shift.id);
+              return (
+                <button
+                  key={shift.id}
+                  type="button"
+                  onClick={() => toggleShift(shift.id)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                  style={active && shift.color ? { borderColor: shift.color, backgroundColor: `${shift.color}15` } : undefined}
+                >
+                  {shift.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No shift templates defined yet.</p>
+        )}
+        {selectedShiftIds.length === 0 ? (
+          <p className="mt-1 text-xs text-amber-600">Select at least one shift.</p>
+        ) : null}
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Roles (optional — leave empty for all staff)
+        </label>
+        {orgRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgRoles.map((role) => {
+              const active = isRoleSelected(role.name);
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => toggleRole(role.name)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                >
+                  {role.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No roles defined yet. Rule will apply to all staff.</p>
+        )}
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Minimum per shift
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={10}
+            value={minCount}
+            onChange={(e) => onChange("minCount", Number(e.target.value))}
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+          />
+          <span className="w-8 text-center text-sm font-semibold text-zinc-800">{minCount}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Preview sentence
 // ---------------------------------------------------------------------------
 
@@ -923,6 +1254,28 @@ function previewSentence(type: string, params: Record<string, unknown>): string 
   if (type === "no_consecutive_work_days") {
     const max = typeof params.maxConsecutive === "number" ? params.maxConsecutive : 6;
     return `No one should work more than ${max} day${max !== 1 ? "s" : ""} in a row.`;
+  }
+  if (type === "max_staff_per_day") {
+    const roles = Array.isArray(params.roleNames) && (params.roleNames as string[]).length > 0
+      ? (params.roleNames as string[]).join(", ")
+      : "total staff";
+    const max = typeof params.maxCount === "number" ? params.maxCount : 5;
+    return `No more than ${max} ${roles} should be scheduled on any single day.`;
+  }
+  if (type === "max_staff_per_shift") {
+    const count = typeof params.maxCount === "number" ? params.maxCount : 3;
+    const shiftCount = Array.isArray(params.shiftTemplateIds) ? (params.shiftTemplateIds as string[]).length : 0;
+    const shiftLabel = shiftCount > 0 ? `the selected shift${shiftCount !== 1 ? "s" : ""}` : "any shift";
+    return `No more than ${count} people should be assigned to ${shiftLabel} on any day.`;
+  }
+  if (type === "min_staff_per_shift") {
+    const roles = Array.isArray(params.roleNames) && (params.roleNames as string[]).length > 0
+      ? (params.roleNames as string[]).join(", ")
+      : "staff";
+    const min = typeof params.minCount === "number" ? params.minCount : 1;
+    const shiftCount = Array.isArray(params.shiftTemplateIds) ? (params.shiftTemplateIds as string[]).length : 0;
+    const shiftLabel = shiftCount > 0 ? `the selected shift${shiftCount !== 1 ? "s" : ""}` : "a shift";
+    return `At least ${min} ${roles} must be assigned to ${shiftLabel} each open day.`;
   }
   return "";
 }

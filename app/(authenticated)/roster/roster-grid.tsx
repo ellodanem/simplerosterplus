@@ -1514,6 +1514,7 @@ export function RosterGrid({
           initialSettings={schedulingRulesSettings}
           initialRules={schedulingRules}
           orgRoles={staffRoles}
+          orgShifts={templates.map((t) => ({ id: t.id, name: t.name, color: t.color }))}
           onClose={() => setShowSchedulingRulesSettings(false)}
           onSaved={(nextSettings, nextRules, message) => {
             setSchedulingRulesSettings(nextSettings);
