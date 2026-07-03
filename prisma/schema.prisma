@@ -76,6 +76,7 @@ model Organization {
   attendanceDeviceClocks AttendanceDeviceClock[]
   payPeriods            PayPeriod[]
   testerFeedbacks       TesterFeedback[]
+  schedulingRules       SchedulingRule[]
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -715,4 +716,27 @@ model TesterFeedback {
   @@index([organizationId, createdAt])
   @@index([status, createdAt])
   @@index([createdAt])
+}
+
+/// Org-level scheduling constraint. Each row is one rule from the template catalog
+/// (e.g. "role_must_work_on_weekdays", "anchor_xor_weekday_off", "rotate_anchor_week").
+/// Orgs may have 0..N rules; each is independently togglable. `params` is a validated
+/// JSON blob whose shape depends on `type`.
+model SchedulingRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Rule template key from the evaluator registry.
+  type           String
+  /// Optional manager-facing label, e.g. "Weekend supervisor coverage".
+  name           String       @default("")
+  enabled        Boolean      @default(true)
+  sortOrder      Int          @default(0)
+  /// Type-specific configuration (validated per type by the evaluator registry).
+  params         Json         @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, type])
 }

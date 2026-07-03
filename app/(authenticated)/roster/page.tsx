@@ -20,7 +20,7 @@ import {
 import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
 import { getMinimumOffDaysSettings } from "@/lib/minimum-off-days-settings";
-import { getSchedulingRulesSettings } from "@/lib/roster-scheduling-rules-settings";
+import { getSchedulingRulesSettings, getSchedulingRules, rulesToLegacySettings } from "@/lib/roster-scheduling-rules-settings";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
   currentWeekStartYmd,
@@ -57,13 +57,13 @@ export default async function RosterPage({
   });
   if (!org) redirectToSignIn();
 
-  const [location, weekStartWeekday, overtimeSettings, minimumOffDaysSettings, schedulingRulesSettings, addStaffLocations, addStaffRoles] =
+  const [location, weekStartWeekday, overtimeSettings, minimumOffDaysSettings, schedulingRules, addStaffLocations, addStaffRoles] =
     await Promise.all([
     getDefaultLocation(org.id),
     getRosterWeekStartWeekday(org.id),
     getOvertimeSettings(org.id),
     getMinimumOffDaysSettings(org.id),
-    getSchedulingRulesSettings(org.id),
+    getSchedulingRules(org.id),
     prisma.location.findMany({
       where: { organizationId: org.id },
       orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -76,6 +76,7 @@ export default async function RosterPage({
     }),
   ]);
   const effectiveTimeZone = location.timeZone ?? org.timeZone;
+  const schedulingRulesSettings = rulesToLegacySettings(schedulingRules);
   const holidayCountries = listHolidayCountries();
   const holidaySubdivisions = location.holidayCountryCode
     ? listHolidaySubdivisions(location.holidayCountryCode)
@@ -295,6 +296,7 @@ export default async function RosterPage({
         initialOvertimeSettings={overtimeSettings}
         initialMinimumOffDaysSettings={minimumOffDaysSettings}
         initialSchedulingRulesSettings={schedulingRulesSettings}
+        initialSchedulingRules={schedulingRules}
         initialHolidayCalendar={{
           countryCode: location.holidayCountryCode,
           subdivisionCode: location.holidaySubdivisionCode,

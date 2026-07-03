@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { calendarWeekdayIndex, formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { getApprovedBlockMap, type BlockReason } from "@/lib/leave-blocks";
 import { filterProposalsBySchedulingRules, findCalendarDayInWeek } from "@/lib/roster-scheduling-rules";
-import { getSchedulingRulesSettings } from "@/lib/roster-scheduling-rules-settings";
+import { getSchedulingRules, rulesToLegacySettings } from "@/lib/roster-scheduling-rules-settings";
 import { getAutoSchedulerQuota } from "@/lib/auto-scheduler-usage";
 import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
 import {
@@ -12,6 +12,7 @@ import {
   type RosterLockOptions,
 } from "@/lib/roster-week-lock";
 import type { SchedulingRulesSettings } from "@/lib/roster-scheduling-rules";
+import type { SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
 import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 export const AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING =
@@ -105,6 +106,7 @@ export type AutoSchedulerContext = {
   defaultTemplateId: string | null;
   preference: ShiftPreferenceEngine;
   schedulingRulesSettings: SchedulingRulesSettings;
+  schedulingRules: SchedulingRuleRecord[];
   holidays: Record<string, { stationClosed: boolean }>;
   workedAnchorLastWeek: Set<string>;
   preferredWeekdayOffYmd: Map<string, string>;
@@ -378,7 +380,7 @@ export async function loadAutoSchedulerContext(
     historyWeekStarts.push(new Date(weekStartDate.getTime() - i * SEVEN_DAYS_MS));
   }
 
-  const [holidays, allStaff, templates, historyWeeks, schedulingRulesSettings] = await Promise.all([
+  const [holidays, allStaff, templates, historyWeeks, schedulingRules] = await Promise.all([
     prisma.publicHoliday.findMany({
       where: {
         organizationId: week.organizationId,
@@ -411,7 +413,7 @@ export async function loadAutoSchedulerContext(
       },
       select: { id: true, weekStart: true },
     }),
-    getSchedulingRulesSettings(week.organizationId),
+    getSchedulingRules(week.organizationId),
   ]);
 
   const holidayMap: Record<string, { stationClosed: boolean }> = {};
@@ -469,6 +471,7 @@ export async function loadAutoSchedulerContext(
     defaultTemplateId,
   );
 
+  const schedulingRulesSettings = rulesToLegacySettings(schedulingRules);
   const anchorWeekday = schedulingRulesSettings.sundayOrWeekdayOff.anchorWeekday;
   const { workedAnchorLastWeek, preferredWeekdayOffYmd } = buildSchedulingHistoryHints({
     historyByWeek,
@@ -496,6 +499,7 @@ export async function loadAutoSchedulerContext(
     defaultTemplateId,
     preference,
     schedulingRulesSettings,
+    schedulingRules,
     holidays: holidayMap,
     workedAnchorLastWeek,
     preferredWeekdayOffYmd,
@@ -592,6 +596,7 @@ async function completePreview(
     blockMap: ctx.blockMap,
     holidays: ctx.holidays,
     settings: ctx.schedulingRulesSettings,
+    rules: ctx.schedulingRules,
     workedAnchorLastWeek: ctx.workedAnchorLastWeek,
   });
 

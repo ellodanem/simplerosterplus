@@ -35,8 +35,10 @@ import {
   collectSchedulingRuleViolations,
   countStaffWithSchedulingViolations,
   schedulingRuleViolationSummary,
+  legacySettingsToRules,
   type SchedulingRulesSettings,
 } from "@/lib/roster-scheduling-rules";
+import type { SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
 import { calendarWeekdayIndex } from "@/lib/datetime-policy";
 import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
@@ -178,6 +180,7 @@ export function RosterGrid({
   initialOvertimeSettings,
   initialMinimumOffDaysSettings,
   initialSchedulingRulesSettings,
+  initialSchedulingRules,
   initialHolidayCalendar,
   addStaffLocations,
   addStaffRoles,
@@ -215,6 +218,7 @@ export function RosterGrid({
   initialOvertimeSettings: OvertimeSettings;
   initialMinimumOffDaysSettings: MinimumOffDaysSettings;
   initialSchedulingRulesSettings: SchedulingRulesSettings;
+  initialSchedulingRules?: SchedulingRuleRecord[];
   initialHolidayCalendar: HolidayCalendarConfig;
   addStaffLocations: Array<{ id: string; name: string }>;
   addStaffRoles: Array<{ id: string; name: string }>;
@@ -266,6 +270,9 @@ export function RosterGrid({
   );
   const [schedulingRulesSettings, setSchedulingRulesSettings] = useState(
     initialSchedulingRulesSettings,
+  );
+  const [schedulingRules, setSchedulingRules] = useState<SchedulingRuleRecord[]>(
+    initialSchedulingRules ?? [],
   );
 
   const workedAnchorLastWeek = useMemo(() => {
@@ -379,9 +386,10 @@ export function RosterGrid({
         blockMap,
         holidays,
         settings: schedulingRulesSettings,
+        rules: schedulingRules.length > 0 ? schedulingRules : undefined,
         workedAnchorLastWeek,
       }),
-    [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings, workedAnchorLastWeek],
+    [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings, schedulingRules, workedAnchorLastWeek],
   );
 
   const schedulingRuleViolationCount = useMemo(
@@ -1509,6 +1517,7 @@ export function RosterGrid({
           onSaved={(nextSettings, message) => {
             setShowSchedulingRulesSettings(false);
             setSchedulingRulesSettings(nextSettings);
+            setSchedulingRules(legacySettingsToRules(nextSettings));
             setNotice(message);
           }}
         />

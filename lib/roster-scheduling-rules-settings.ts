@@ -3,129 +3,186 @@ import {
   DEFAULT_SUNDAY_ANCHOR_WEEKDAY,
   DEFAULT_SUPERVISOR_ROLE_NAMES,
   DEFAULT_SUPERVISOR_WEEKDAYS,
-  formatRoleNamesCsv,
-  formatWeekdayList,
-  parseRoleNamesCsv,
-  parseSundayAnchorWeekday,
-  parseWeekdayList,
   SCHEDULING_RULES_DEFAULTS,
-  SCHEDULING_RULES_ENABLED_KEY,
-  SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
-  SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
-  SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY,
-  SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY,
-  SCHEDULING_RULES_SUPERVISOR_ROLES_KEY,
-  SCHEDULING_RULES_SUPERVISOR_WEEKDAYS_KEY,
   type SchedulingRulesSettings,
 } from "@/lib/roster-scheduling-rules";
+import type { SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
 
-function parseEnabled(value: string | null | undefined): boolean {
-  if (value == null || value === "") return false;
-  const normalized = value.trim().toLowerCase();
-  return ["1", "true", "yes", "on"].includes(normalized);
+// ---------------------------------------------------------------------------
+// Read rules from SchedulingRule table
+// ---------------------------------------------------------------------------
+
+export async function getSchedulingRules(
+  organizationId: string,
+): Promise<SchedulingRuleRecord[]> {
+  const rows = await prisma.schedulingRule.findMany({
+    where: { organizationId },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  return rows.map((r) => ({
+    id: r.id,
+    type: r.type,
+    name: r.name,
+    enabled: r.enabled,
+    sortOrder: r.sortOrder,
+    params: (r.params && typeof r.params === "object" && !Array.isArray(r.params)
+      ? r.params
+      : {}) as Record<string, unknown>,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Materialize the legacy SchedulingRulesSettings shape from rule records
+// (used by page.tsx, roster-grid.tsx, and other callers that still expect it)
+// ---------------------------------------------------------------------------
+
+export function rulesToLegacySettings(rules: SchedulingRuleRecord[]): SchedulingRulesSettings {
+  const hasEnabled = rules.some((r) => r.enabled);
+
+  const supervisorRule = rules.find((r) => r.type === "role_must_work_on_weekdays");
+  const anchorRule = rules.find((r) => r.type === "anchor_xor_weekday_off");
+  const rotateRule = rules.find((r) => r.type === "rotate_anchor_week");
+
+  const supervisorParams = supervisorRule?.params ?? {};
+  const anchorParams = anchorRule?.params ?? {};
+  const rotateParams = rotateRule?.params ?? {};
+
+  const anchorWeekday = typeof anchorParams.anchorWeekday === "number"
+    ? anchorParams.anchorWeekday
+    : typeof rotateParams.anchorWeekday === "number"
+      ? rotateParams.anchorWeekday
+      : DEFAULT_SUNDAY_ANCHOR_WEEKDAY;
+
+  return {
+    enabled: hasEnabled,
+    supervisorNoWeekendOff: {
+      enabled: supervisorRule?.enabled ?? false,
+      roleNames: Array.isArray(supervisorParams.roleNames)
+        ? (supervisorParams.roleNames as string[])
+        : [...DEFAULT_SUPERVISOR_ROLE_NAMES],
+      weekdays: Array.isArray(supervisorParams.weekdays)
+        ? (supervisorParams.weekdays as number[])
+        : [...DEFAULT_SUPERVISOR_WEEKDAYS],
+    },
+    sundayOrWeekdayOff: {
+      enabled: anchorRule?.enabled ?? false,
+      anchorWeekday,
+      rotateAnchorWeek: rotateRule?.enabled ?? false,
+    },
+  };
 }
 
 export async function getSchedulingRulesSettings(
   organizationId: string,
 ): Promise<SchedulingRulesSettings> {
-  const rows = await prisma.appSetting.findMany({
-    where: {
-      organizationId,
-      key: {
-        in: [
-          SCHEDULING_RULES_ENABLED_KEY,
-          SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY,
-          SCHEDULING_RULES_SUPERVISOR_ROLES_KEY,
-          SCHEDULING_RULES_SUPERVISOR_WEEKDAYS_KEY,
-          SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY,
-          SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
-          SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
-        ],
-      },
-    },
-    select: { key: true, value: true },
-  });
-
-  const values = new Map(rows.map((row) => [row.key, row.value] as const));
-  const enabled = parseEnabled(values.get(SCHEDULING_RULES_ENABLED_KEY));
-  const supervisorEnabled = parseEnabled(values.get(SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY));
-  const sundayEnabled = parseEnabled(values.get(SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY));
-  const sundayRotationEnabled = parseEnabled(
-    values.get(SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY),
-  );
-
-  if (!enabled && rows.length === 0) {
-    return { ...SCHEDULING_RULES_DEFAULTS };
-  }
-
-  return {
-    enabled,
-    supervisorNoWeekendOff: {
-      enabled: supervisorEnabled,
-      roleNames: parseRoleNamesCsv(values.get(SCHEDULING_RULES_SUPERVISOR_ROLES_KEY)),
-      weekdays: parseWeekdayList(values.get(SCHEDULING_RULES_SUPERVISOR_WEEKDAYS_KEY)),
-    },
-    sundayOrWeekdayOff: {
-      enabled: sundayEnabled,
-      anchorWeekday: parseSundayAnchorWeekday(
-        values.get(SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY),
-      ),
-      rotateAnchorWeek: sundayRotationEnabled,
-    },
-  };
+  const rules = await getSchedulingRules(organizationId);
+  if (rules.length === 0) return { ...SCHEDULING_RULES_DEFAULTS };
+  return rulesToLegacySettings(rules);
 }
+
+// ---------------------------------------------------------------------------
+// Save: accept legacy settings shape → upsert SchedulingRule rows
+// ---------------------------------------------------------------------------
 
 export async function saveSchedulingRulesSettings(
   organizationId: string,
   settings: SchedulingRulesSettings,
 ): Promise<SchedulingRulesSettings> {
-  const entries: Array<{ key: string; value: string }> = [
-    { key: SCHEDULING_RULES_ENABLED_KEY, value: settings.enabled ? "true" : "false" },
-    {
-      key: SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY,
-      value: settings.supervisorNoWeekendOff.enabled ? "true" : "false",
-    },
-    {
-      key: SCHEDULING_RULES_SUPERVISOR_ROLES_KEY,
-      value: formatRoleNamesCsv(
-        settings.supervisorNoWeekendOff.roleNames.length > 0
-          ? settings.supervisorNoWeekendOff.roleNames
-          : [...DEFAULT_SUPERVISOR_ROLE_NAMES],
-      ),
-    },
-    {
-      key: SCHEDULING_RULES_SUPERVISOR_WEEKDAYS_KEY,
-      value: formatWeekdayList(
-        settings.supervisorNoWeekendOff.weekdays.length > 0
-          ? settings.supervisorNoWeekendOff.weekdays
-          : [...DEFAULT_SUPERVISOR_WEEKDAYS],
-      ),
-    },
-    {
-      key: SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY,
-      value: settings.sundayOrWeekdayOff.enabled ? "true" : "false",
-    },
-    {
-      key: SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
-      value: String(settings.sundayOrWeekdayOff.anchorWeekday ?? DEFAULT_SUNDAY_ANCHOR_WEEKDAY),
-    },
-    {
-      key: SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
-      value: settings.sundayOrWeekdayOff.rotateAnchorWeek ? "true" : "false",
-    },
-  ];
+  const existing = await prisma.schedulingRule.findMany({
+    where: { organizationId },
+    orderBy: { sortOrder: "asc" },
+  });
 
-  await Promise.all(
-    entries.map((entry) =>
-      prisma.appSetting.upsert({
-        where: {
-          organizationId_key: { organizationId, key: entry.key },
-        },
-        create: { organizationId, key: entry.key, value: entry.value },
-        update: { value: entry.value },
-      }),
-    ),
-  );
+  const byType = new Map(existing.map((r) => [r.type, r]));
+
+  // --- role_must_work_on_weekdays ---
+  const supervisorRow = byType.get("role_must_work_on_weekdays");
+  const supervisorParams = {
+    roleNames: settings.supervisorNoWeekendOff.roleNames.length > 0
+      ? settings.supervisorNoWeekendOff.roleNames
+      : [...DEFAULT_SUPERVISOR_ROLE_NAMES],
+    weekdays: settings.supervisorNoWeekendOff.weekdays.length > 0
+      ? settings.supervisorNoWeekendOff.weekdays
+      : [...DEFAULT_SUPERVISOR_WEEKDAYS],
+    exceptApprovedDayOff: true,
+  };
+
+  if (supervisorRow) {
+    await prisma.schedulingRule.update({
+      where: { id: supervisorRow.id },
+      data: {
+        enabled: settings.enabled && settings.supervisorNoWeekendOff.enabled,
+        params: supervisorParams,
+      },
+    });
+  } else if (settings.supervisorNoWeekendOff.enabled) {
+    await prisma.schedulingRule.create({
+      data: {
+        organizationId,
+        type: "role_must_work_on_weekdays",
+        name: "Supervisor weekend coverage",
+        enabled: settings.enabled && settings.supervisorNoWeekendOff.enabled,
+        sortOrder: 0,
+        params: supervisorParams,
+      },
+    });
+  }
+
+  // --- anchor_xor_weekday_off ---
+  const anchorRow = byType.get("anchor_xor_weekday_off");
+  const anchorParams = {
+    anchorWeekday: settings.sundayOrWeekdayOff.anchorWeekday ?? DEFAULT_SUNDAY_ANCHOR_WEEKDAY,
+    weekdayOffCount: 1,
+  };
+
+  if (anchorRow) {
+    await prisma.schedulingRule.update({
+      where: { id: anchorRow.id },
+      data: {
+        enabled: settings.enabled && settings.sundayOrWeekdayOff.enabled,
+        params: anchorParams,
+      },
+    });
+  } else if (settings.sundayOrWeekdayOff.enabled) {
+    await prisma.schedulingRule.create({
+      data: {
+        organizationId,
+        type: "anchor_xor_weekday_off",
+        name: "Anchor day or weekday off",
+        enabled: settings.enabled && settings.sundayOrWeekdayOff.enabled,
+        sortOrder: 1,
+        params: anchorParams,
+      },
+    });
+  }
+
+  // --- rotate_anchor_week ---
+  const rotateRow = byType.get("rotate_anchor_week");
+  const rotateParams = {
+    anchorWeekday: settings.sundayOrWeekdayOff.anchorWeekday ?? DEFAULT_SUNDAY_ANCHOR_WEEKDAY,
+  };
+
+  if (rotateRow) {
+    await prisma.schedulingRule.update({
+      where: { id: rotateRow.id },
+      data: {
+        enabled: settings.enabled && settings.sundayOrWeekdayOff.enabled && settings.sundayOrWeekdayOff.rotateAnchorWeek,
+        params: rotateParams,
+      },
+    });
+  } else if (settings.sundayOrWeekdayOff.rotateAnchorWeek) {
+    await prisma.schedulingRule.create({
+      data: {
+        organizationId,
+        type: "rotate_anchor_week",
+        name: "Rotate anchor day week to week",
+        enabled: settings.enabled && settings.sundayOrWeekdayOff.enabled && settings.sundayOrWeekdayOff.rotateAnchorWeek,
+        sortOrder: 2,
+        params: rotateParams,
+      },
+    });
+  }
 
   return getSchedulingRulesSettings(organizationId);
 }
