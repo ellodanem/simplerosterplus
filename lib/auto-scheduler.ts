@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { calendarWeekdayIndex, formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { getApprovedBlockMap, type BlockReason } from "@/lib/leave-blocks";
-import { filterProposalsBySchedulingRules } from "@/lib/roster-scheduling-rules";
+import { filterProposalsBySchedulingRules, findCalendarDayInWeek } from "@/lib/roster-scheduling-rules";
 import { getSchedulingRulesSettings } from "@/lib/roster-scheduling-rules-settings";
+import { getAutoSchedulerQuota } from "@/lib/auto-scheduler-usage";
 import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
 import {
   isRosterDayLocked,
@@ -16,7 +17,12 @@ import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 export const AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING =
   "Previous week has no shifts to copy.";
 
-export type AutoSchedulerMode = "copy_previous" | "fill_open";
+export type AutoSchedulerMode = "copy_previous" | "fill_open" | "fill_day";
+
+export type AutoSchedulerPreviewOptions = {
+  /** Required for `fill_day` — must be a day in the target roster week. */
+  dayYmd?: string;
+};
 
 export type AutoSchedulerProposal = {
   staffId: string;
@@ -38,6 +44,7 @@ export type AutoSchedulerPreviewResult = {
   proposals: AutoSchedulerProposal[];
   skipped: AutoSchedulerSkipped[];
   warnings: string[];
+  usage: { used: number; limit: number | null };
 };
 
 export type AutoSchedulerApplyResult = {
@@ -99,6 +106,8 @@ export type AutoSchedulerContext = {
   preference: ShiftPreferenceEngine;
   schedulingRulesSettings: SchedulingRulesSettings;
   holidays: Record<string, { stationClosed: boolean }>;
+  workedAnchorLastWeek: Set<string>;
+  preferredWeekdayOffYmd: Map<string, string>;
 };
 
 function addDaysUtc(d: Date, days: number): Date {
@@ -124,6 +133,142 @@ function modeFromCounts(counts: Map<string, number> | undefined): string | null 
     }
   }
   return best;
+}
+
+type HistoryWeek = {
+  weekStartMs: number;
+  entries: HistoryEntry[];
+};
+
+function buildSchedulingHistoryHints(args: {
+  historyByWeek: HistoryWeek[];
+  targetAnchorYmd: string;
+  anchorWeekday: number;
+  timeZone: string;
+  days: string[];
+}): { workedAnchorLastWeek: Set<string>; preferredWeekdayOffYmd: Map<string, string> } {
+  const prevWeekStartMs = utcDateFromYmd(args.targetAnchorYmd).getTime() - SEVEN_DAYS_MS;
+  const workedAnchorLastWeek = new Set<string>();
+  const offCountsByStaffWeekday = new Map<string, Map<number, number>>();
+
+  for (const week of args.historyByWeek) {
+    const weekStartYmd = ymdForDbDate(new Date(week.weekStartMs));
+    const weekDays = daysOfWeek(weekStartYmd);
+    const shiftsByStaff = new Map<string, Set<string>>();
+
+    for (const entry of week.entries) {
+      const ymd = ymdForDbDate(entry.date);
+      let set = shiftsByStaff.get(entry.staffId);
+      if (!set) {
+        set = new Set();
+        shiftsByStaff.set(entry.staffId, set);
+      }
+      set.add(ymd);
+    }
+
+    if (week.weekStartMs === prevWeekStartMs) {
+      for (const [staffId, shiftDays] of shiftsByStaff) {
+        const anchorYmd = weekDays.find(
+          (ymd) => calendarWeekdayIndex(ymd, args.timeZone) === args.anchorWeekday,
+        );
+        if (anchorYmd && shiftDays.has(anchorYmd)) workedAnchorLastWeek.add(staffId);
+      }
+    }
+
+    for (const [staffId, shiftDays] of shiftsByStaff) {
+      const anchorYmd = weekDays.find(
+        (ymd) => calendarWeekdayIndex(ymd, args.timeZone) === args.anchorWeekday,
+      );
+      if (!anchorYmd || !shiftDays.has(anchorYmd)) continue;
+
+      for (const ymd of weekDays) {
+        if (calendarWeekdayIndex(ymd, args.timeZone) === args.anchorWeekday) continue;
+        if (shiftDays.has(ymd)) continue;
+        const weekday = calendarWeekdayIndex(ymd, args.timeZone);
+        let counts = offCountsByStaffWeekday.get(staffId);
+        if (!counts) {
+          counts = new Map();
+          offCountsByStaffWeekday.set(staffId, counts);
+        }
+        counts.set(weekday, (counts.get(weekday) ?? 0) + 1);
+      }
+    }
+  }
+
+  const preferredWeekdayOffYmd = new Map<string, string>();
+  for (const [staffId, counts] of offCountsByStaffWeekday) {
+    let bestWeekday: number | null = null;
+    let bestCount = -1;
+    for (const [weekday, count] of counts) {
+      if (count > bestCount) {
+        bestWeekday = weekday;
+        bestCount = count;
+      }
+    }
+    if (bestWeekday == null) continue;
+    const ymd = findCalendarDayInWeek(args.days, bestWeekday, args.timeZone);
+    if (ymd) preferredWeekdayOffYmd.set(staffId, ymd);
+  }
+
+  return { workedAnchorLastWeek, preferredWeekdayOffYmd };
+}
+
+function applyFillHeuristics(
+  proposals: AutoSchedulerProposal[],
+  ctx: AutoSchedulerContext,
+): { proposals: AutoSchedulerProposal[]; skipped: AutoSchedulerSkipped[] } {
+  const skipped: AutoSchedulerSkipped[] = [];
+  const kept: AutoSchedulerProposal[] = [];
+  const sundayRule = ctx.schedulingRulesSettings.sundayOrWeekdayOff;
+  const anchorYmd =
+    ctx.schedulingRulesSettings.enabled && sundayRule.enabled
+      ? findCalendarDayInWeek(ctx.days, sundayRule.anchorWeekday, ctx.timeZone)
+      : null;
+  const anchorLabel = anchorYmd ? weekdayName(anchorYmd, ctx.timeZone) : "anchor day";
+
+  const projectedAnchorWorkers = new Set<string>();
+  for (const [key, templateId] of ctx.currentEntries) {
+    if (!templateId || !anchorYmd) continue;
+    const [staffId, ymd] = key.split("__");
+    if (ymd === anchorYmd && staffId) projectedAnchorWorkers.add(staffId);
+  }
+  for (const proposal of proposals) {
+    if (anchorYmd && proposal.date === anchorYmd) projectedAnchorWorkers.add(proposal.staffId);
+  }
+
+  for (const proposal of proposals) {
+    if (
+      anchorYmd &&
+      proposal.date === anchorYmd &&
+      sundayRule.rotateAnchorWeek &&
+      ctx.workedAnchorLastWeek.has(proposal.staffId)
+    ) {
+      skipped.push({
+        staffId: proposal.staffId,
+        date: proposal.date,
+        reason: `Rotating off ${anchorLabel} (worked ${anchorLabel} last week)`,
+      });
+      continue;
+    }
+
+    const reservedOff = ctx.preferredWeekdayOffYmd.get(proposal.staffId);
+    if (
+      reservedOff &&
+      proposal.date === reservedOff &&
+      projectedAnchorWorkers.has(proposal.staffId)
+    ) {
+      skipped.push({
+        staffId: proposal.staffId,
+        date: proposal.date,
+        reason: `Keeping ${weekdayName(reservedOff, ctx.timeZone)} off (usual day off when working ${anchorLabel})`,
+      });
+      continue;
+    }
+
+    kept.push(proposal);
+  }
+
+  return { proposals: kept, skipped };
 }
 
 function buildPreferenceEngine(
@@ -324,6 +469,15 @@ export async function loadAutoSchedulerContext(
     defaultTemplateId,
   );
 
+  const anchorWeekday = schedulingRulesSettings.sundayOrWeekdayOff.anchorWeekday;
+  const { workedAnchorLastWeek, preferredWeekdayOffYmd } = buildSchedulingHistoryHints({
+    historyByWeek,
+    targetAnchorYmd: anchorYmd,
+    anchorWeekday,
+    timeZone,
+    days,
+  });
+
   return {
     weekId: week.id,
     organizationId: week.organizationId,
@@ -343,6 +497,8 @@ export async function loadAutoSchedulerContext(
     preference,
     schedulingRulesSettings,
     holidays: holidayMap,
+    workedAnchorLastWeek,
+    preferredWeekdayOffYmd,
   };
 }
 
@@ -407,15 +563,28 @@ function tryBuildProposal(
   };
 }
 
-function finalizePreview(
+async function completePreview(
   ctx: AutoSchedulerContext,
   mode: AutoSchedulerMode,
   proposals: AutoSchedulerProposal[],
   skipped: AutoSchedulerSkipped[],
   warnings: string[],
-): AutoSchedulerPreviewResult {
+): Promise<AutoSchedulerPreviewResult | { error: string; status: number }> {
+  const quota = await getAutoSchedulerQuota(ctx.organizationId, ctx.timeZone);
+  if (!quota.allowed) {
+    return { error: quota.message ?? "Auto Scheduler limit reached.", status: 402 };
+  }
+
+  let finalProposals = proposals;
+  let finalSkipped = skipped;
+  if (mode === "fill_open" || mode === "fill_day") {
+    const heuristics = applyFillHeuristics(proposals, ctx);
+    finalProposals = heuristics.proposals;
+    finalSkipped = [...skipped, ...heuristics.skipped];
+  }
+
   const { proposals: filtered, skipped: ruleSkipped } = filterProposalsBySchedulingRules({
-    proposals,
+    proposals: finalProposals,
     currentEntries: ctx.currentEntries,
     staff: ctx.staff.map((s) => ({ id: s.id, role: s.role })),
     days: ctx.days,
@@ -423,13 +592,15 @@ function finalizePreview(
     blockMap: ctx.blockMap,
     holidays: ctx.holidays,
     settings: ctx.schedulingRulesSettings,
+    workedAnchorLastWeek: ctx.workedAnchorLastWeek,
   });
 
   return {
     mode,
     proposals: filtered,
-    skipped: [...skipped, ...ruleSkipped],
+    skipped: [...finalSkipped, ...ruleSkipped],
     warnings,
+    usage: { used: quota.used, limit: quota.limit },
   };
 }
 
@@ -437,6 +608,7 @@ export async function previewAutoScheduler(
   weekId: string,
   organizationId: string,
   mode: AutoSchedulerMode,
+  options: AutoSchedulerPreviewOptions = {},
 ): Promise<AutoSchedulerPreviewResult | { error: string; status: number }> {
   const ctx = await loadAutoSchedulerContext(weekId, organizationId);
   if (!ctx) return { error: "Roster week not found", status: 404 };
@@ -482,7 +654,7 @@ export async function previewAutoScheduler(
 
     if (sourceEntries.length === 0) {
       warnings.push(AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING);
-      return finalizePreview(ctx, mode, proposals, skipped, warnings);
+      return completePreview(ctx, mode, proposals, skipped, warnings);
     }
 
     for (const e of sourceEntries) {
@@ -504,12 +676,30 @@ export async function previewAutoScheduler(
       else skipped.push(result.skip);
     }
 
-    return finalizePreview(ctx, mode, proposals, skipped, warnings);
+    return completePreview(ctx, mode, proposals, skipped, warnings);
+  }
+
+  const fillDays =
+    mode === "fill_day"
+      ? options.dayYmd
+        ? [options.dayYmd]
+        : []
+      : ctx.days.filter((ymd) => ymd >= ctx.todayYmd);
+
+  if (mode === "fill_day") {
+    if (!options.dayYmd) {
+      return { error: "dayYmd is required for fill_day mode", status: 400 };
+    }
+    if (!ctx.days.includes(options.dayYmd)) {
+      return { error: "dayYmd must be in the target roster week", status: 400 };
+    }
+    if (options.dayYmd < ctx.todayYmd) {
+      return { error: "Cannot fill past days", status: 400 };
+    }
   }
 
   let hasHistory = false;
-  for (const ymd of ctx.days) {
-    if (ymd < ctx.todayYmd) continue;
+  for (const ymd of fillDays) {
     if (isRosterDayLocked(ymd, ctx.anchorYmd, ctx.todayYmd, ctx.rosterLock)) continue;
     if (ctx.closedDateMs.has(utcDateFromYmd(ymd).getTime())) continue;
 
@@ -552,11 +742,11 @@ export async function previewAutoScheduler(
     );
   }
 
-  if (proposals.length === 0 && skipped.length === 0) {
-    warnings.push("No open slots to fill from today through week end.");
+  if (proposals.length === 0 && skipped.length === 0 && mode === "fill_day") {
+    warnings.push("No open slots on this day.");
   }
 
-  return finalizePreview(ctx, mode, proposals, skipped, warnings);
+  return completePreview(ctx, mode, proposals, skipped, warnings);
 }
 
 export async function applyAutoScheduler(
@@ -570,6 +760,11 @@ export async function applyAutoScheduler(
 
   const lockError = assertWeekEditable(ctx);
   if (lockError) return { error: lockError, status: 403 };
+
+  const quota = await getAutoSchedulerQuota(ctx.organizationId, ctx.timeZone);
+  if (!quota.allowed) {
+    return { error: quota.message ?? "Auto Scheduler limit reached.", status: 402 };
+  }
 
   const targetWeekEndYmd = weekEndYmd(ctx.anchorYmd);
   const membershipArgs = {

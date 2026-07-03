@@ -32,9 +32,9 @@ export async function POST(request: Request, { params }: Ctx) {
   }
 
   const mode = body.mode;
-  if (mode !== "copy_previous" && mode !== "fill_open") {
+  if (mode !== "copy_previous" && mode !== "fill_open" && mode !== "fill_day") {
     return NextResponse.json(
-      { error: "mode must be copy_previous or fill_open" },
+      { error: "mode must be copy_previous, fill_open, or fill_day" },
       { status: 400 },
     );
   }

@@ -7,7 +7,8 @@ import { formatStaffFullName } from "@/lib/staff-display-name";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const MODES = new Set<AutoSchedulerMode>(["copy_previous", "fill_open"]);
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MODES = new Set<AutoSchedulerMode>(["copy_previous", "fill_open", "fill_day"]);
 
 export async function POST(request: Request, { params }: Ctx) {
   const session = await getSession();
@@ -22,9 +23,9 @@ export async function POST(request: Request, { params }: Ctx) {
   }
 
   const mode = body.mode;
-  if (mode !== "copy_previous" && mode !== "fill_open") {
+  if (mode !== "copy_previous" && mode !== "fill_open" && mode !== "fill_day") {
     return NextResponse.json(
-      { error: "mode must be copy_previous or fill_open" },
+      { error: "mode must be copy_previous, fill_open, or fill_day" },
       { status: 400 },
     );
   }
@@ -32,7 +33,14 @@ export async function POST(request: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
   }
 
-  const result = await previewAutoScheduler(weekId, session.orgId, mode);
+  const dayYmd = typeof body.dayYmd === "string" ? body.dayYmd.trim() : undefined;
+  if (mode === "fill_day" && (!dayYmd || !YMD_RE.test(dayYmd))) {
+    return NextResponse.json({ error: "dayYmd (YYYY-MM-DD) is required for fill_day" }, { status: 400 });
+  }
+
+  const result = await previewAutoScheduler(weekId, session.orgId, mode, {
+    dayYmd: mode === "fill_day" ? dayYmd : undefined,
+  });
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

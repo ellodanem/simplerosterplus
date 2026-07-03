@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal } from "@/app/components/modal";
+import { dayHeaderLabel } from "@/lib/roster-week";
 import type { AutoSchedulerMode } from "@/lib/auto-scheduler";
 
 export type AutoSchedulerProposalRow = {
@@ -21,6 +22,7 @@ type PreviewResponse = {
   proposals: AutoSchedulerProposalRow[];
   skipped: Array<{ staffId: string; staffName: string; date: string; dayLabel: string; reason: string }>;
   warnings: string[];
+  usage?: { used: number; limit: number | null };
   error?: string;
 };
 
@@ -41,26 +43,39 @@ const MODE_LABELS: Record<AutoSchedulerMode, { title: string; description: strin
     description:
       "Add shifts only to empty cells from today through week end, using recent patterns for each person.",
   },
+  fill_day: {
+    title: "Fill one day",
+    description:
+      "Fill open slots on a single day using recent patterns, scheduling rules, and Sunday rotation.",
+  },
 };
 
 export function AutoSchedulerModal({
   weekId,
   initialMode,
+  initialDayYmd,
+  fillableDays,
+  timeZone,
   weekLocked,
   onClose,
   onApplied,
 }: {
   weekId: string;
   initialMode: AutoSchedulerMode;
+  initialDayYmd?: string | null;
+  fillableDays: string[];
+  timeZone: string;
   weekLocked: boolean;
   onClose: () => void;
   onApplied: (entries: Record<string, string>, message: string) => void;
 }) {
   const [mode, setMode] = useState<AutoSchedulerMode>(initialMode);
+  const [dayYmd, setDayYmd] = useState(initialDayYmd ?? fillableDays[0] ?? "");
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [usage, setUsage] = useState<{ used: number; limit: number | null } | null>(null);
   const [proposals, setProposals] = useState<AutoSchedulerProposalRow[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -77,7 +92,10 @@ export function AutoSchedulerModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode }),
+          body: JSON.stringify({
+            mode,
+            ...(mode === "fill_day" ? { dayYmd } : {}),
+          }),
         },
       );
       const data = (await res.json().catch(() => ({}))) as PreviewResponse;
@@ -86,21 +104,27 @@ export function AutoSchedulerModal({
       setProposals(data.proposals ?? []);
       setWarnings(data.warnings ?? []);
       setSkippedCount(data.skipped?.length ?? 0);
+      setUsage(data.usage ?? null);
       setSelected(new Set((data.proposals ?? []).map(proposalKey)));
     } catch (e) {
       setError((e as Error).message);
       setProposals([]);
       setWarnings([]);
       setSkippedCount(0);
+      setUsage(null);
       setSelected(new Set());
     } finally {
       setLoading(false);
     }
-  }, [weekId, mode]);
+  }, [weekId, mode, dayYmd]);
 
   useEffect(() => {
     if (!weekLocked) void loadPreview();
   }, [weekLocked, loadPreview]);
+
+  useEffect(() => {
+    if (initialDayYmd) setDayYmd(initialDayYmd);
+  }, [initialDayYmd]);
 
   const selectedProposals = useMemo(
     () => proposals.filter((p) => selected.has(proposalKey(p))),
@@ -159,7 +183,9 @@ export function AutoSchedulerModal({
       const message =
         mode === "copy_previous"
           ? `Applied ${applied} ${word} from last week${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
-          : `Filled ${applied} open ${word}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`;
+          : mode === "fill_day"
+            ? `Filled ${applied} open ${word} on ${dayHeaderLabel(dayYmd, timeZone).weekday}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`
+            : `Filled ${applied} open ${word}${skippedCount > 0 ? ` (${skippedCount} skipped)` : ""}.`;
 
       onApplied(next, message);
       onClose();
@@ -182,7 +208,8 @@ export function AutoSchedulerModal({
                 key={key}
                 type="button"
                 onClick={() => setMode(key)}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+                disabled={key === "fill_day" && fillableDays.length === 0}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
                   mode === key
                     ? "border-emerald-600 bg-emerald-50 text-emerald-900"
                     : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
@@ -194,6 +221,38 @@ export function AutoSchedulerModal({
           </div>
 
           <p className="text-sm text-zinc-600">{MODE_LABELS[mode].description}</p>
+
+          {mode === "fill_day" ? (
+            <div>
+              <label
+                htmlFor="fill-day"
+                className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600"
+              >
+                Day to fill
+              </label>
+              <select
+                id="fill-day"
+                value={dayYmd}
+                onChange={(e) => setDayYmd(e.target.value)}
+                className="w-full max-w-xs rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+              >
+                {fillableDays.map((ymd) => {
+                  const label = dayHeaderLabel(ymd, timeZone);
+                  return (
+                    <option key={ymd} value={ymd}>
+                      {label.weekday} · {label.date}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          ) : null}
+
+          {usage?.limit != null ? (
+            <p className="text-xs text-zinc-500">
+              Free plan: {usage.used} of {usage.limit} Auto Scheduler actions used this month.
+            </p>
+          ) : null}
 
           {warnings.length > 0 ? (
             <ul className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">

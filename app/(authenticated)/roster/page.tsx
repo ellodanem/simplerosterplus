@@ -39,7 +39,7 @@ export const metadata = {
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-type SearchParams = { week?: string; requests?: string; autoScheduler?: string };
+type SearchParams = { week?: string; requests?: string; autoScheduler?: string; day?: string };
 
 export default async function RosterPage({
   searchParams,
@@ -87,12 +87,19 @@ export default async function RosterPage({
     params.requests === "open" || params.requests === "1" || params.requests === "true";
   const openAutoScheduler =
     params.autoScheduler === "fill" ||
+    params.autoScheduler === "fill_day" ||
     params.autoScheduler === "copy" ||
     params.autoScheduler === "open" ||
     params.autoScheduler === "1" ||
     params.autoScheduler === "true";
+  const autoSchedulerDay =
+    params.day && YMD_RE.test(params.day) ? params.day : null;
   const autoSchedulerMode =
-    params.autoScheduler === "copy" ? ("copy_previous" as const) : ("fill_open" as const);
+    params.autoScheduler === "copy"
+      ? ("copy_previous" as const)
+      : params.autoScheduler === "fill_day" || autoSchedulerDay
+        ? ("fill_day" as const)
+        : ("fill_open" as const);
   const weekStartYmd = requestedWeek
     ? weekStartFromYmd(requestedWeek, effectiveTimeZone, weekStartWeekday)
     : currentWeekStartYmd(effectiveTimeZone, weekStartWeekday);
@@ -284,6 +291,7 @@ export default async function RosterPage({
         initialOpenRequests={openRequests}
         initialOpenAutoScheduler={openAutoScheduler}
         initialAutoSchedulerMode={autoSchedulerMode}
+        initialAutoSchedulerDay={autoSchedulerDay}
         initialOvertimeSettings={overtimeSettings}
         initialMinimumOffDaysSettings={minimumOffDaysSettings}
         initialSchedulingRulesSettings={schedulingRulesSettings}

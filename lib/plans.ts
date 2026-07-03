@@ -8,6 +8,8 @@ export const FREE_STAFF_MAX = 10;
 export const FREE_LOCATIONS_MAX = 2;
 export const FREE_ADMINS_MAX = 1;
 export const FREE_DEVICE_SLOTS = 1;
+/** Auto Scheduler apply actions per calendar month on the free tier — see docs/PRICING.md */
+export const FREE_AUTO_SCHEDULER_MONTHLY = 5;
 
 export const PLUS_STAFF_MAX = 50;
 export const PLUS_STAFF_WARN_40 = 40;

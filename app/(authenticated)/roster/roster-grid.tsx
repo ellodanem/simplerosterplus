@@ -37,6 +37,7 @@ import {
   schedulingRuleViolationSummary,
   type SchedulingRulesSettings,
 } from "@/lib/roster-scheduling-rules";
+import { calendarWeekdayIndex } from "@/lib/datetime-policy";
 import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
@@ -173,6 +174,7 @@ export function RosterGrid({
   initialOpenRequests = false,
   initialOpenAutoScheduler = false,
   initialAutoSchedulerMode = "fill_open" as AutoSchedulerMode,
+  initialAutoSchedulerDay = null,
   initialOvertimeSettings,
   initialMinimumOffDaysSettings,
   initialSchedulingRulesSettings,
@@ -209,6 +211,7 @@ export function RosterGrid({
   initialOpenRequests?: boolean;
   initialOpenAutoScheduler?: boolean;
   initialAutoSchedulerMode?: AutoSchedulerMode;
+  initialAutoSchedulerDay?: string | null;
   initialOvertimeSettings: OvertimeSettings;
   initialMinimumOffDaysSettings: MinimumOffDaysSettings;
   initialSchedulingRulesSettings: SchedulingRulesSettings;
@@ -236,6 +239,9 @@ export function RosterGrid({
   const [autoSchedulerMode, setAutoSchedulerMode] = useState<AutoSchedulerMode>(
     initialAutoSchedulerMode,
   );
+  const [autoSchedulerDay, setAutoSchedulerDay] = useState<string | null>(
+    initialAutoSchedulerDay,
+  );
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [staffRoles, setStaffRoles] = useState(addStaffRoles);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
@@ -248,9 +254,11 @@ export function RosterGrid({
   useEffect(() => {
     if (initialOpenAutoScheduler) {
       setAutoSchedulerMode(initialAutoSchedulerMode);
+      setAutoSchedulerDay(initialAutoSchedulerDay ?? null);
       setShowAutoScheduler(true);
     }
-  }, [initialOpenAutoScheduler, initialAutoSchedulerMode]);
+  }, [initialOpenAutoScheduler, initialAutoSchedulerMode, initialAutoSchedulerDay]);
+
   const [blockMap, setBlockMap] = useState(initialBlockMap);
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
   const [minimumOffDaysSettings, setMinimumOffDaysSettings] = useState(
@@ -259,6 +267,20 @@ export function RosterGrid({
   const [schedulingRulesSettings, setSchedulingRulesSettings] = useState(
     initialSchedulingRulesSettings,
   );
+
+  const workedAnchorLastWeek = useMemo(() => {
+    const anchorWeekday = schedulingRulesSettings.sundayOrWeekdayOff.anchorWeekday;
+    const set = new Set<string>();
+    for (const [key, templateId] of Object.entries(initialPreviousWeekEntries)) {
+      if (!templateId) continue;
+      const sep = key.indexOf("__");
+      if (sep < 0) continue;
+      const staffId = key.slice(0, sep);
+      const ymd = key.slice(sep + 2);
+      if (calendarWeekdayIndex(ymd, timeZone) === anchorWeekday) set.add(staffId);
+    }
+    return set;
+  }, [initialPreviousWeekEntries, schedulingRulesSettings.sundayOrWeekdayOff.anchorWeekday, timeZone]);
 
   const templateById = useMemo(() => {
     const m = new Map<string, Template>();
@@ -357,8 +379,9 @@ export function RosterGrid({
         blockMap,
         holidays,
         settings: schedulingRulesSettings,
+        workedAnchorLastWeek,
       }),
-    [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings],
+    [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings, workedAnchorLastWeek],
   );
 
   const schedulingRuleViolationCount = useMemo(
@@ -369,6 +392,17 @@ export function RosterGrid({
   const rosterLock = useMemo<RosterLockOptions>(
     () => ({ everPublished: weekEverPublished }),
     [weekEverPublished],
+  );
+
+  const fillableDays = useMemo(
+    () =>
+      days.filter(
+        (ymd) =>
+          ymd >= todayYmd &&
+          !isRosterDayLocked(ymd, weekStartYmd, todayYmd, rosterLock) &&
+          !holidays[ymd]?.stationClosed,
+      ),
+    [days, todayYmd, weekStartYmd, rosterLock, holidays],
   );
 
   const lockedDays = useMemo(
@@ -1195,8 +1229,25 @@ export function RosterGrid({
                             </span>
                           ))}
                           {c.offCount > 0 ? (
-                            <span className="text-[11px] font-medium text-zinc-500">
-                              Off: {c.offCount}
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-[11px] font-medium text-zinc-500">
+                                Off: {c.offCount}
+                              </span>
+                              {!weekLocked &&
+                              fillableDays.includes(d) ? (
+                                <button
+                                  type="button"
+                                  title={`Auto-fill open slots on ${d}`}
+                                  onClick={() => {
+                                    setAutoSchedulerMode("fill_day");
+                                    setAutoSchedulerDay(d);
+                                    setShowAutoScheduler(true);
+                                  }}
+                                  className="rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[10px] font-medium text-emerald-800 hover:bg-emerald-100"
+                                >
+                                  Fill
+                                </button>
+                              ) : null}
                             </span>
                           ) : null}
                           {items.length === 0 && c.offCount === 0 ? (
@@ -1490,6 +1541,9 @@ export function RosterGrid({
         <AutoSchedulerModal
           weekId={weekId}
           initialMode={autoSchedulerMode}
+          initialDayYmd={autoSchedulerDay}
+          fillableDays={fillableDays}
+          timeZone={timeZone}
           weekLocked={weekLocked}
           onClose={() => setShowAutoScheduler(false)}
           onApplied={(nextEntries, message) => {

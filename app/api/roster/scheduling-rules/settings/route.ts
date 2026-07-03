@@ -90,6 +90,8 @@ export async function PUT(request: Request) {
     sundayOrWeekdayOff: {
       enabled: sundayObj.enabled,
       anchorWeekday,
+      rotateAnchorWeek:
+        typeof sundayObj.rotateAnchorWeek === "boolean" ? sundayObj.rotateAnchorWeek : false,
     },
   };
 

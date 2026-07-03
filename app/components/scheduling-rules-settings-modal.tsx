@@ -33,6 +33,9 @@ export function SchedulingRulesSettingsModal({
   const [sundayPatternEnabled, setSundayPatternEnabled] = useState(
     initialSettings.sundayOrWeekdayOff.enabled,
   );
+  const [sundayRotationEnabled, setSundayRotationEnabled] = useState(
+    initialSettings.sundayOrWeekdayOff.rotateAnchorWeek,
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +59,7 @@ export function SchedulingRulesSettingsModal({
           sundayOrWeekdayOff: {
             enabled: sundayPatternEnabled,
             anchorWeekday: initialSettings.sundayOrWeekdayOff.anchorWeekday,
+            rotateAnchorWeek: sundayRotationEnabled,
           },
         }),
       });
@@ -145,6 +149,20 @@ export function SchedulingRulesSettingsModal({
               onChange={setSundayPatternEnabled}
               disabled={!enabled}
               label={`${anchorLabel} or weekday off`}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-3 border-t border-zinc-100 pt-3">
+            <div>
+              <h4 className="text-xs font-semibold text-zinc-800">Rotate {anchorLabel} week to week</h4>
+              <p className="mt-1 text-xs text-zinc-500">
+                Staff who worked {anchorLabel} last week should be off {anchorLabel} this week.
+              </p>
+            </div>
+            <Toggle
+              checked={sundayRotationEnabled}
+              onChange={setSundayRotationEnabled}
+              disabled={!enabled || !sundayPatternEnabled}
+              label={`Rotate ${anchorLabel} week to week`}
             />
           </div>
         </div>

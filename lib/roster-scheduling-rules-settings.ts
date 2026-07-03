@@ -11,6 +11,7 @@ import {
   SCHEDULING_RULES_DEFAULTS,
   SCHEDULING_RULES_ENABLED_KEY,
   SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
+  SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
   SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY,
   SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY,
   SCHEDULING_RULES_SUPERVISOR_ROLES_KEY,
@@ -38,6 +39,7 @@ export async function getSchedulingRulesSettings(
           SCHEDULING_RULES_SUPERVISOR_WEEKDAYS_KEY,
           SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY,
           SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
+          SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
         ],
       },
     },
@@ -48,6 +50,9 @@ export async function getSchedulingRulesSettings(
   const enabled = parseEnabled(values.get(SCHEDULING_RULES_ENABLED_KEY));
   const supervisorEnabled = parseEnabled(values.get(SCHEDULING_RULES_SUPERVISOR_ENABLED_KEY));
   const sundayEnabled = parseEnabled(values.get(SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY));
+  const sundayRotationEnabled = parseEnabled(
+    values.get(SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY),
+  );
 
   if (!enabled && rows.length === 0) {
     return { ...SCHEDULING_RULES_DEFAULTS };
@@ -65,6 +70,7 @@ export async function getSchedulingRulesSettings(
       anchorWeekday: parseSundayAnchorWeekday(
         values.get(SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY),
       ),
+      rotateAnchorWeek: sundayRotationEnabled,
     },
   };
 }
@@ -102,6 +108,10 @@ export async function saveSchedulingRulesSettings(
     {
       key: SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY,
       value: String(settings.sundayOrWeekdayOff.anchorWeekday ?? DEFAULT_SUNDAY_ANCHOR_WEEKDAY),
+    },
+    {
+      key: SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY,
+      value: settings.sundayOrWeekdayOff.rotateAnchorWeek ? "true" : "false",
     },
   ];
 

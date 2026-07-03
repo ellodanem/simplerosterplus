@@ -11,6 +11,8 @@ export const SCHEDULING_RULES_SUNDAY_PATTERN_ENABLED_KEY =
   "roster_scheduling_rules_sunday_pattern_enabled";
 export const SCHEDULING_RULES_SUNDAY_ANCHOR_WEEKDAY_KEY =
   "roster_scheduling_rules_sunday_anchor_weekday";
+export const SCHEDULING_RULES_SUNDAY_ROTATION_ENABLED_KEY =
+  "roster_scheduling_rules_sunday_rotation_enabled";
 
 export const DEFAULT_SUPERVISOR_ROLE_NAMES = ["Supervisor"];
 export const DEFAULT_SUPERVISOR_WEEKDAYS = [5, 6];
@@ -26,6 +28,8 @@ export type SchedulingRulesSettings = {
   sundayOrWeekdayOff: {
     enabled: boolean;
     anchorWeekday: number;
+    /** When true, staff who worked the anchor day last week should be off that day this week. */
+    rotateAnchorWeek: boolean;
   };
 };
 
@@ -39,12 +43,13 @@ export const SCHEDULING_RULES_DEFAULTS: SchedulingRulesSettings = {
   sundayOrWeekdayOff: {
     enabled: false,
     anchorWeekday: DEFAULT_SUNDAY_ANCHOR_WEEKDAY,
+    rotateAnchorWeek: false,
   },
 };
 
 export type SchedulingRuleViolation = {
   staffId: string;
-  code: "supervisor_weekend_off" | "sunday_weekday_off_pattern";
+  code: "supervisor_weekend_off" | "sunday_weekday_off_pattern" | "sunday_rotation";
   message: string;
   dates: string[];
 };
@@ -246,6 +251,35 @@ function sundayPatternViolations(args: {
   return [];
 }
 
+function sundayRotationViolations(args: {
+  staffId: string;
+  days: string[];
+  timeZone: string;
+  entries: Record<string, string>;
+  holidays: Record<string, { stationClosed: boolean }>;
+  settings: SchedulingRulesSettings;
+  workedAnchorLastWeek: Set<string>;
+}): SchedulingRuleViolation[] {
+  const rule = args.settings.sundayOrWeekdayOff;
+  if (!args.settings.enabled || !rule.enabled || !rule.rotateAnchorWeek) return [];
+  if (!args.workedAnchorLastWeek.has(args.staffId)) return [];
+
+  const anchorYmd = findCalendarDayInWeek(args.days, rule.anchorWeekday, args.timeZone);
+  if (!anchorYmd) return [];
+  if (isStationClosed(args.holidays, anchorYmd)) return [];
+  if (!hasShift(args.entries, args.staffId, anchorYmd)) return [];
+
+  const anchorLabel = weekdayLabel(rule.anchorWeekday);
+  return [
+    {
+      staffId: args.staffId,
+      code: "sunday_rotation",
+      message: `Worked ${anchorLabel} last week — should be off ${anchorLabel} this week`,
+      dates: [anchorYmd],
+    },
+  ];
+}
+
 export function collectSchedulingRuleViolations(args: {
   staff: Array<{ id: string; role: string | null }>;
   days: string[];
@@ -254,9 +288,11 @@ export function collectSchedulingRuleViolations(args: {
   blockMap: Record<string, "vacation" | "dayOff">;
   holidays: Record<string, { stationClosed: boolean }>;
   settings: SchedulingRulesSettings;
+  workedAnchorLastWeek?: Set<string>;
 }): SchedulingRuleViolation[] {
   if (!args.settings.enabled) return [];
 
+  const workedAnchorLastWeek = args.workedAnchorLastWeek ?? new Set<string>();
   const violations: SchedulingRuleViolation[] = [];
   for (const person of args.staff) {
     violations.push(
@@ -280,6 +316,17 @@ export function collectSchedulingRuleViolations(args: {
         blockMap: args.blockMap,
         holidays: args.holidays,
         settings: args.settings,
+      }),
+    );
+    violations.push(
+      ...sundayRotationViolations({
+        staffId: person.id,
+        days: args.days,
+        timeZone: args.timeZone,
+        entries: args.entries,
+        holidays: args.holidays,
+        settings: args.settings,
+        workedAnchorLastWeek,
       }),
     );
   }
@@ -320,6 +367,7 @@ export function filterProposalsBySchedulingRules<
   blockMap: Record<string, "vacation" | "dayOff">;
   holidays: Record<string, { stationClosed: boolean }>;
   settings: SchedulingRulesSettings;
+  workedAnchorLastWeek?: Set<string>;
 }): { proposals: T[]; skipped: Array<{ staffId: string; date: string; reason: string }> } {
   if (!args.settings.enabled) {
     return { proposals: args.proposals, skipped: [] };
@@ -340,6 +388,7 @@ export function filterProposalsBySchedulingRules<
       blockMap: args.blockMap,
       holidays: args.holidays,
       settings: args.settings,
+      workedAnchorLastWeek: args.workedAnchorLastWeek,
     });
     const staffViolations = violationsForStaff(violations, proposal.staffId);
     if (staffViolations.length > 0) {
