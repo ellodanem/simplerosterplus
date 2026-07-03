@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { calendarWeekdayIndex, formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
 import { getApprovedBlockMap, type BlockReason } from "@/lib/leave-blocks";
+import { filterProposalsBySchedulingRules } from "@/lib/roster-scheduling-rules";
+import { getSchedulingRulesSettings } from "@/lib/roster-scheduling-rules-settings";
 import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
 import {
   isRosterDayLocked,
@@ -8,6 +10,7 @@ import {
   rosterLockFromShareToken,
   type RosterLockOptions,
 } from "@/lib/roster-week-lock";
+import type { SchedulingRulesSettings } from "@/lib/roster-scheduling-rules";
 import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 export const AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING =
@@ -61,6 +64,7 @@ type StaffRow = {
   id: string;
   firstName: string;
   lastName: string;
+  role: string | null;
   startDate: Date | null;
   archivedAt: Date | null;
   excludeFromRoster: boolean;
@@ -93,6 +97,8 @@ export type AutoSchedulerContext = {
   validTemplateIds: Set<string>;
   defaultTemplateId: string | null;
   preference: ShiftPreferenceEngine;
+  schedulingRulesSettings: SchedulingRulesSettings;
+  holidays: Record<string, { stationClosed: boolean }>;
 };
 
 function addDaysUtc(d: Date, days: number): Date {
@@ -227,15 +233,14 @@ export async function loadAutoSchedulerContext(
     historyWeekStarts.push(new Date(weekStartDate.getTime() - i * SEVEN_DAYS_MS));
   }
 
-  const [holidays, allStaff, templates, historyWeeks] = await Promise.all([
+  const [holidays, allStaff, templates, historyWeeks, schedulingRulesSettings] = await Promise.all([
     prisma.publicHoliday.findMany({
       where: {
         organizationId: week.organizationId,
         locationId: week.locationId,
-        stationClosed: true,
         date: { gte: weekStartDate, lte: weekEndDate },
       },
-      select: { date: true },
+      select: { date: true, stationClosed: true },
     }),
     prisma.staff.findMany({
       where: { organizationId: week.organizationId, locationId: week.locationId },
@@ -243,6 +248,7 @@ export async function loadAutoSchedulerContext(
         id: true,
         firstName: true,
         lastName: true,
+        role: true,
         startDate: true,
         archivedAt: true,
         excludeFromRoster: true,
@@ -260,7 +266,16 @@ export async function loadAutoSchedulerContext(
       },
       select: { id: true, weekStart: true },
     }),
+    getSchedulingRulesSettings(week.organizationId),
   ]);
+
+  const holidayMap: Record<string, { stationClosed: boolean }> = {};
+  for (const holiday of holidays) {
+    holidayMap[ymdForDbDate(holiday.date)] = { stationClosed: holiday.stationClosed };
+  }
+  const closedDateMs = new Set(
+    holidays.filter((h) => h.stationClosed).map((h) => h.date.getTime()),
+  );
 
   const historyWeekIds = historyWeeks.map((w) => w.id);
   const historyEntriesRaw =
@@ -321,11 +336,13 @@ export async function loadAutoSchedulerContext(
     staff: allStaff,
     staffById: new Map(allStaff.map((s) => [s.id, s])),
     blockMap,
-    closedDateMs: new Set(holidays.map((h) => h.date.getTime())),
+    closedDateMs,
     currentEntries,
     validTemplateIds,
     defaultTemplateId,
     preference,
+    schedulingRulesSettings,
+    holidays: holidayMap,
   };
 }
 
@@ -390,6 +407,32 @@ function tryBuildProposal(
   };
 }
 
+function finalizePreview(
+  ctx: AutoSchedulerContext,
+  mode: AutoSchedulerMode,
+  proposals: AutoSchedulerProposal[],
+  skipped: AutoSchedulerSkipped[],
+  warnings: string[],
+): AutoSchedulerPreviewResult {
+  const { proposals: filtered, skipped: ruleSkipped } = filterProposalsBySchedulingRules({
+    proposals,
+    currentEntries: ctx.currentEntries,
+    staff: ctx.staff.map((s) => ({ id: s.id, role: s.role })),
+    days: ctx.days,
+    timeZone: ctx.timeZone,
+    blockMap: ctx.blockMap,
+    holidays: ctx.holidays,
+    settings: ctx.schedulingRulesSettings,
+  });
+
+  return {
+    mode,
+    proposals: filtered,
+    skipped: [...skipped, ...ruleSkipped],
+    warnings,
+  };
+}
+
 export async function previewAutoScheduler(
   weekId: string,
   organizationId: string,
@@ -439,7 +482,7 @@ export async function previewAutoScheduler(
 
     if (sourceEntries.length === 0) {
       warnings.push(AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING);
-      return { mode, proposals, skipped, warnings };
+      return finalizePreview(ctx, mode, proposals, skipped, warnings);
     }
 
     for (const e of sourceEntries) {
@@ -461,7 +504,7 @@ export async function previewAutoScheduler(
       else skipped.push(result.skip);
     }
 
-    return { mode, proposals, skipped, warnings };
+    return finalizePreview(ctx, mode, proposals, skipped, warnings);
   }
 
   let hasHistory = false;
@@ -513,7 +556,7 @@ export async function previewAutoScheduler(
     warnings.push("No open slots to fill from today through week end.");
   }
 
-  return { mode, proposals, skipped, warnings };
+  return finalizePreview(ctx, mode, proposals, skipped, warnings);
 }
 
 export async function applyAutoScheduler(

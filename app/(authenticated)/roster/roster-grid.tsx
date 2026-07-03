@@ -6,6 +6,7 @@ import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { MinimumOffDaysSettingsModal } from "@/app/components/minimum-off-days-settings-modal";
+import { SchedulingRulesSettingsModal } from "@/app/components/scheduling-rules-settings-modal";
 import {
   isRosterDayLocked,
   rosterLockedDays,
@@ -30,6 +31,12 @@ import {
   staffBelowMinimumOffDays,
   type MinimumOffDaysSettings,
 } from "@/lib/minimum-off-days";
+import {
+  collectSchedulingRuleViolations,
+  countStaffWithSchedulingViolations,
+  schedulingRuleViolationSummary,
+  type SchedulingRulesSettings,
+} from "@/lib/roster-scheduling-rules";
 import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
@@ -168,6 +175,7 @@ export function RosterGrid({
   initialAutoSchedulerMode = "fill_open" as AutoSchedulerMode,
   initialOvertimeSettings,
   initialMinimumOffDaysSettings,
+  initialSchedulingRulesSettings,
   initialHolidayCalendar,
   addStaffLocations,
   addStaffRoles,
@@ -203,6 +211,7 @@ export function RosterGrid({
   initialAutoSchedulerMode?: AutoSchedulerMode;
   initialOvertimeSettings: OvertimeSettings;
   initialMinimumOffDaysSettings: MinimumOffDaysSettings;
+  initialSchedulingRulesSettings: SchedulingRulesSettings;
   initialHolidayCalendar: HolidayCalendarConfig;
   addStaffLocations: Array<{ id: string; name: string }>;
   addStaffRoles: Array<{ id: string; name: string }>;
@@ -221,6 +230,7 @@ export function RosterGrid({
   const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showMinimumOffDaysSettings, setShowMinimumOffDaysSettings] = useState(false);
+  const [showSchedulingRulesSettings, setShowSchedulingRulesSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(initialOpenRequests);
   const [showAutoScheduler, setShowAutoScheduler] = useState(initialOpenAutoScheduler);
   const [autoSchedulerMode, setAutoSchedulerMode] = useState<AutoSchedulerMode>(
@@ -245,6 +255,9 @@ export function RosterGrid({
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
   const [minimumOffDaysSettings, setMinimumOffDaysSettings] = useState(
     initialMinimumOffDaysSettings,
+  );
+  const [schedulingRulesSettings, setSchedulingRulesSettings] = useState(
+    initialSchedulingRulesSettings,
   );
 
   const templateById = useMemo(() => {
@@ -332,6 +345,25 @@ export function RosterGrid({
         minimumOffDaysSettings,
       ),
     [staffRows, days, entries, blockMap, holidays, minimumOffDaysSettings],
+  );
+
+  const schedulingRuleViolations = useMemo(
+    () =>
+      collectSchedulingRuleViolations({
+        staff: staffRows,
+        days,
+        timeZone,
+        entries,
+        blockMap,
+        holidays,
+        settings: schedulingRulesSettings,
+      }),
+    [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings],
+  );
+
+  const schedulingRuleViolationCount = useMemo(
+    () => countStaffWithSchedulingViolations(schedulingRuleViolations),
+    [schedulingRuleViolations],
   );
 
   const rosterLock = useMemo<RosterLockOptions>(
@@ -844,6 +876,17 @@ export function RosterGrid({
                     <span>Minimum off days</span>
                     <span className="text-[11px] text-zinc-400">Highlight</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowSchedulingRulesSettings(true);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <span>Scheduling rules</span>
+                    <span className="text-[11px] text-zinc-400">Patterns</span>
+                  </button>
                 </div>
               </>
             ) : null}
@@ -929,6 +972,11 @@ export function RosterGrid({
           {minimumOffDaysSettings.enabled && staffBelowMinimumOffDaysCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800">
               Off days: {staffBelowMinimumOffDaysCount} below minimum
+            </span>
+          ) : null}
+          {schedulingRulesSettings.enabled && schedulingRuleViolationCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-900">
+              Rules: {schedulingRuleViolationCount} need attention
             </span>
           ) : null}
         </div>
@@ -1184,20 +1232,36 @@ export function RosterGrid({
                   const offDaysTitle = belowMinimumOffDays
                     ? `${staffFullName} — ${minimumOffDaysShortfallMessage(offDaysCount, minimumOffDaysSettings)}`
                     : staffFullName;
+                  const schedulingRuleIssue = schedulingRuleViolationSummary(
+                    schedulingRuleViolations,
+                    s.id,
+                  );
+                  const hasSchedulingRuleIssue = Boolean(schedulingRuleIssue);
+                  const nameTitle = [
+                    birthdayTitle,
+                    belowMinimumOffDays ? offDaysTitle : null,
+                    schedulingRuleIssue,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
                   return (
                 <tr
                   key={s.id}
                   className={
                     belowMinimumOffDays
                       ? "animate-roster-off-days-row-blink"
-                      : "hover:bg-zinc-50/40"
+                      : hasSchedulingRuleIssue
+                        ? "bg-amber-50/50"
+                        : "hover:bg-zinc-50/40"
                   }
                 >
                   <td
                     className={`sticky left-0 z-10 border-r border-zinc-200 px-3 py-2 ${
                       belowMinimumOffDays
                         ? "animate-roster-off-days-row-blink border-l-4 border-l-rose-500"
-                        : "bg-white"
+                        : hasSchedulingRuleIssue
+                          ? "border-l-4 border-l-amber-400 bg-amber-50/80"
+                          : "bg-white"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1206,9 +1270,11 @@ export function RosterGrid({
                           className={`flex min-w-0 items-center gap-1 truncate font-semibold ${
                             belowMinimumOffDays
                               ? "animate-roster-off-days-blink"
-                              : "text-zinc-900"
+                              : hasSchedulingRuleIssue
+                                ? "text-amber-950"
+                                : "text-zinc-900"
                           }`}
-                          title={birthdayTitle ?? offDaysTitle}
+                          title={nameTitle || staffFullName}
                         >
                           <span className="truncate">
                             {formatRosterStaffName(s.firstName, s.lastName)}
@@ -1380,6 +1446,18 @@ export function RosterGrid({
           onSaved={(nextSettings, message) => {
             setShowMinimumOffDaysSettings(false);
             setMinimumOffDaysSettings(nextSettings);
+            setNotice(message);
+          }}
+        />
+      ) : null}
+
+      {showSchedulingRulesSettings ? (
+        <SchedulingRulesSettingsModal
+          initialSettings={schedulingRulesSettings}
+          onClose={() => setShowSchedulingRulesSettings(false)}
+          onSaved={(nextSettings, message) => {
+            setShowSchedulingRulesSettings(false);
+            setSchedulingRulesSettings(nextSettings);
             setNotice(message);
           }}
         />
