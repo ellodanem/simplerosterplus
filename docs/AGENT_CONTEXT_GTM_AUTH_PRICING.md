@@ -19,7 +19,7 @@
 | **Logins at launch** | **Admin-only** (handful per site); roster `Staff` ≠ Clerk members |
 | **Devices** | Outside Clerk; 100+ devices do not affect auth billing |
 | **Clerk cost (early)** | Likely **$0** (Hobby); Pro ~$20–25/mo when MFA/branding needed |
-| **Pricing** | **Finalized direction** — see [`PRICING.md`](./PRICING.md): Free (≤10 staff), Plus **$19.99/mo** (≤100 staff), Pro **$49.99/mo** (unlimited staff); device/admin/WhatsApp add-ons |
+| **Pricing** | **Finalized direction** — see [`PRICING.md`](./PRICING.md): Free (≤10 staff), Plus **$19.99/mo** (≤50 staff), Pro **$49.99/mo** (≤100 staff); device/admin/WhatsApp add-ons |
 
 ---
 
@@ -277,7 +277,7 @@ Clerk **included B2B**: ≤20 members/org, invitations, basic RBAC. **Enhanced B
 |-------|----------|
 | **Hero paid tier** | Plus **$19.99/mo** (monthly default; optional annual) |
 | **Free tier** | ≤10 staff, ≤2 locations (soft at 3+), 1 admin, 30-day device sync trial (+ one extension) |
-| **Staff caps** | Plus ≤**100** staff; Pro **unlimited** |
+| **Staff caps** | Plus ≤**50** staff; Pro ≤**100** staff |
 | **Locations (paid)** | **Unlimited** on Plus/Pro — not a billing axis |
 | **Devices** | Plus: 1 included; Pro: 3 included; **+$5/mo** each additional |
 | **Admins** | Free: 1; Plus: 2; Pro: 5; **+$2/mo** each additional |

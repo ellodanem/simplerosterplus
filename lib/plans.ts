@@ -9,12 +9,15 @@ export const FREE_LOCATIONS_MAX = 2;
 export const FREE_ADMINS_MAX = 1;
 export const FREE_DEVICE_SLOTS = 1;
 
-export const PLUS_STAFF_MAX = 100;
-export const PLUS_STAFF_WARN_80 = 80;
-export const PLUS_STAFF_WARN_95 = 95;
+export const PLUS_STAFF_MAX = 50;
+export const PLUS_STAFF_WARN_40 = 40;
+export const PLUS_STAFF_WARN_47 = 47;
 export const PLUS_ADMINS_INCLUDED = 2;
 export const PLUS_DEVICES_INCLUDED = 1;
 
+export const PRO_STAFF_MAX = 100;
+export const PRO_STAFF_WARN_80 = 80;
+export const PRO_STAFF_WARN_95 = 95;
 export const PRO_ADMINS_INCLUDED = 5;
 export const PRO_DEVICES_INCLUDED = 3;
 

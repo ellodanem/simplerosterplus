@@ -8,10 +8,13 @@ import {
   PLUS_ADMINS_INCLUDED,
   PLUS_DEVICES_INCLUDED,
   PLUS_STAFF_MAX,
-  PLUS_STAFF_WARN_80,
-  PLUS_STAFF_WARN_95,
+  PLUS_STAFF_WARN_40,
+  PLUS_STAFF_WARN_47,
   PRO_ADMINS_INCLUDED,
   PRO_DEVICES_INCLUDED,
+  PRO_STAFF_MAX,
+  PRO_STAFF_WARN_80,
+  PRO_STAFF_WARN_95,
   PLAN_PLUS,
   PLAN_PRO,
   type PlanLimitViolation,
@@ -60,7 +63,7 @@ function tierLimits(tier: ReturnType<typeof resolveBillingTier>) {
       };
     case "pro":
       return {
-        staffMax: null as number | null,
+        staffMax: PRO_STAFF_MAX,
         locationMax: null,
         adminsIncluded: PRO_ADMINS_INCLUDED,
         devicesIncluded: PRO_DEVICES_INCLUDED,
@@ -102,11 +105,18 @@ export async function checkStaffLimit(
         upgradePlan: PLAN_PLUS,
       };
     }
+    if (tier === "plus") {
+      return {
+        kind: "staff",
+        message: `Plus plan includes up to ${PLUS_STAFF_MAX} staff. Upgrade to Pro for up to ${PRO_STAFF_MAX} staff.`,
+        upgradeCta: "Upgrade to Pro",
+        upgradePlan: PLAN_PRO,
+      };
+    }
     return {
       kind: "staff",
-      message: `Plus plan includes up to ${PLUS_STAFF_MAX} staff. Upgrade to Pro for unlimited staff.`,
-      upgradeCta: "Upgrade to Pro",
-      upgradePlan: PLAN_PRO,
+      message: `Pro plan includes up to ${PRO_STAFF_MAX} staff. Contact support if you need a larger team.`,
+      upgradeCta: "Contact support",
     };
   }
   return null;
@@ -236,14 +246,24 @@ export async function getPlanUsage(organizationId: string): Promise<PlanUsageSna
       message: `You're at the free plan limit of ${FREE_LOCATIONS_MAX} locations. Upgrade to Plus for unlimited locations.`,
     });
   }
-  if (tier === "plus" && staff >= PLUS_STAFF_WARN_80) {
+  if (tier === "plus" && staff >= PLUS_STAFF_WARN_40) {
     warnings.push({
       kind: "staff",
-      severity: staff >= PLUS_STAFF_WARN_95 ? "warn" : "info",
+      severity: staff >= PLUS_STAFF_WARN_47 ? "warn" : "info",
       message:
-        staff >= PLUS_STAFF_WARN_95
+        staff >= PLUS_STAFF_WARN_47
           ? `You're at ${staff} of ${PLUS_STAFF_MAX} staff on Plus. Upgrade to Pro before you hit the cap.`
           : `You're at ${staff} of ${PLUS_STAFF_MAX} staff on Plus.`,
+    });
+  }
+  if (tier === "pro" && staff >= PRO_STAFF_WARN_80) {
+    warnings.push({
+      kind: "staff",
+      severity: staff >= PRO_STAFF_WARN_95 ? "warn" : "info",
+      message:
+        staff >= PRO_STAFF_WARN_95
+          ? `You're at ${staff} of ${PRO_STAFF_MAX} staff on Pro — near the plan cap.`
+          : `You're at ${staff} of ${PRO_STAFF_MAX} staff on Pro.`,
     });
   }
 

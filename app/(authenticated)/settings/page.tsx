@@ -203,8 +203,8 @@ export default async function SettingsPage({
         <h2 className="font-semibold text-zinc-900">Plan summary</h2>
         <ul className="mt-2 list-inside list-disc space-y-1">
           <li>Free — up to 10 staff, 2 locations, 30-day device sync trial</li>
-          <li>Plus — $19.99/mo, up to 100 staff, unlimited locations, SMS roster publish</li>
-          <li>Pro — $49.99/mo, unlimited staff, WhatsApp included, 3 devices</li>
+          <li>Plus — $19.99/mo, up to 50 staff, unlimited locations, SMS roster publish</li>
+          <li>Pro — $49.99/mo, up to 100 staff, WhatsApp included, 3 devices</li>
         </ul>
         <p className="mt-3 text-xs text-zinc-500">
           Extra devices (+$5/mo) and admins (+$2/mo) are available in the billing portal after

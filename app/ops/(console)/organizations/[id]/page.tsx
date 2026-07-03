@@ -97,8 +97,10 @@ export default async function OrganizationDetailPage({
                 (org.plan === "free" || !org.plan
                   ? ` / 10 (free)`
                   : org.plan === "plus" || org.plan === "starter"
-                    ? ` / 100 (plus)`
-                    : " (unlimited)")
+                    ? ` / 50 (plus)`
+                    : org.plan === "pro"
+                      ? ` / 100 (pro)`
+                      : "")
               }
             />
             <Row

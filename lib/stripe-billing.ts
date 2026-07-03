@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   PLAN_PLUS,
   PLAN_PRO,
+  PRO_STAFF_MAX,
   STRIPE_LOOKUP_PLUS_ANNUAL,
   STRIPE_LOOKUP_PLUS_MONTHLY,
   STRIPE_LOOKUP_PRO_ANNUAL,
@@ -76,6 +77,17 @@ export async function createCheckoutSession(args: {
   });
   if (!org || !canManageBilling(org)) {
     throw new Error("Billing is not available for this organization");
+  }
+
+  if (args.plan === PLAN_PRO) {
+    const staffCount = await prisma.staff.count({
+      where: { organizationId: args.organizationId, archivedAt: null },
+    });
+    if (staffCount > PRO_STAFF_MAX) {
+      throw new Error(
+        `Pro supports up to ${PRO_STAFF_MAX} staff. Archive staff or stay on Plus before upgrading.`,
+      );
+    }
   }
 
   const customerId = await ensureStripeCustomer(args.organizationId, args.email);

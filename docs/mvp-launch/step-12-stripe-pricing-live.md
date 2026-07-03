@@ -27,8 +27,8 @@ This is a large step — when un-gated it can be split into **12a (limit enforce
 1. **Schema additions** for the device trial (not in schema yet): `deviceTrialStartedAt`, `deviceTrialExpiresAt`, `deviceTrialExtensionUsed`. Reuse existing `plan` / `subscriptionStatus` / `isDemo` / `trialEndsAt` columns; add a derived/stored `staffCount` source if needed for the operator console.
 2. **Caps** ([../PRICING.md](../PRICING.md) § Plans):
    - **Free:** hard block at staff #11; soft block at location #3; 1 admin; 1 device slot.
-   - **Plus:** soft warnings at 80/95 staff, hard at #101 → Pro; 2 admins, 1 device included.
-   - **Pro:** unlimited staff/locations; 5 admins, 3 devices included.
+   - **Plus:** soft warnings at 40/47 staff, hard at #51 → Pro; 2 admins, 1 device included.
+   - **Pro:** up to **100** staff (soft warnings at 80/95); unlimited locations; 5 admins, 3 devices included.
 3. **Device sync trial (Free):** 30-day live sync from first device connect; **one +30-day extension** if the org has **never published a roster** (`RosterWeek.status !== published` — see step 05). After trial: historical punches read-only, ingest paused, roster + manual attendance continue.
 4. **Upgrade UX:** soft warnings before hard blocks; clear upgrade CTAs at each trigger ([../PRICING.md](../PRICING.md) § Upgrade triggers). No silent failures.
 5. **Add-ons quantity logic:** extra device (+$5), extra admin (+$2), WhatsApp (+$5; included on Pro).

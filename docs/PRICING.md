@@ -14,7 +14,7 @@
 
 **Landing one-liner:**
 
-> Free for up to 10 staff. Try your clock free for 30 days. Then **$19.99/month** — unlimited staff (up to 100 on Plus), live attendance, and SMS roster publish. No annual contract required.
+> Free for up to 10 staff. Try your clock free for 30 days. Then **$19.99/month** — up to 50 staff on Plus (100 on Pro), live attendance, and SMS roster publish. No annual contract required.
 
 ---
 
@@ -40,7 +40,7 @@ Device trial is **per organization**, not per location (one trial clock even wit
 
 | Dimension | Limit |
 |-----------|-------|
-| **Staff** | Up to **100** (soft warnings at 80 and 95; **hard** at #101 → Pro) |
+| **Staff** | Up to **50** (soft warnings at 40 and 47; **hard** at #51 → Pro) |
 | **Locations** | **Unlimited** (not a billing axis on paid tiers) |
 | **Admins** | **2** included |
 | **Devices** | **1** included, full sync |
@@ -64,7 +64,7 @@ Device trial is **per organization**, not per location (one trial clock even wit
 
 | Dimension | Limit |
 |-----------|-------|
-| **Staff** | **Unlimited** |
+| **Staff** | Up to **100** (soft warnings at 80 and 95; **hard** at #101 → contact support) |
 | **Locations** | **Unlimited** |
 | **Admins** | **5** included (+$2/mo each extra) |
 | **Devices** | **3** included (+$5/mo each extra) |
@@ -81,7 +81,7 @@ Device trial is **per organization**, not per location (one trial clock even wit
 
 ### Staff (for limits)
 
-**Active roster staff** — rows that count toward Free / Plus caps:
+**Active roster staff** — rows that count toward plan caps:
 
 - Not archived (`Staff.archivedAt` is null)
 - Includes **Attendance only** rows if they remain on the staff list (simplest rule; revisit if abuse appears)
@@ -92,7 +92,7 @@ Archived staff and past-week historical data do not count toward the cap.
 
 - Schema: multiple `Location` rows per `Organization`.
 - **Free:** 2 locations max (soft blocker at 3+).
-- **Plus / Pro:** unlimited — location count is **not** sold separately; org scale is reflected primarily via **staff cap** (Plus 100 → Pro).
+- **Plus / Pro:** unlimited locations. **Staff cap** scales by tier (Plus **50** → Pro **100**).
 
 ### Device
 
@@ -109,11 +109,12 @@ Archived staff and past-week historical data do not count toward the cap.
 | Staff #11 on Free | Plus |
 | Location #3 on Free | Plus |
 | Device trial expired; user wants live sync | Plus |
-| Staff #101 on Plus | Pro |
+| Staff #51 on Plus | Pro |
+| Staff #101 on Pro | Contact support |
 | Needs WhatsApp on Plus | Plus + WhatsApp add-on, or Pro if bundle is cheaper |
 | Needs 4+ devices with WhatsApp | Compare Plus à la carte vs Pro |
 
-Show **soft warnings** before hard blocks (staff 80/95 on Plus; location 2 banner on Free).
+Show **soft warnings** before hard blocks (staff 40/47 on Plus; staff 80/95 on Pro; location 2 banner on Free).
 
 Optional policy (later): **14-day Pro trial** when hitting Plus staff cap to reduce upgrade friction.
 
@@ -158,7 +159,7 @@ Track in separate passes; numbers here are placeholders until product/legal sign
 1. **AI metering** — Define one “action” (e.g. fill-week suggestion, conflict explanation). Free = 5/mo; Plus/Pro = fair use (e.g. 50/mo) unless COGS allow more. In-app counter before GA.
 2. **SMS caps** — Plus ~50 SMS/mo, Pro ~200/mo; personal schedule + change alerts only ([`ROSTER_PUBLISH_SMS_NOTES.md`](./ROSTER_PUBLISH_SMS_NOTES.md)). TCPA opt-in / STOP before send.
 3. **Device trial Terms** — 30-day clock start, one extension rule, post-trial read-only behavior, no data deletion.
-4. **Grandfathering** — Policy when Plus org exceeds 100 staff mid-cycle.
+4. **Grandfathering** — Policy when Plus org exceeds 50 staff or Pro exceeds 100 staff mid-cycle.
 5. **Pro price** — $49.99 confirmed; revisit after first paid cohort if conversion stalls.
 
 ---
@@ -174,4 +175,4 @@ Surface for support:
 
 ---
 
-*Last updated: 2026-05-30. Update when Stripe goes live, caps are finalized, or tiers change.*
+*Last updated: 2026-07-03. Plus staff cap 50; Pro staff cap 100.*
