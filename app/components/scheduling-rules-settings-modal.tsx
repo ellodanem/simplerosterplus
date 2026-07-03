@@ -15,11 +15,13 @@ type View = "list" | "add" | "edit";
 export function SchedulingRulesSettingsModal({
   initialSettings,
   initialRules,
+  orgRoles,
   onClose,
   onSaved,
 }: {
   initialSettings: SchedulingRulesSettings;
   initialRules?: SchedulingRuleRecord[];
+  orgRoles: Array<{ id: string; name: string }>;
   onClose: () => void;
   onSaved: (settings: SchedulingRulesSettings, rules: SchedulingRuleRecord[], message: string) => void;
 }) {
@@ -187,6 +189,7 @@ export function SchedulingRulesSettingsModal({
       ) : view === "add" ? (
         <AddRuleView
           existingTypes={rules.map((r) => r.type)}
+          orgRoles={orgRoles}
           onSubmit={addRule}
           onBack={() => setView("list")}
           pending={pending}
@@ -195,6 +198,7 @@ export function SchedulingRulesSettingsModal({
       ) : view === "edit" && editingRule ? (
         <EditRuleView
           rule={editingRule}
+          orgRoles={orgRoles}
           onSubmit={(name, params) => updateRule(editingRule.id, name, params)}
           onBack={() => {
             setEditingRule(null);
@@ -355,12 +359,14 @@ function RuleListView({
 
 function AddRuleView({
   existingTypes,
+  orgRoles,
   onSubmit,
   onBack,
   pending,
   error,
 }: {
   existingTypes: string[];
+  orgRoles: Array<{ id: string; name: string }>;
   onSubmit: (type: string, name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
   pending: boolean;
@@ -415,6 +421,7 @@ function AddRuleView({
       type={selectedType}
       initialName={template.label}
       initialParams={{ ...template.defaultParams }}
+      orgRoles={orgRoles}
       submitLabel="Add rule"
       onSubmit={(name, params) => onSubmit(selectedType, name, params)}
       onBack={() => setSelectedType(null)}
@@ -430,12 +437,14 @@ function AddRuleView({
 
 function EditRuleView({
   rule,
+  orgRoles,
   onSubmit,
   onBack,
   pending,
   error,
 }: {
   rule: SchedulingRuleRecord;
+  orgRoles: Array<{ id: string; name: string }>;
   onSubmit: (name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
   pending: boolean;
@@ -446,6 +455,7 @@ function EditRuleView({
       type={rule.type}
       initialName={rule.name}
       initialParams={{ ...(RULE_TEMPLATES[rule.type]?.defaultParams ?? {}), ...rule.params }}
+      orgRoles={orgRoles}
       submitLabel="Save changes"
       onSubmit={onSubmit}
       onBack={onBack}
@@ -463,6 +473,7 @@ function RuleParamsForm({
   type,
   initialName,
   initialParams,
+  orgRoles,
   submitLabel,
   onSubmit,
   onBack,
@@ -472,6 +483,7 @@ function RuleParamsForm({
   type: string;
   initialName: string;
   initialParams: Record<string, unknown>;
+  orgRoles: Array<{ id: string; name: string }>;
   submitLabel: string;
   onSubmit: (name: string, params: Record<string, unknown>) => void;
   onBack: () => void;
@@ -512,7 +524,7 @@ function RuleParamsForm({
       </div>
 
       {type === "role_must_work_on_weekdays" ? (
-        <RoleMustWorkFields params={params} onChange={update} />
+        <RoleMustWorkFields params={params} onChange={update} orgRoles={orgRoles} />
       ) : type === "anchor_xor_weekday_off" ? (
         <AnchorXorFields params={params} onChange={update} />
       ) : type === "rotate_anchor_week" ? (
@@ -520,7 +532,7 @@ function RuleParamsForm({
       ) : type === "max_scheduled_days_per_week" ? (
         <MaxScheduledDaysFields params={params} onChange={update} />
       ) : type === "min_staff_with_role_per_day" ? (
-        <MinStaffWithRoleFields params={params} onChange={update} />
+        <MinStaffWithRoleFields params={params} onChange={update} orgRoles={orgRoles} />
       ) : type === "no_consecutive_work_days" ? (
         <NoConsecutiveWorkDaysFields params={params} onChange={update} />
       ) : (
@@ -566,31 +578,60 @@ function RuleParamsForm({
 function RoleMustWorkFields({
   params,
   onChange,
+  orgRoles,
 }: {
   params: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
+  orgRoles: Array<{ id: string; name: string }>;
 }) {
-  const roleNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]).join(", ") : "Supervisor";
+  const selectedNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]) : ["Supervisor"];
   const weekdays = Array.isArray(params.weekdays) ? (params.weekdays as number[]) : [5, 6];
   const exceptApproved = params.exceptApprovedDayOff !== false;
+
+  function toggleRole(roleName: string) {
+    const normalized = selectedNames.map((r) => r.toLowerCase());
+    if (normalized.includes(roleName.toLowerCase())) {
+      onChange("roleNames", selectedNames.filter((r) => r.toLowerCase() !== roleName.toLowerCase()));
+    } else {
+      onChange("roleNames", [...selectedNames, roleName]);
+    }
+  }
+
+  const isSelected = (name: string) =>
+    selectedNames.some((r) => r.toLowerCase() === name.toLowerCase());
 
   return (
     <>
       <div>
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
-          Role names (comma-separated)
+          Roles
         </label>
-        <input
-          type="text"
-          value={roleNames}
-          onChange={(e) =>
-            onChange(
-              "roleNames",
-              e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-            )
-          }
-          className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-        />
+        {orgRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgRoles.map((role) => {
+              const active = isSelected(role.name);
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => toggleRole(role.name)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                >
+                  {role.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No roles defined yet. Add roles in Staff settings.</p>
+        )}
+        {selectedNames.length === 0 ? (
+          <p className="mt-1 text-xs text-amber-600">Select at least one role.</p>
+        ) : null}
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -743,30 +784,59 @@ function MaxScheduledDaysFields({
 function MinStaffWithRoleFields({
   params,
   onChange,
+  orgRoles,
 }: {
   params: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
+  orgRoles: Array<{ id: string; name: string }>;
 }) {
-  const roleNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]).join(", ") : "Supervisor";
+  const selectedNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]) : ["Supervisor"];
   const minCount = typeof params.minCount === "number" ? params.minCount : 1;
+
+  function toggleRole(roleName: string) {
+    const normalized = selectedNames.map((r) => r.toLowerCase());
+    if (normalized.includes(roleName.toLowerCase())) {
+      onChange("roleNames", selectedNames.filter((r) => r.toLowerCase() !== roleName.toLowerCase()));
+    } else {
+      onChange("roleNames", [...selectedNames, roleName]);
+    }
+  }
+
+  const isSelected = (name: string) =>
+    selectedNames.some((r) => r.toLowerCase() === name.toLowerCase());
 
   return (
     <>
       <div>
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
-          Role names (comma-separated)
+          Roles
         </label>
-        <input
-          type="text"
-          value={roleNames}
-          onChange={(e) =>
-            onChange(
-              "roleNames",
-              e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-            )
-          }
-          className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-        />
+        {orgRoles.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orgRoles.map((role) => {
+              const active = isSelected(role.name);
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => toggleRole(role.name)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+                    active
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                      : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  }`}
+                >
+                  {role.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-400">No roles defined yet. Add roles in Staff settings.</p>
+        )}
+        {selectedNames.length === 0 ? (
+          <p className="mt-1 text-xs text-amber-600">Select at least one role.</p>
+        ) : null}
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">

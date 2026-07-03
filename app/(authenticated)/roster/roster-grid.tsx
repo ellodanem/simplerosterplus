@@ -1513,6 +1513,7 @@ export function RosterGrid({
         <SchedulingRulesSettingsModal
           initialSettings={schedulingRulesSettings}
           initialRules={schedulingRules}
+          orgRoles={staffRoles}
           onClose={() => setShowSchedulingRulesSettings(false)}
           onSaved={(nextSettings, nextRules, message) => {
             setSchedulingRulesSettings(nextSettings);
