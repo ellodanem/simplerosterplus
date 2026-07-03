@@ -90,6 +90,36 @@ export default async function OrganizationDetailPage({
                   : "—"
               }
             />
+            <Row
+              label="Staff / cap"
+              value={
+                counts.staff +
+                (org.plan === "free" || !org.plan
+                  ? ` / 10 (free)`
+                  : org.plan === "plus" || org.plan === "starter"
+                    ? ` / 100 (plus)`
+                    : " (unlimited)")
+              }
+            />
+            <Row
+              label="Locations / cap"
+              value={
+                counts.locations +
+                (org.plan === "free" || !org.plan ? ` / 2 (free)` : " (unlimited)")
+              }
+            />
+            <Row
+              label="Add-ons"
+              value={
+                [
+                  org.addonDeviceQty > 0 ? `${org.addonDeviceQty} device` : null,
+                  org.addonAdminQty > 0 ? `${org.addonAdminQty} admin` : null,
+                  org.addonWhatsapp ? "WhatsApp" : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "—"
+              }
+            />
           </dl>
         </Card>
 

@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/app/components/app-nav";
+import { BillingStatusBanner, PlanLimitBanner } from "@/app/components/plan-limit-banner";
 import { DemoSandboxBanner } from "@/app/components/demo-sandbox-banner";
 import { FeedbackButton } from "@/app/components/feedback-button";
 import { ImpersonationBanner } from "@/app/components/impersonation-banner";
 import { LogoutButton } from "@/app/components/logout-button";
 import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
+import { subscriptionNeedsPaymentAttention } from "@/lib/billing-access";
+import { getPlanUsage } from "@/lib/plan-limits";
 import { prisma } from "@/lib/prisma";
 import { getSession, isReadOnlySession } from "@/lib/session";
 
@@ -23,8 +26,26 @@ export default async function AuthenticatedLayout({
 
   const org = await prisma.organization.findUnique({
     where: { id: session.orgId },
-    select: { isDemo: true, demoExpiresAt: true },
+    select: {
+      isDemo: true,
+      demoExpiresAt: true,
+      subscriptionStatus: true,
+      plan: true,
+      stripeSubscriptionId: true,
+      suspendedAt: true,
+    },
   });
+
+  const planUsage = org && !org.isDemo ? await getPlanUsage(session.orgId) : null;
+  const paymentAttention = org
+    ? subscriptionNeedsPaymentAttention({
+        plan: org.plan,
+        subscriptionStatus: org.subscriptionStatus,
+        stripeSubscriptionId: org.stripeSubscriptionId,
+        isDemo: org.isDemo,
+        suspendedAt: org.suspendedAt,
+      })
+    : false;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -36,6 +57,16 @@ export default async function AuthenticatedLayout({
       ) : null}
       {org?.isDemo && org.demoExpiresAt ? (
         <DemoSandboxBanner demoExpiresAt={org.demoExpiresAt} />
+      ) : null}
+      {!readOnly && paymentAttention ? (
+        <div className="mx-auto w-full max-w-7xl px-4 pt-4">
+          <BillingStatusBanner needsPaymentAttention />
+        </div>
+      ) : null}
+      {!readOnly && planUsage && planUsage.warnings.length > 0 ? (
+        <div className="mx-auto w-full max-w-7xl px-4 pt-4">
+          <PlanLimitBanner warnings={planUsage.warnings} />
+        </div>
       ) : null}
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">

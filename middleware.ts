@@ -33,10 +33,12 @@ const TENANT_GATED: RegExp[] = [
   /^\/staff(\/|$)/,
   /^\/roster(\/|$)/,
   /^\/attendance(\/|$)/,
+  /^\/settings(\/|$)/,
   /^\/api\/staff(\/|$)/,
   /^\/api\/roster(\/|$)/,
   /^\/api\/requests(\/|$)/,
   /^\/api\/attendance(\/|$)/,
+  /^\/api\/billing(\/|$)/,
   /^\/api\/auth\/me$/,
   /^\/api\/auth\/logout$/,
 ];

@@ -15,7 +15,7 @@
 | 09 | [step-09-feedback-intake.md](./step-09-feedback-intake.md) | 1 | `completed` | cursor-2026-06-07 | 2026-06-07 | 2026-06-07 | In-app Send feedback + `/ops/feedback` triage; see feedback-loop.md |
 | 10 | [step-10-clerk-auth.md](./step-10-clerk-auth.md) | 2 | `completed` | cursor-2026-06-08 | 2026-06-08 | 2026-06-08 | Clerk middleware + SignIn/Up + webhook provisioning; legacy JWT only for impersonation |
 | 11 | [step-11-self-serve-demo-trial.md](./step-11-self-serve-demo-trial.md) | 2 | `completed` | cursor-2026-06-14 | 2026-06-14 | 2026-06-14 | Self-serve Start Free + demo sandbox + free plan + device trial + limit enforcement |
-| 12 | [step-12-stripe-pricing-live.md](./step-12-stripe-pricing-live.md) | 2 | `blocked` | | | | Gate 2 — plan-limit enforcement + Stripe (PRICING.md); may split 12a/12b |
+| 12 | [step-12-stripe-pricing-live.md](./step-12-stripe-pricing-live.md) | 2 | `completed` | cursor-2026-07-03 | 2026-07-03 | 2026-07-03 | Stripe checkout/portal, Plus/Pro limits + addons mirror, /settings billing UI |
 | 13 | [step-13-roster-notifications.md](./step-13-roster-notifications.md) | Deferred | `blocked` | | | | Post-MVP: automated email/SMS/WhatsApp; see ROSTER_PUBLISH_SMS_NOTES.md |
 
 ### Status values
@@ -36,6 +36,7 @@
 
 | Date | Step | Change |
 |------|------|--------|
+| 2026-07-03 | 12 | Stripe billing: checkout/portal APIs, /settings, Plus/Pro limits + addon mirror, stripe:seed-products |
 | 2026-06-14 | 11 | Self-serve: Start Free → /sign-up, plan=free provisioning, demo sandbox + reclaim cron, device trial on first connect, free-tier limits |
 | 2026-06-08 | 10 | Clerk tenant auth: sign-in/up, webhook at /api/clerk/webhook, clerkOrgId/clerkUserId schema |
 | 2026-06-07 | 09 | Tester feedback: footer form → `/api/feedback` → `TesterFeedback`; ops `/ops/feedback`; feedback-loop.md |

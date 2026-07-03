@@ -9,9 +9,27 @@ export const FREE_LOCATIONS_MAX = 2;
 export const FREE_ADMINS_MAX = 1;
 export const FREE_DEVICE_SLOTS = 1;
 
+export const PLUS_STAFF_MAX = 100;
+export const PLUS_STAFF_WARN_80 = 80;
+export const PLUS_STAFF_WARN_95 = 95;
+export const PLUS_ADMINS_INCLUDED = 2;
+export const PLUS_DEVICES_INCLUDED = 1;
+
+export const PRO_ADMINS_INCLUDED = 5;
+export const PRO_DEVICES_INCLUDED = 3;
+
 export const DEVICE_TRIAL_DAYS = 30;
 export const DEVICE_TRIAL_EXTENSION_DAYS = 30;
 export const DEMO_SANDBOX_DAYS = 14;
+
+/** Stripe price lookup_keys — see docs/PRICING.md § Stripe SKU sketch */
+export const STRIPE_LOOKUP_PLUS_MONTHLY = "srp_plus";
+export const STRIPE_LOOKUP_PLUS_ANNUAL = "srp_plus_annual";
+export const STRIPE_LOOKUP_PRO_MONTHLY = "srp_pro";
+export const STRIPE_LOOKUP_PRO_ANNUAL = "srp_pro_annual";
+export const STRIPE_LOOKUP_DEVICE_ADDON = "srp_device_addon";
+export const STRIPE_LOOKUP_ADMIN_ADDON = "srp_admin_addon";
+export const STRIPE_LOOKUP_WHATSAPP_ADDON = "srp_whatsapp_addon";
 
 export type PlanLimitKind = "staff" | "location" | "admin" | "device";
 
@@ -19,6 +37,14 @@ export type PlanLimitViolation = {
   kind: PlanLimitKind;
   message: string;
   upgradeCta: string;
+  /** Target plan slug for checkout, when known */
+  upgradePlan?: typeof PLAN_PLUS | typeof PLAN_PRO;
+};
+
+export type PlanLimitWarning = {
+  kind: PlanLimitKind;
+  message: string;
+  severity: "info" | "warn";
 };
 
 export function isFreePlan(plan: string | null | undefined): boolean {

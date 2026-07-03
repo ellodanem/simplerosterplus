@@ -52,6 +52,10 @@ model Organization {
   deviceTrialExpiresAt DateTime?
   /// Whether the one-time +30 day extension (never published roster) was used.
   deviceTrialExtensionUsed Boolean @default(false)
+  /// Mirrored add-on quantities from Stripe subscription line items (step 12).
+  addonDeviceQty           Int      @default(0)
+  addonAdminQty            Int      @default(0)
+  addonWhatsapp            Boolean  @default(false)
   /// Operator suspended this org (non-payment, abuse). Non-null = access blocked.
   suspendedAt          DateTime?
 

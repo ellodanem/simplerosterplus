@@ -26,6 +26,11 @@ const NAV_ITEMS = [
     label: "Devices",
     match: (path: string) => path === "/devices" || path.startsWith("/devices/"),
   },
+  {
+    href: "/settings",
+    label: "Settings",
+    match: (path: string) => path === "/settings" || path.startsWith("/settings/"),
+  },
 ] as const;
 
 export function AppNav() {

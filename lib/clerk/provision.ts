@@ -3,6 +3,7 @@ import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
 import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
+import { checkAdminLimit } from "@/lib/plan-limits";
 import { PLAN_FREE } from "@/lib/plans";
 
 const DEFAULT_LOCATION_NAME = "Main";
@@ -130,6 +131,13 @@ export async function ensureAppUserFromClerk(
 
   const memberCount = await prisma.appUser.count({ where: { organizationId } });
   const role: AppUserRole = memberCount === 0 ? "owner" : mappedRole;
+
+  if (!byClerk && !byEmail) {
+    const adminLimit = await checkAdminLimit(organizationId);
+    if (adminLimit) {
+      throw new Error(adminLimit.message);
+    }
+  }
 
   let created = true;
   const user = await prisma.appUser

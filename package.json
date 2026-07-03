@@ -18,7 +18,8 @@
     "link-tenant-to-clerk": "tsx scripts/link-tenant-to-clerk.ts",
     "prod:env-audit": "tsx scripts/prod-env-audit.ts",
     "prod:secret-scan": "tsx scripts/secret-hygiene-scan.ts",
-    "prod:remove-demo-creds": "tsx scripts/remove-demo-credentials.ts"
+    "prod:remove-demo-creds": "tsx scripts/remove-demo-credentials.ts",
+    "stripe:seed-products": "tsx scripts/stripe-seed-products.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

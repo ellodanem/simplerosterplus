@@ -1,9 +1,10 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { PLAN_FREE } from "@/lib/plans";
 import {
   getStripe,
   monthlyCentsFromSubscription,
-  planSlugFromSubscription,
+  parseSubscriptionMirror,
 } from "@/lib/ops/stripe";
 
 // Mirror Stripe state onto Organization columns. The mirror exists only so the operator
@@ -52,7 +53,11 @@ export async function applySubscriptionToOrg(sub: Stripe.Subscription): Promise<
     return { ok: false, reason: "no matching organization" };
   }
 
+  const isCanceled =
+    sub.status === "canceled" || sub.status === "incomplete_expired";
   const isActiveBilling = ACTIVE_STATUSES.has(sub.status);
+  const parsed = parseSubscriptionMirror(sub);
+
   // Basil API (Stripe v22): current_period_end moved from the subscription to its items.
   const periodEndUnix = sub.items.data[0]?.current_period_end ?? null;
   const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
@@ -62,12 +67,15 @@ export async function applySubscriptionToOrg(sub: Stripe.Subscription): Promise<
     where: { id: organizationId },
     data: {
       stripeCustomerId: customerIdOf(sub),
-      stripeSubscriptionId: sub.id,
-      plan: planSlugFromSubscription(sub),
-      subscriptionStatus: sub.status,
+      stripeSubscriptionId: isCanceled ? null : sub.id,
+      plan: isCanceled ? PLAN_FREE : parsed.plan,
+      subscriptionStatus: isCanceled ? null : sub.status,
       mrrCents: isActiveBilling ? monthlyCentsFromSubscription(sub) : 0,
-      currentPeriodEnd: periodEnd,
+      currentPeriodEnd: isCanceled ? null : periodEnd,
       trialEndsAt: trialEnd,
+      addonDeviceQty: isCanceled ? 0 : parsed.addonDeviceQty,
+      addonAdminQty: isCanceled ? 0 : parsed.addonAdminQty,
+      addonWhatsapp: isCanceled ? false : parsed.addonWhatsapp,
     },
   });
 
@@ -95,7 +103,15 @@ export async function syncOrgFromStripe(
   if (subs.data.length === 0) {
     await prisma.organization.update({
       where: { id: orgId },
-      data: { subscriptionStatus: null, stripeSubscriptionId: null, mrrCents: 0 },
+      data: {
+        subscriptionStatus: null,
+        stripeSubscriptionId: null,
+        mrrCents: 0,
+        plan: PLAN_FREE,
+        addonDeviceQty: 0,
+        addonAdminQty: 0,
+        addonWhatsapp: false,
+      },
     });
     return { ok: true };
   }
