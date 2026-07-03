@@ -73,6 +73,13 @@ export default async function HomePage() {
   const hasOpenShifts = summary.openShiftCount > 0;
   const hasPendingRequests = summary.pendingRequestsCount > 0;
   const hasAttendanceIssues = hasLate || hasAbsences;
+  const hasEmptyWeek =
+    summary.rosterPreview != null &&
+    Object.keys(summary.rosterPreview.entries).length === 0;
+  const canAutoSchedule = hasOpenShifts || hasEmptyWeek || summary.rosterStatus === null;
+  const autoSchedulerHref = hasEmptyWeek && !hasOpenShifts
+    ? `${rosterHref}&autoScheduler=copy`
+    : `${rosterHref}&autoScheduler=fill`;
   const hasExceptions = hasAttendanceIssues || hasOpenShifts;
   const exceptionsHref = hasAttendanceIssues ? attendanceHref : rosterHref;
 
@@ -181,18 +188,27 @@ export default async function HomePage() {
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-zinc-900">Auto scheduler</h2>
                 <p className="mt-1 text-xs leading-snug text-zinc-500">
-                  Automatically fill open slots based on availability, skills, and balance rules.
+                  Start from last week or fill open slots using recent shift patterns.
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              disabled
-              title="Coming soon"
-              className="mt-4 w-full rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-400"
-            >
-              Coming soon
-            </button>
+            {canAutoSchedule ? (
+              <Link
+                href={autoSchedulerHref}
+                className="mt-4 block w-full rounded-lg bg-emerald-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-800"
+              >
+                Open auto scheduler
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="No open slots this week"
+                className="mt-4 w-full rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-400"
+              >
+                Week fully assigned
+              </button>
+            )}
           </section>
 
           <section

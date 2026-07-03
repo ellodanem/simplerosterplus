@@ -35,6 +35,8 @@ import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
+import { AutoSchedulerModal } from "./auto-scheduler-modal";
+import type { AutoSchedulerMode } from "@/lib/auto-scheduler";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 import { birthdayLabel } from "@/lib/staff-birthday";
 
@@ -162,6 +164,8 @@ export function RosterGrid({
   blockMap: initialBlockMap,
   initialPendingCount,
   initialOpenRequests = false,
+  initialOpenAutoScheduler = false,
+  initialAutoSchedulerMode = "fill_open" as AutoSchedulerMode,
   initialOvertimeSettings,
   initialMinimumOffDaysSettings,
   initialHolidayCalendar,
@@ -195,6 +199,8 @@ export function RosterGrid({
   blockMap: Record<string, "vacation" | "dayOff">;
   initialPendingCount: number;
   initialOpenRequests?: boolean;
+  initialOpenAutoScheduler?: boolean;
+  initialAutoSchedulerMode?: AutoSchedulerMode;
   initialOvertimeSettings: OvertimeSettings;
   initialMinimumOffDaysSettings: MinimumOffDaysSettings;
   initialHolidayCalendar: HolidayCalendarConfig;
@@ -216,6 +222,10 @@ export function RosterGrid({
   const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
   const [showMinimumOffDaysSettings, setShowMinimumOffDaysSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(initialOpenRequests);
+  const [showAutoScheduler, setShowAutoScheduler] = useState(initialOpenAutoScheduler);
+  const [autoSchedulerMode, setAutoSchedulerMode] = useState<AutoSchedulerMode>(
+    initialAutoSchedulerMode,
+  );
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [staffRoles, setStaffRoles] = useState(addStaffRoles);
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
@@ -225,6 +235,12 @@ export function RosterGrid({
   useEffect(() => {
     if (initialOpenRequests) setShowRequests(true);
   }, [initialOpenRequests]);
+  useEffect(() => {
+    if (initialOpenAutoScheduler) {
+      setAutoSchedulerMode(initialAutoSchedulerMode);
+      setShowAutoScheduler(true);
+    }
+  }, [initialOpenAutoScheduler, initialAutoSchedulerMode]);
   const [blockMap, setBlockMap] = useState(initialBlockMap);
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
   const [minimumOffDaysSettings, setMinimumOffDaysSettings] = useState(
@@ -741,9 +757,12 @@ export function RosterGrid({
           </button>
           <button
             type="button"
-            disabled
-            title="Coming soon"
-            className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm font-medium text-zinc-400"
+            onClick={() => {
+              setAutoSchedulerMode("fill_open");
+              setShowAutoScheduler(true);
+            }}
+            disabled={weekLocked}
+            className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
           >
             Auto scheduler
           </button>
@@ -1388,6 +1407,20 @@ export function RosterGrid({
           }
         }}
       />
+
+      {showAutoScheduler ? (
+        <AutoSchedulerModal
+          weekId={weekId}
+          initialMode={autoSchedulerMode}
+          weekLocked={weekLocked}
+          onClose={() => setShowAutoScheduler(false)}
+          onApplied={(nextEntries, message) => {
+            setEntries(nextEntries);
+            setError(null);
+            setNotice(message);
+          }}
+        />
+      ) : null}
 
       <Modal
         open={showAddStaff}

@@ -38,7 +38,7 @@ export const metadata = {
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-type SearchParams = { week?: string; requests?: string };
+type SearchParams = { week?: string; requests?: string; autoScheduler?: string };
 
 export default async function RosterPage({
   searchParams,
@@ -83,6 +83,14 @@ export default async function RosterPage({
   const requestedWeek = params.week && YMD_RE.test(params.week) ? params.week : null;
   const openRequests =
     params.requests === "open" || params.requests === "1" || params.requests === "true";
+  const openAutoScheduler =
+    params.autoScheduler === "fill" ||
+    params.autoScheduler === "copy" ||
+    params.autoScheduler === "open" ||
+    params.autoScheduler === "1" ||
+    params.autoScheduler === "true";
+  const autoSchedulerMode =
+    params.autoScheduler === "copy" ? ("copy_previous" as const) : ("fill_open" as const);
   const weekStartYmd = requestedWeek
     ? weekStartFromYmd(requestedWeek, effectiveTimeZone, weekStartWeekday)
     : currentWeekStartYmd(effectiveTimeZone, weekStartWeekday);
@@ -272,6 +280,8 @@ export default async function RosterPage({
         blockMap={blockMap}
         initialPendingCount={pendingRequestsCount}
         initialOpenRequests={openRequests}
+        initialOpenAutoScheduler={openAutoScheduler}
+        initialAutoSchedulerMode={autoSchedulerMode}
         initialOvertimeSettings={overtimeSettings}
         initialMinimumOffDaysSettings={minimumOffDaysSettings}
         initialHolidayCalendar={{

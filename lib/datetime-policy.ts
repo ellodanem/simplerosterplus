@@ -114,3 +114,17 @@ export function weekStartAnchorYmd(
 export function weekStartMondayYmd(d: Date, timeZone: string): string {
   return weekStartAnchorYmd(d, timeZone, 1);
 }
+
+/** Calendar weekday for a local `YYYY-MM-DD` (0 = Sunday … 6 = Saturday). */
+export function calendarWeekdayIndex(ymd: string, timeZone: string): number {
+  const dayStart = startOfLocalDayUtc(ymd, timeZone);
+  const dowShort = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  }).format(dayStart);
+  const dow = LOCAL_WEEKDAY_TO_INDEX[dowShort];
+  if (dow === undefined) {
+    throw new Error(`Unexpected weekday: ${dowShort}`);
+  }
+  return dow;
+}
