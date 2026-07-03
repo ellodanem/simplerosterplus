@@ -35,7 +35,6 @@ import {
   collectSchedulingRuleViolations,
   countStaffWithSchedulingViolations,
   schedulingRuleViolationSummary,
-  legacySettingsToRules,
   type SchedulingRulesSettings,
 } from "@/lib/roster-scheduling-rules";
 import type { SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
@@ -1513,11 +1512,11 @@ export function RosterGrid({
       {showSchedulingRulesSettings ? (
         <SchedulingRulesSettingsModal
           initialSettings={schedulingRulesSettings}
+          initialRules={schedulingRules}
           onClose={() => setShowSchedulingRulesSettings(false)}
-          onSaved={(nextSettings, message) => {
-            setShowSchedulingRulesSettings(false);
+          onSaved={(nextSettings, nextRules, message) => {
             setSchedulingRulesSettings(nextSettings);
-            setSchedulingRules(legacySettingsToRules(nextSettings));
+            setSchedulingRules(nextRules);
             setNotice(message);
           }}
         />
