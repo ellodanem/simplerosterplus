@@ -258,6 +258,155 @@ const evaluateRotateAnchor: RuleEvaluator = (rule, person, ctx) => {
 };
 
 // ---------------------------------------------------------------------------
+// Rule type: max_scheduled_days_per_week
+// Params: { maxDays: number }
+// ---------------------------------------------------------------------------
+
+export type MaxScheduledDaysParams = {
+  maxDays: number;
+};
+
+function parseMaxScheduledDaysParams(raw: Record<string, unknown>): MaxScheduledDaysParams {
+  const maxDays = typeof raw.maxDays === "number" && Number.isInteger(raw.maxDays) && raw.maxDays >= 1
+    ? raw.maxDays
+    : 5;
+  return { maxDays };
+}
+
+const evaluateMaxScheduledDays: RuleEvaluator = (rule, person, ctx) => {
+  const params = parseMaxScheduledDaysParams(rule.params);
+
+  const scheduledDates: string[] = [];
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) continue;
+    if (hasShift(ctx.entries, person.id, ymd)) scheduledDates.push(ymd);
+  }
+
+  if (scheduledDates.length <= params.maxDays) return [];
+
+  return [
+    {
+      ruleId: rule.id,
+      ruleType: rule.type,
+      staffId: person.id,
+      message: `Scheduled ${scheduledDates.length} days (max ${params.maxDays})`,
+      dates: scheduledDates,
+    },
+  ];
+};
+
+// ---------------------------------------------------------------------------
+// Rule type: min_staff_with_role_per_day
+// Params: { roleNames: string[], minCount: number }
+// This is a day-level rule — violations are emitted per day, attributed to
+// each qualifying staff member who is NOT scheduled that day so the grid
+// can highlight them.
+// ---------------------------------------------------------------------------
+
+export type MinStaffWithRoleParams = {
+  roleNames: string[];
+  minCount: number;
+};
+
+function parseMinStaffWithRoleParams(raw: Record<string, unknown>): MinStaffWithRoleParams {
+  const roleNames = Array.isArray(raw.roleNames)
+    ? (raw.roleNames as string[]).filter((s) => typeof s === "string" && s.trim())
+    : ["Supervisor"];
+  const minCount = typeof raw.minCount === "number" && Number.isInteger(raw.minCount) && raw.minCount >= 1
+    ? raw.minCount
+    : 1;
+  return { roleNames, minCount };
+}
+
+const evaluateMinStaffWithRole: RuleEvaluator = (rule, _person, ctx) => {
+  const params = parseMinStaffWithRoleParams(rule.params);
+  const roleLabel = params.roleNames.join("/");
+
+  const qualifyingStaff = ctx.staff.filter((s) => staffMatchesRoleNames(s.role, params.roleNames));
+  if (qualifyingStaff.length === 0) return [];
+
+  const violations: SchedulingRuleViolation[] = [];
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) continue;
+
+    const scheduledCount = qualifyingStaff.filter((s) => hasShift(ctx.entries, s.id, ymd)).length;
+    if (scheduledCount >= params.minCount) continue;
+
+    const unscheduled = qualifyingStaff.filter(
+      (s) => !hasShift(ctx.entries, s.id, ymd) && !ctx.blockMap[cellKey(s.id, ymd)],
+    );
+    for (const s of unscheduled) {
+      if (s.id !== _person.id) continue;
+      violations.push({
+        ruleId: rule.id,
+        ruleType: rule.type,
+        staffId: s.id,
+        message: `Only ${scheduledCount} ${roleLabel} scheduled (need ${params.minCount})`,
+        dates: [ymd],
+      });
+    }
+  }
+
+  return violations;
+};
+
+// ---------------------------------------------------------------------------
+// Rule type: no_consecutive_work_days
+// Params: { maxConsecutive: number }
+// ---------------------------------------------------------------------------
+
+export type NoConsecutiveWorkDaysParams = {
+  maxConsecutive: number;
+};
+
+function parseNoConsecutiveWorkDaysParams(raw: Record<string, unknown>): NoConsecutiveWorkDaysParams {
+  const maxConsecutive = typeof raw.maxConsecutive === "number" && Number.isInteger(raw.maxConsecutive) && raw.maxConsecutive >= 1
+    ? raw.maxConsecutive
+    : 6;
+  return { maxConsecutive };
+}
+
+const evaluateNoConsecutiveWorkDays: RuleEvaluator = (rule, person, ctx) => {
+  const params = parseNoConsecutiveWorkDaysParams(rule.params);
+
+  let streak = 0;
+  let streakDates: string[] = [];
+  let maxStreak = 0;
+  let maxStreakDates: string[] = [];
+
+  for (const ymd of ctx.days) {
+    if (isStationClosed(ctx.holidays, ymd)) {
+      if (streak > maxStreak) { maxStreak = streak; maxStreakDates = [...streakDates]; }
+      streak = 0;
+      streakDates = [];
+      continue;
+    }
+
+    if (hasShift(ctx.entries, person.id, ymd)) {
+      streak++;
+      streakDates.push(ymd);
+    } else {
+      if (streak > maxStreak) { maxStreak = streak; maxStreakDates = [...streakDates]; }
+      streak = 0;
+      streakDates = [];
+    }
+  }
+  if (streak > maxStreak) { maxStreak = streak; maxStreakDates = [...streakDates]; }
+
+  if (maxStreak <= params.maxConsecutive) return [];
+
+  return [
+    {
+      ruleId: rule.id,
+      ruleType: rule.type,
+      staffId: person.id,
+      message: `${maxStreak} consecutive work days (max ${params.maxConsecutive})`,
+      dates: maxStreakDates,
+    },
+  ];
+};
+
+// ---------------------------------------------------------------------------
 // Template registry
 // ---------------------------------------------------------------------------
 
@@ -282,6 +431,27 @@ export const RULE_TEMPLATES: Record<string, RuleTemplateMeta> = {
     description: "Staff who worked the anchor day last week should be off that day this week.",
     defaultParams: { anchorWeekday: 0 },
     evaluate: evaluateRotateAnchor,
+  },
+  max_scheduled_days_per_week: {
+    type: "max_scheduled_days_per_week",
+    label: "Max scheduled days per week",
+    description: "Limit how many days a person can be scheduled in a single week.",
+    defaultParams: { maxDays: 5 },
+    evaluate: evaluateMaxScheduledDays,
+  },
+  min_staff_with_role_per_day: {
+    type: "min_staff_with_role_per_day",
+    label: "Minimum staff per role per day",
+    description: "Ensure at least N people with a specific role are scheduled each open day.",
+    defaultParams: { roleNames: ["Supervisor"], minCount: 1 },
+    evaluate: evaluateMinStaffWithRole,
+  },
+  no_consecutive_work_days: {
+    type: "no_consecutive_work_days",
+    label: "Max consecutive work days",
+    description: "Prevent scheduling someone for too many days in a row within the week.",
+    defaultParams: { maxConsecutive: 6 },
+    evaluate: evaluateNoConsecutiveWorkDays,
   },
 };
 

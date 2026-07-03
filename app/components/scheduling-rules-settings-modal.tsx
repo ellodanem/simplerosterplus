@@ -233,6 +233,19 @@ function ruleSummary(rule: SchedulingRuleRecord): string {
     const day = weekdayLabel(typeof p.anchorWeekday === "number" ? p.anchorWeekday : 0);
     return `Rotate ${day} — worked last week means off this week`;
   }
+  if (rule.type === "max_scheduled_days_per_week") {
+    const max = typeof p.maxDays === "number" ? p.maxDays : 5;
+    return `Max ${max} scheduled day${max !== 1 ? "s" : ""} per week`;
+  }
+  if (rule.type === "min_staff_with_role_per_day") {
+    const roles = Array.isArray(p.roleNames) ? (p.roleNames as string[]).join(", ") : "Supervisor";
+    const min = typeof p.minCount === "number" ? p.minCount : 1;
+    return `At least ${min} ${roles} per day`;
+  }
+  if (rule.type === "no_consecutive_work_days") {
+    const max = typeof p.maxConsecutive === "number" ? p.maxConsecutive : 6;
+    return `Max ${max} consecutive work day${max !== 1 ? "s" : ""}`;
+  }
   return RULE_TEMPLATES[rule.type]?.description ?? "";
 }
 
@@ -504,6 +517,12 @@ function RuleParamsForm({
         <AnchorXorFields params={params} onChange={update} />
       ) : type === "rotate_anchor_week" ? (
         <RotateAnchorFields params={params} onChange={update} />
+      ) : type === "max_scheduled_days_per_week" ? (
+        <MaxScheduledDaysFields params={params} onChange={update} />
+      ) : type === "min_staff_with_role_per_day" ? (
+        <MinStaffWithRoleFields params={params} onChange={update} />
+      ) : type === "no_consecutive_work_days" ? (
+        <NoConsecutiveWorkDaysFields params={params} onChange={update} />
       ) : (
         <p className="text-xs text-zinc-500">No additional settings for this rule type.</p>
       )}
@@ -689,6 +708,118 @@ function RotateAnchorFields({
   );
 }
 
+function MaxScheduledDaysFields({
+  params,
+  onChange,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}) {
+  const maxDays = typeof params.maxDays === "number" ? params.maxDays : 5;
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+        Maximum days per week
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={1}
+          max={7}
+          value={maxDays}
+          onChange={(e) => onChange("maxDays", Number(e.target.value))}
+          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+        />
+        <span className="w-8 text-center text-sm font-semibold text-zinc-800">{maxDays}</span>
+      </div>
+      <p className="mt-2 text-xs text-zinc-500">
+        Warn when someone is scheduled more than {maxDays} day{maxDays !== 1 ? "s" : ""} in a week.
+      </p>
+    </div>
+  );
+}
+
+function MinStaffWithRoleFields({
+  params,
+  onChange,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}) {
+  const roleNames = Array.isArray(params.roleNames) ? (params.roleNames as string[]).join(", ") : "Supervisor";
+  const minCount = typeof params.minCount === "number" ? params.minCount : 1;
+
+  return (
+    <>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Role names (comma-separated)
+        </label>
+        <input
+          type="text"
+          value={roleNames}
+          onChange={(e) =>
+            onChange(
+              "roleNames",
+              e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+            )
+          }
+          className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          Minimum required per day
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={1}
+            max={10}
+            value={minCount}
+            onChange={(e) => onChange("minCount", Number(e.target.value))}
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+          />
+          <span className="w-8 text-center text-sm font-semibold text-zinc-800">{minCount}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function NoConsecutiveWorkDaysFields({
+  params,
+  onChange,
+}: {
+  params: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}) {
+  const maxConsecutive = typeof params.maxConsecutive === "number" ? params.maxConsecutive : 6;
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+        Maximum consecutive work days
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={1}
+          max={7}
+          value={maxConsecutive}
+          onChange={(e) => onChange("maxConsecutive", Number(e.target.value))}
+          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-zinc-200 accent-emerald-600"
+        />
+        <span className="w-8 text-center text-sm font-semibold text-zinc-800">{maxConsecutive}</span>
+      </div>
+      <p className="mt-2 text-xs text-zinc-500">
+        Warn when someone is scheduled {maxConsecutive} or more days in a row.
+      </p>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Preview sentence
 // ---------------------------------------------------------------------------
@@ -709,6 +840,19 @@ function previewSentence(type: string, params: Record<string, unknown>): string 
   if (type === "rotate_anchor_week") {
     const day = weekdayLabel(typeof params.anchorWeekday === "number" ? params.anchorWeekday : 0);
     return `Staff who worked ${day} last week should be off ${day} this week.`;
+  }
+  if (type === "max_scheduled_days_per_week") {
+    const max = typeof params.maxDays === "number" ? params.maxDays : 5;
+    return `No one should be scheduled more than ${max} day${max !== 1 ? "s" : ""} per week.`;
+  }
+  if (type === "min_staff_with_role_per_day") {
+    const roles = Array.isArray(params.roleNames) ? (params.roleNames as string[]).join(", ") : "Supervisor";
+    const min = typeof params.minCount === "number" ? params.minCount : 1;
+    return `At least ${min} ${roles} must be scheduled each open day.`;
+  }
+  if (type === "no_consecutive_work_days") {
+    const max = typeof params.maxConsecutive === "number" ? params.maxConsecutive : 6;
+    return `No one should work more than ${max} day${max !== 1 ? "s" : ""} in a row.`;
   }
   return "";
 }
