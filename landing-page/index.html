@@ -184,6 +184,7 @@
       align-items: center;
       justify-content: center;
     }
+    .btn-ghost {
       background: var(--surface);
       color: var(--text);
       font-weight: 600;
@@ -315,7 +316,13 @@
     }
     .lead strong { color: var(--text); font-weight: 600; }
     .hero .lead { max-width: none; }
-    .hero-cta { margin: 0 0 0.65rem; }
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin: 0 0 0.65rem;
+    }
     .hero-meta {
       margin: 0 0 1rem;
       font-size: 0.85rem;
@@ -1048,8 +1055,6 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
     #cta-close .btn-primary:hover { background: #f0f7ff; color: var(--accent-blue-dark); }
-
-    #cta-close .btn-primary:hover { background: #f0f7ff; color: var(--accent-blue-dark); }
     #cta-close .btn-secondary {
       background: transparent;
       color: #fff;
@@ -1183,11 +1188,14 @@
   </style>
 </head>
 <body>
-  <!-- App URLs — update when custom domain or Clerk signup route is live -->
+  <!-- Site + app URLs — update SRP_SITE_URL when marketing domain goes live -->
   <script>
+    window.SRP_SITE_URL = "https://simplerosterplus.vercel.app";
     window.SRP_APP_ORIGIN = "https://simplerosterplus.vercel.app";
     window.SRP_APP_LOGIN_URL = "https://simplerosterplus.vercel.app/login";
-    window.SRP_APP_SIGNUP_URL = "https://simplerosterplus.vercel.app/login";
+    window.SRP_APP_SIGNUP_URL = "https://simplerosterplus.vercel.app/sign-up";
+    window.SRP_APP_DEMO_URL = "https://simplerosterplus.vercel.app/sign-up?intent=demo";
+    window.SRP_MARKETING_API = "https://simplerosterplus.vercel.app/api/marketing/contact";
   </script>
   <a class="skip-link" href="#main">Skip to main content</a>
 
@@ -1214,7 +1222,7 @@
       </a>
       <div class="header-actions">
         <a class="btn btn-ghost" id="app-login" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
-        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <a class="btn btn-primary cta-contact" href="#contact">Start Free</a>
       </div>
     </div>
   </header>
@@ -1226,7 +1234,8 @@
           <h1 id="hero-heading">Build the weekly schedule and track attendance—in minutes.</h1>
           <p class="lead"><strong>Free for up to 10 staff.</strong> Simple Roster Plus gives shift managers one place to publish the week’s roster and see who was scheduled, who clocked in, and who needs attention—without payroll bloat or HR suite noise. Try your clock free for 30 days.</p>
           <p class="hero-cta">
-            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+            <a class="btn btn-primary cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
+            <a class="btn btn-secondary demo-cta" href="/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
           </p>
           <p class="hero-meta">No credit card · Up and running in minutes</p>
           <ul class="hero-badges" aria-label="Highlights">
@@ -1477,8 +1486,9 @@
             <button type="button" class="scenario-dot" role="tab" aria-selected="false" aria-label="Slide 4: New hire week"></button>
           </div>
         </div>
-        <p class="section-cta">
-          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <p class="section-cta cta-row">
+          <a class="btn btn-primary cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
+          <a class="btn btn-secondary demo-cta" href="/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
         </p>
       </div>
     </section>
@@ -1509,8 +1519,9 @@
             <p>Scan exceptions, adjust if needed, and export or hand off hours in a few clicks.</p>
           </div>
         </div>
-        <p class="section-cta">
-          <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <p class="section-cta cta-row">
+          <a class="btn btn-primary cta-contact" href="#contact">Start Free</a>
+          <a class="btn btn-secondary demo-cta" href="/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
         </p>
       </div>
     </section>
@@ -1521,7 +1532,7 @@
           <p class="section-kicker">Pricing</p>
           <h2 id="pricing-heading" class="section-title">Simple plans for shift teams</h2>
           <div class="section-accent" aria-hidden="true"></div>
-          <p class="section-lead">Free for up to 10 staff. Try your clock free for 30 days. Then <strong>$19.99/month</strong> for live attendance, SMS roster publish, and up to 100 staff on Plus—no annual contract required.</p>
+          <p class="section-lead">Free for up to 10 staff. Try your clock free for 30 days. Then <strong>$19.99/month</strong> for live attendance, SMS roster publish, and up to 50 staff on Plus—no annual contract required.</p>
         </div>
         <div class="pricing-grid">
           <article class="plan-card">
@@ -1536,7 +1547,7 @@
               <li>Weekly roster + manual attendance after trial</li>
               <li>5 Auto Scheduler actions per month</li>
             </ul>
-            <a class="btn btn-ghost app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+            <a class="btn btn-ghost cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
           </article>
           <article class="plan-card featured">
             <span class="plan-badge">Most popular</span>
@@ -1544,7 +1555,7 @@
             <p class="plan-price">$19.99 <span>/ mo</span></p>
             <p class="plan-note">Monthly billing, cancel anytime. Or $199/yr (~2 months free).</p>
             <ul class="plan-features">
-              <li>Up to 100 staff</li>
+              <li>Up to 50 staff</li>
               <li>Unlimited locations</li>
               <li>2 admins included</li>
               <li>1 device, full live sync</li>
@@ -1552,14 +1563,14 @@
               <li>Auto Scheduler included</li>
               <li>WhatsApp publish +$5/mo add-on</li>
             </ul>
-            <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+            <a class="btn btn-primary cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
           </article>
           <article class="plan-card">
             <h3 class="plan-name">Pro</h3>
             <p class="plan-price">$49.99 <span>/ mo</span></p>
             <p class="plan-note">For larger teams and multi-site ops. Or $499/yr (~2 months free).</p>
             <ul class="plan-features">
-              <li>Unlimited staff</li>
+              <li>Up to 100 staff</li>
               <li>Unlimited locations</li>
               <li>5 admins included</li>
               <li>3 devices included</li>
@@ -1567,7 +1578,7 @@
               <li>Auto Scheduler included</li>
               <li>Exports, API, priority support (coming)</li>
             </ul>
-            <a class="btn btn-ghost app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+            <a class="btn btn-ghost cta-contact" href="#contact">Contact us</a>
           </article>
         </div>
         <p class="pricing-footnote">Need more devices or admins? Add extra devices for <strong>+$5/mo</strong> each and extra admins for <strong>+$2/mo</strong> each. Roster and attendance only—no payroll or enterprise HR bundles.</p>
@@ -1618,9 +1629,80 @@
           </details>
           <details>
             <summary>How much does it cost?</summary>
-            <p class="faq-a"><strong>Free</strong> covers up to 10 staff and a 30-day device sync trial. <strong>Plus</strong> is <strong>$19.99/month</strong> (or $199/year) for up to 100 staff, live attendance sync, and SMS roster publish. <strong>Pro</strong> is <strong>$49.99/month</strong> (or $499/year) for unlimited staff, more devices and admins, and WhatsApp included. All paid plans bill monthly—cancel anytime. See <a href="#pricing">pricing</a> for details. No payroll or enterprise HR bundles.</p>
+            <p class="faq-a"><strong>Free</strong> covers up to 10 staff and a 30-day device sync trial. <strong>Plus</strong> is <strong>$19.99/month</strong> (or $199/year) for up to 50 staff, live attendance sync, and SMS roster publish. <strong>Pro</strong> is <strong>$49.99/month</strong> (or $499/year) for up to 100 staff, more devices and admins, and WhatsApp included. All paid plans bill monthly—cancel anytime. See <a href="#pricing">pricing</a> for details. No payroll or enterprise HR bundles.</p>
           </details>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-heading">
+      <div class="wrap">
+        <div class="section-head-center">
+          <p class="section-kicker">Start free</p>
+          <h2 id="contact-heading" class="section-title">Start free—or tell us about your team</h2>
+          <p class="section-lead">Create your account in minutes, or send a note if you want help with multi-site setup or device onboarding.</p>
+        </div>
+        <div class="contact-panel">
+          <div class="contact-self-serve">
+            <p><strong>Ready to go?</strong> Start free for up to 10 staff—no credit card. Or explore a guided demo sandbox first.</p>
+            <div class="cta-row">
+              <a class="btn btn-primary cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
+              <a class="btn btn-secondary demo-cta" href="/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
+            </div>
+          </div>
+          <p class="contact-divider">Prefer a conversation first?</p>
+          <p class="pricing-line"><strong>Free for up to 10 staff.</strong> Try your clock free for 30 days. Then <strong>$19.99/month</strong> for Plus—up to 50 staff, live attendance, SMS roster publish, and one device included. No annual contract required.</p>
+          <form id="contact-form" class="contact-form" novalidate>
+            <input type="hidden" name="intent" value="contact">
+            <div>
+              <label for="contact-name">Your name</label>
+              <input id="contact-name" name="name" type="text" autocomplete="name" required minlength="2">
+            </div>
+            <div>
+              <label for="contact-email">Work email</label>
+              <input id="contact-email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="form-row-2">
+              <div>
+                <label for="contact-business">Business name <span class="optional">(optional)</span></label>
+                <input id="contact-business" name="business" type="text" autocomplete="organization">
+              </div>
+              <div>
+                <label for="contact-phone">Phone <span class="optional">(optional)</span></label>
+                <input id="contact-phone" name="phone" type="tel" autocomplete="tel">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div>
+                <label for="contact-staff">Approx. staff count</label>
+                <select id="contact-staff" name="staffCount">
+                  <option value="">Select…</option>
+                  <option value="1-5">1–5</option>
+                  <option value="6-10">6–10</option>
+                  <option value="11-25">11–25</option>
+                  <option value="26-50">26–50</option>
+                  <option value="51-100">51–100</option>
+                  <option value="100+">100+</option>
+                </select>
+              </div>
+              <div>
+                <label for="contact-zkteco">Using ZKTeco (or similar) today?</label>
+                <select id="contact-zkteco" name="hasZkteco">
+                  <option value="unknown">Not sure</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="contact-message">Anything else? <span class="optional">(optional)</span></label>
+              <textarea id="contact-message" name="message" placeholder="Sites, shift pattern, or what you want to fix first…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" id="contact-submit">Send my request</button>
+            <p class="form-status" id="contact-status" role="status" aria-live="polite"></p>
+          </form>
+          <p class="form-note">Already have an account? <a id="app-login-contact" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>. Prefer email? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
         </div>
       </div>
     </section>
@@ -1629,7 +1711,10 @@
       <div class="wrap">
         <h2 id="cta-close-heading">Your week’s schedule and attendance—fast, simple, in one place.</h2>
         <p>Start free for up to 10 staff. Build this week’s roster and see plan vs. actual in minutes—not another spreadsheet Sunday.</p>
-        <a class="btn btn-primary app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <div class="cta-row">
+          <a class="btn btn-primary cta-signup" href="/sign-up" rel="noopener noreferrer">Start Free</a>
+          <a class="btn btn-secondary demo-cta" href="/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
+        </div>
         <p class="cta-note">Already have an account? <a id="app-login-inline" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a> · Questions? <a href="mailto:hello@simplerosterplus.com">hello@simplerosterplus.com</a></p>
       </div>
     </section>
@@ -1658,7 +1743,7 @@
       <nav class="footer-links" aria-label="Footer">
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
-        <a class="app-cta" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Start Free Trial</a>
+        <a class="cta-contact" href="#contact">Start Free</a>
         <a href="privacy.html">Privacy policy</a>
         <a href="terms.html">Terms of service</a>
         <a id="app-login-footer" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
@@ -1670,14 +1755,77 @@
     document.getElementById("y").textContent = new Date().getFullYear();
     (function () {
       var origin = (window.SRP_APP_ORIGIN || "https://simplerosterplus.vercel.app").replace(/\/$/, "");
+      var siteUrl = (window.SRP_SITE_URL || origin).replace(/\/$/, "");
       var loginUrl = window.SRP_APP_LOGIN_URL || origin + "/login";
-      var signupUrl = window.SRP_APP_SIGNUP_URL || loginUrl;
-      document.querySelectorAll(".app-cta").forEach(function (el) {
+      var signupUrl = window.SRP_APP_SIGNUP_URL || origin + "/sign-up";
+      var demoUrl = window.SRP_APP_DEMO_URL || signupUrl + "?intent=demo";
+      var marketingApi = window.SRP_MARKETING_API || origin + "/api/marketing/contact";
+
+      var canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) canonical.href = siteUrl + "/";
+
+      document.querySelectorAll(".cta-signup").forEach(function (el) {
         el.href = signupUrl;
       });
-      ["app-login", "app-login-inline", "app-login-footer"].forEach(function (id) {
+      document.querySelectorAll(".demo-cta").forEach(function (el) {
+        el.href = demoUrl;
+      });
+      ["app-login", "app-login-inline", "app-login-footer", "app-login-contact"].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.href = loginUrl;
+      });
+
+      var form = document.getElementById("contact-form");
+      var statusEl = document.getElementById("contact-status");
+      var submitBtn = document.getElementById("contact-submit");
+      if (!form || !statusEl || !submitBtn) return;
+
+      function setStatus(state, message) {
+        statusEl.textContent = message;
+        if (state) {
+          statusEl.setAttribute("data-state", state);
+        } else {
+          statusEl.removeAttribute("data-state");
+        }
+      }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        setStatus("", "");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending…";
+
+        var fd = new FormData(form);
+        var payload = {
+          intent: fd.get("intent") || "contact",
+          name: String(fd.get("name") || "").trim(),
+          email: String(fd.get("email") || "").trim(),
+          business: String(fd.get("business") || "").trim() || null,
+          phone: String(fd.get("phone") || "").trim() || null,
+          staffCount: String(fd.get("staffCount") || "").trim() || null,
+          hasZkteco: String(fd.get("hasZkteco") || "unknown"),
+          message: String(fd.get("message") || "").trim() || null,
+          source: "landing-page#contact",
+        };
+
+        try {
+          var res = await fetch(marketingApi, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok) {
+            throw new Error(data.error || "Could not send your request. Please try again or email hello@simplerosterplus.com.");
+          }
+          form.reset();
+          setStatus("success", "Thanks—we received your message and will reply soon.");
+        } catch (err) {
+          setStatus("error", err.message || "Something went wrong. Please email hello@simplerosterplus.com.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Send my request";
+        }
       });
     })();
 

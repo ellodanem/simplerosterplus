@@ -37,13 +37,14 @@ header
 
 main
   #hero           — Start Free (signup) + Explore demo
-  #trust          — workplace chips
+  #audience       — manager persona cards + industry chips
   #pain           — problem
   #dream          — outcomes
   #solution       — feature blocks
-  #social-proof   — setup includes
+  #in-action      — scenario carousel
   #how-it-works   — four steps; Start Free (contact) + Explore demo
-  #faq            — objections
+  #pricing        — Free / Plus / Pro grid
+  #faq            — support cards + objections
   #contact        — signup + demo row, then optional form
   #cta-close      — Start Free (signup) + Explore demo
 
@@ -343,7 +344,10 @@ Label clearly: `What you get from a typical setup` — not a testimonial.
 |----------|-------------------|--------------|
 | Header | `#contact` (`.cta-contact`) | — |
 | Hero | `/sign-up` (`.cta-signup`) | yes |
+| After in-action | `/sign-up` (`.cta-signup`) | yes |
 | After how-it-works | `#contact` (`.cta-contact`) | yes |
+| `#pricing` Free + Plus | `/sign-up` (`.cta-signup`) | — |
+| `#pricing` Pro | `#contact` (`.cta-contact`) | — |
 | `#contact` panel | `/sign-up` (`.cta-signup`) | yes |
 | `#cta-close` | `/sign-up` (`.cta-signup`) | yes |
 | Footer | `#contact` (`.cta-contact`) | — |

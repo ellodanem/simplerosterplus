@@ -35,44 +35,44 @@ See `MAPPING.md` for section-level CTA map.
 
 ### Page structure (current)
 
-1. Header — Log in · Start Free  
-2. `#hero` — H1, Start Free + Explore demo, badges, hero image  
-3. `#trust` — industry workplace chips  
-4. `#pain` — problem questions + `pain-before-workflow.png`  
-5. `#dream` — three outcome cards  
-6. `#solution` — three feature blocks + scope aside  
-7. `#social-proof` — feature list + “What you get from a typical setup”  
-8. `#how-it-works` — four numbered steps  
-9. `#faq` — accordions  
-10. `#contact` — self-serve CTAs + optional contact form + pricing line  
-11. `#cta-close` — Start Free + Explore demo  
-12. Footer  
+1. Header — Log in · Start Free (`#contact`)
+2. `#hero` — H1, Start Free + Explore demo, badges, `solution-attendance.png` hero image + `@2x`
+3. `#audience` — single-site vs multi-site manager cards + industry chips
+4. `#pain` — problem questions + `pain-before-workflow.png`
+5. `#dream` — three outcome cards
+6. `#solution` — three feature blocks + scope aside (`app-roster-week.png`, `solution-attendance.png`, `solution-auto-scheduler.png`)
+7. `#in-action` — four-scenario carousel (one slide per view)
+8. `#how-it-works` — four numbered steps + Start Free / Explore demo
+9. `#pricing` — Free / Plus / Pro plan grid
+10. `#faq` — support cards + accordions
+11. `#contact` — self-serve CTAs + optional contact form + pricing line
+12. `#cta-close` — Start Free + Explore demo
+13. Footer
 
 ### SEO and head (canonical only)
 
 - `canonical`, `og:*`, `twitter:*`, `robots`
+- `og:image` / `twitter:image` → `images/solution-attendance.png`
 - `favicon.svg`
 - `SRP_SITE_URL`, `SRP_MARKETING_API`, `SRP_APP_SIGNUP_URL`, `SRP_APP_DEMO_URL` in page script
 
 ### Terminology (canonical page)
 
 - Customer-facing copy does **not** use “AI”.
-- Product feature is referred to as **the auto scheduler** (lowercase in body copy today).
-- **Preferred branding going forward:** **Auto Scheduler** (capitalized product name)—align copy when editing.
-- Solution block 3 heading: “Clear summaries, not HR bloat” (not “Auto Scheduler keeps it fast and simple”).
-- FAQ: “How does the auto scheduler help?” — includes honest “rule-based today, not a chatbot” line.
+- Product feature is **Auto Scheduler** (capitalized in headings, pricing, FAQ).
+- Solution block 3 uses `solution-auto-scheduler.png`.
+- FAQ: “How does Auto Scheduler help?”
 
 ### Images (canonical page references)
 
 | File | Used in |
 |------|---------|
-| `images/hero-weekly-schedule-attendance.png` | Hero |
+| `images/solution-attendance.png` | Hero, solution block 2, carousel |
+| `images/solution-attendance@2x.png` | Hero srcset |
 | `images/pain-before-workflow.png` | Pain |
-| `images/solution-schedule-builder.png` | Solution block 1 |
-| `images/solution-attendance.png` | Solution block 2 |
-| `images/solution-ai-assist.png` | Solution block 3 *(filename legacy; content is exception summary)* |
-
-Image assets may live under `srp/landing-page/images/` when deployed; some were generated in the sibling `landing page/images/` folder during the June session—copy across when building/deploying from canonical.
+| `images/app-roster-week.png` | Solution block 1, carousel |
+| `images/app-roster-week@2x.png` | Available for retina srcset |
+| `images/solution-auto-scheduler.png` | Solution block 3, carousel |
 
 ---
 
@@ -82,43 +82,35 @@ There are **two** landing page directories in the repo. Only **`srp/landing-page
 
 | | **`srp/landing-page/`** *(canonical)* | **`landing page/`** *(session experiment)* |
 |--|--------------------------------------|---------------------------------------------|
-| **Role** | Production-oriented; early-access funnel | Mockup implementation from 13 Jun 2026 chat |
-| **CTA** | Start Free → `#contact` / `/sign-up` | Start Free Trial → `/login` |
+| **Role** | Production marketing + Gate 2 hybrid funnel | Source mockup (13 Jun 2026); **ported into canonical** |
+| **CTA** | Start Free → `/sign-up` or `#contact` + Explore demo | Was Start Free Trial → `/login` |
 | **Contact form** | Yes (`#contact`) | No |
 | **Demo CTA** | Yes | No |
-| **Pricing** | Line in contact + FAQ | Full `#pricing` grid (Free / Plus / Pro) |
-| **Audience section** | `#trust` (chips only) | `#audience` (two manager cards + chips) |
-| **Social proof** | `#social-proof` + setup includes | Removed |
-| **In action** | — | `#in-action` carousel (1 slide per view) |
-| **Hero image** | `hero-weekly-schedule-attendance.png` | `solution-attendance.png` + `@2x` srcset |
-| **Hero layout** | Standard 50/50 grid | Larger visual, right bleed, retina |
-| **Auto Scheduler** | lowercase “auto scheduler” | **Auto Scheduler** branded |
+| **Pricing** | `#pricing` grid + contact pricing line | Same grid (source) |
+| **Audience** | `#audience` cards + chips | Same (source) |
+| **In action** | `#in-action` carousel | Same (source) |
+| **Hero image** | `solution-attendance.png` + `@2x` | Same |
 | **SEO meta** | Yes | No |
-| **Session doc** | This file | `CHANGES-2026-06-13.md` (points here) |
 
-### What carried over between copies
+The sibling `landing page/` folder is retained as a design reference only. **Do not deploy it**—ship `srp/landing-page/`.
 
-Only partial overlap:
+### Experiment features — port status (June 2026)
 
-- `pain-before-workflow.png` — both use it in `#pain`
-- `solution-attendance.png` — canonical solution block 2; experiment also uses it in hero + carousel
-
-Everything else from the session experiment is **not** in the canonical page yet.
-
-### What the session experiment added (not yet in canonical)
-
-| Feature | Notes |
+| Feature | Status |
 |---------|--------|
-| `#audience` | Single-site vs multi-site cards + use-case chips |
-| `#in-action` carousel | Four scenarios, prev/next, dots, one card per slide |
-| `#pricing` grid | Three plan cards with feature lists |
-| Hero attendance image | `solution-attendance.png` + `@2x`, larger hero layout |
-| `solution-auto-scheduler.png` | Solution block 3 + carousel |
-| `app-roster-week.png` | Real roster screenshot in solution + carousel |
-| FAQ support cards | Email, ZKTeco, pricing links beside accordions |
-| Single closing CTA | Merged `#get-started` into `#cta-close` |
-| Section accent bars | Gradient underline under headings |
-| Pain list styling | `?` circle bullets |
+| `#audience` cards | ✅ Ported |
+| `#in-action` carousel | ✅ Ported |
+| `#pricing` grid | ✅ Ported |
+| Hero attendance image + `@2x` + bleed layout | ✅ Ported |
+| `solution-auto-scheduler.png` | ✅ Ported |
+| `app-roster-week.png` | ✅ Ported |
+| FAQ support cards | ✅ Ported |
+| Section accent bars | ✅ Ported |
+| Gate 2 hybrid CTAs (`cta-signup`, `cta-contact`, `demo-cta`) | ✅ Ported |
+| `#contact` self-serve + form | ✅ Ported |
+| SEO head + `SRP_*` URL wiring | ✅ Ported |
+
+### Legacy experiment notes (historical)
 
 ---
 
@@ -201,24 +193,18 @@ When editing **canonical** `index.html`, prefer capitalized **Auto Scheduler** f
 
 ## Follow-ups (canonical backlog)
 
-Port from experiment or polish canonical:
-
-| Priority | Item |
-|----------|------|
-| High | Port `#in-action` carousel into canonical page |
-| High | Port `#audience` cards (replace or augment `#trust`) |
-| High | Hero: `solution-attendance.png` + larger layout + `@2x` |
-| Medium | Replace `solution-ai-assist.png` with `solution-auto-scheduler.png` |
-| Medium | Use `app-roster-week.png` in solution block 1 |
-| Medium | Align Auto Scheduler capitalization across canonical copy |
-| Low | `#pricing` grid vs keep pricing in contact (decide at Gate 2) |
-| Low | FAQ support cards |
-| Low | Native 2× app screenshots (replace upscaled assets) |
-| Low | Carousel swipe on mobile |
+| Priority | Item | Status |
+|----------|------|--------|
+| — | Distillbook experiment port (audience, carousel, pricing, hero, images) | ✅ Done Jun 2026 |
+| Low | Custom domain (`simplerosterplus.com`) — update `SRP_SITE_URL` + canonical URLs | Open |
+| Low | Real customer logos / testimonials when available | Open |
+| Later | Analytics / conversion tracking (MVP Step 10) | Deferred |
+| Low | Native 2× app screenshots (replace upscaled assets) | Open |
+| Low | Carousel swipe on mobile | Open |
 
 ---
 
-## File inventory (experiment `landing page/images/`)
+## File inventory (`srp/landing-page/images/`)
 
 ```
 app-roster-week.png
@@ -233,10 +219,9 @@ solution-ai-assist.png          (legacy filename)
 solution-attendance.png
 solution-attendance@2x.png
 solution-auto-scheduler.png
-solution-schedule-builder.png
 ```
 
-Copy needed assets into `srp/landing-page/images/` when implementing in canonical.
+Legacy filenames (`solution-ai-assist.png`, `hero-weekly-schedule-attendance.png`) may remain in the folder but are no longer referenced by canonical `index.html`.
 
 ---
 
