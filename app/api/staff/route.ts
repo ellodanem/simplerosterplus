@@ -25,6 +25,7 @@ const STAFF_SELECT = {
   dateOfBirth: true,
   startDate: true,
   contactNumber: true,
+  whatsappOptIn: true,
   sortOrder: true,
   location: { select: { id: true, name: true } },
   staffRole: { select: { id: true, name: true } },
@@ -94,6 +95,14 @@ export async function POST(request: Request) {
   const isTestUser = body.isTestUser === true;
   const excludeFromRoster =
     typeof body.excludeFromRoster === "boolean" ? body.excludeFromRoster : false;
+  const whatsappOptIn = body.whatsappOptIn === true;
+  const contact = parseOptionalString(body.contactNumber) ?? null;
+  if (whatsappOptIn && !contact?.trim()) {
+    return NextResponse.json(
+      { error: "Add a contact number before enabling WhatsApp schedule alerts." },
+      { status: 400 },
+    );
+  }
 
   const requestedLocationId =
     typeof body.locationId === "string" && body.locationId.trim() ? body.locationId.trim() : null;
@@ -154,7 +163,9 @@ export async function POST(request: Request) {
         roleId: staffRole.id,
         departmentId: department?.id ?? null,
         deviceUserId: parseOptionalString(body.deviceUserId) ?? null,
-        contactNumber: parseOptionalString(body.contactNumber) ?? null,
+        contactNumber: contact,
+        whatsappOptIn,
+        whatsappOptInAt: whatsappOptIn ? new Date() : null,
         dateOfBirth: dateOfBirth ?? null,
         startDate: startDate ?? null,
         isActive: true,

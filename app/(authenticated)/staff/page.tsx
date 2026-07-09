@@ -60,6 +60,7 @@ export default async function StaffPage() {
     locationName: s.location?.name ?? "",
     deviceUserId: s.deviceUserId ?? "",
     contactNumber: s.contactNumber ?? "",
+    whatsappOptIn: s.whatsappOptIn,
     dateOfBirth: ymdFromDate(s.dateOfBirth),
     startDate: ymdFromDate(s.startDate),
     punchExempt: s.punchExempt,

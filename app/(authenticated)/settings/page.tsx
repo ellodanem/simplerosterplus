@@ -7,12 +7,15 @@ import {
   subscriptionNeedsPaymentAttention,
 } from "@/lib/billing-access";
 import { formatUsd, planLabel, planMonthlyUsd, subscriptionStatusLabel } from "@/lib/ops/billing";
-import { getPlanUsage } from "@/lib/plan-limits";
+import { MessagingSettings } from "@/app/components/messaging-settings";
+import { getWhatsappAccess } from "@/lib/messaging/whatsapp-access";
+import { twilioWhatsappConfigured } from "@/lib/messaging/twilio-whatsapp";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { stripeConfigured } from "@/lib/ops/stripe";
 import { BillingActions } from "@/app/components/billing-actions";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
+import { getPlanUsage } from "@/lib/plan-limits";
 
 export const metadata = {
   title: "Settings | Simple Roster Plus",
@@ -91,9 +94,14 @@ export default async function SettingsPage({
       addonDeviceQty: true,
       addonAdminQty: true,
       addonWhatsapp: true,
+      messagingWhatsappEnabled: true,
+      whatsappSentMonth: true,
+      whatsappSentCount: true,
     },
   });
   if (!org) return null;
+
+  const whatsappAccess = getWhatsappAccess(org);
 
   const usage = await getPlanUsage(session.orgId);
   const tier = resolveBillingTier(org);
@@ -195,9 +203,32 @@ export default async function SettingsPage({
               used={usage.devices}
               max={usage.limits.devicesAllowed}
             />
+            {whatsappAccess.entitled ? (
+              <UsageMeter
+                label="WhatsApp alerts (this month)"
+                used={whatsappAccess.sentThisMonth}
+                max={whatsappAccess.monthlyCap}
+              />
+            ) : null}
           </div>
         </section>
       ) : null}
+
+      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-zinc-900">WhatsApp alerts</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Automated personal schedule messages when you publish a week. Manual link sharing is
+          always available from the roster page.
+        </p>
+        <MessagingSettings
+          initial={{
+            ...whatsappAccess,
+            messagingWhatsappEnabled: org.messagingWhatsappEnabled,
+            configured: twilioWhatsappConfigured(),
+            hasTemplate: Boolean(process.env.TWILIO_WHATSAPP_ROSTER_CONTENT_SID?.trim()),
+          }}
+        />
+      </section>
 
       <section className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600">
         <h2 className="font-semibold text-zinc-900">Plan summary</h2>

@@ -36,6 +36,7 @@ export function AddStaffForm({
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
   const [deviceUserId, setDeviceUserId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [startDate, setStartDate] = useState("");
   const [excludeFromRoster, setExcludeFromRoster] = useState(false);
@@ -56,6 +57,7 @@ export function AddStaffForm({
     setLocationId(locations[0]?.id ?? "");
     setDeviceUserId("");
     setContactNumber("");
+    setWhatsappOptIn(false);
     setDateOfBirth("");
     setStartDate("");
     setExcludeFromRoster(false);
@@ -126,6 +128,7 @@ export function AddStaffForm({
           locationId,
           deviceUserId: deviceUserId.trim() || null,
           contactNumber: contactNumber.trim() || null,
+          whatsappOptIn: requiredOnly ? false : whatsappOptIn,
           dateOfBirth: dateOfBirth || null,
           startDate: startDate || null,
           excludeFromRoster: requiredOnly ? false : excludeFromRoster,
@@ -162,6 +165,7 @@ export function AddStaffForm({
               locationName: data.staff.location?.name ?? "",
               deviceUserId: data.staff.deviceUserId ?? deviceUserId,
               contactNumber: data.staff.contactNumber ?? contactNumber,
+              whatsappOptIn: Boolean(data.staff.whatsappOptIn),
               dateOfBirth: data.staff.dateOfBirth?.slice(0, 10) ?? dateOfBirth,
               startDate: data.staff.startDate?.slice(0, 10) ?? startDate,
               punchExempt: Boolean(data.staff.punchExempt),
@@ -310,6 +314,24 @@ export function AddStaffForm({
               value={contactNumber}
               onChange={setContactNumber}
             />
+            <div className="sm:col-span-2">
+              <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
+                  checked={whatsappOptIn}
+                  disabled={!contactNumber.trim()}
+                  onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                />
+                <span>
+                  WhatsApp schedule alerts
+                  <span className="mt-1 block text-xs font-normal text-zinc-500">
+                    Send my shifts to this number when the weekly roster is published. Staff can be
+                    removed from alerts anytime by turning this off.
+                  </span>
+                </span>
+              </label>
+            </div>
             <Field
               id="nd"
               label="Device user ID"

@@ -44,8 +44,8 @@ Device trial is **per organization**, not per location (one trial clock even wit
 | **Locations** | **Unlimited** (not a billing axis on paid tiers) |
 | **Admins** | **2** included |
 | **Devices** | **1** included, full sync |
-| **SMS roster publish** | Included — personal-schedule / change alerts only; volume cap **TBD** |
-| **WhatsApp publish** | **+$5/mo** add-on |
+| **SMS roster publish** | Included — personal-schedule / change alerts only; **50 messages / calendar month** |
+| **WhatsApp publish** | **+$5/mo** add-on — **200 messages / calendar month** when add-on active |
 | **AI assist** | Included — fair-use cap **TBD** |
 
 **Add-ons (Plus and Pro):**
@@ -68,8 +68,8 @@ Device trial is **per organization**, not per location (one trial clock even wit
 | **Locations** | **Unlimited** |
 | **Admins** | **5** included (+$2/mo each extra) |
 | **Devices** | **3** included (+$5/mo each extra) |
-| **SMS roster publish** | Included — higher cap than Plus (**TBD**) |
-| **WhatsApp publish** | **Included** |
+| **SMS roster publish** | Included — personal-schedule / change alerts only; **200 messages / calendar month** |
+| **WhatsApp publish** | **Included** — **500 messages / calendar month** |
 | **AI assist** | Included — fair-use cap **TBD** |
 | **Extras (when built)** | Exports, API, priority support |
 
@@ -100,6 +100,41 @@ Archived staff and past-week historical data do not count toward the cap.
 - Free tier: one slot, time-limited sync (see above).
 - Paid: included devices per tier; additional devices via **$5/mo** add-on.
 
+### Automated roster messaging (SMS / WhatsApp)
+
+Applies when step 13 roster notifications are built. **Manual** publish share (link copy, print, manager drops into a group chat) is **unlimited** on all tiers — caps apply only to **automated outbound** messages via Twilio.
+
+**Scope:** personal-schedule notifications and post-publish **change alerts** only — not full-grid broadcasts. See [`ROSTER_PUBLISH_SMS_NOTES.md`](./ROSTER_PUBLISH_SMS_NOTES.md).
+
+**What counts (1 per recipient per send):**
+
+- **Publish notify** — one utility template to each opted-in staff member when a week is published.
+- **Change alert** — one utility template to each affected staff member when their shifts change after publish.
+
+**What does not count:**
+
+- Inbound staff messages and free-form replies inside Meta’s 24-hour customer service window.
+- Failed / undelivered sends (provider billing may still apply — track separately in ops).
+- Email channel (no cap in v1).
+- Manager manually copying a published roster link into WhatsApp/SMS.
+
+**Monthly caps (calendar month, org-level, separate per channel):**
+
+| Plan | SMS | WhatsApp |
+|------|----:|---------:|
+| Plus | 50 | 200 (requires **+$5/mo** WhatsApp add-on) |
+| Pro | 200 | 500 (included) |
+
+**Enforcement:**
+
+- **Soft warning** at **80%** of cap (40 SMS / 160 WhatsApp on Plus; 160 SMS / 400 WhatsApp on Pro).
+- **Hard block** at cap — automated sends stop; manual link share still works; show upgrade CTA (Plus → Pro or contact support).
+- **No rollover** and **no auto-overage billing** in v1. Optional later: operator-granted or Stripe **+$3 / 100 messages** pack.
+
+**COGS rationale (WhatsApp, Jul 2026):** Twilio **$0.005/msg** + Meta utility template **~$0.004–$0.013/msg** by recipient country (Caribbean-heavy planning uses **~$0.013**). At Plus cap 200 × $0.013 ≈ **$2.60** provider cost vs **$5** add-on. At Pro cap 500 × $0.013 ≈ **$6.50** — acceptable inside Pro subscription. WhatsApp caps are more generous than SMS because per-message cost is lower and Caribbean is WhatsApp-first.
+
+**Legal / product gates (before automated send):** org WhatsApp toggle **and** per-staff `whatsappOptIn` (default off); utility templates only — not marketing blasts. **Manual** link/print/share needs no opt-in. US SMS TCPA + STOP when SMS ships. Staff opt-in copy: plain language; **no** “message and data rates may apply” on WhatsApp checkbox (owner Jul 2026).
+
 ---
 
 ## Upgrade triggers (UX)
@@ -113,8 +148,10 @@ Archived staff and past-week historical data do not count toward the cap.
 | Staff #101 on Pro | Contact support |
 | Needs WhatsApp on Plus | Plus + WhatsApp add-on, or Pro if bundle is cheaper |
 | Needs 4+ devices with WhatsApp | Compare Plus à la carte vs Pro |
+| WhatsApp cap hit on Plus (200/mo) | Pro (500/mo included) or wait for next calendar month |
+| SMS cap hit on Plus (50/mo) | Pro (200/mo) or wait for next calendar month |
 
-Show **soft warnings** before hard blocks (staff 40/47 on Plus; staff 80/95 on Pro; location 2 banner on Free).
+Show **soft warnings** before hard blocks (staff 40/47 on Plus; staff 80/95 on Pro; location 2 banner on Free; messaging at 80% of monthly cap).
 
 Optional policy (later): **14-day Pro trial** when hitting Plus staff cap to reduce upgrade friction.
 
@@ -157,10 +194,11 @@ SRP is not priced to undercut Timetaag on attendance alone; it wins on **monthly
 Track in separate passes; numbers here are placeholders until product/legal sign-off.
 
 1. **AI metering** — Define one “action” (e.g. fill-week suggestion, conflict explanation). Free = 5/mo; Plus/Pro = fair use (e.g. 50/mo) unless COGS allow more. In-app counter before GA.
-2. **SMS caps** — Plus ~50 SMS/mo, Pro ~200/mo; personal schedule + change alerts only ([`ROSTER_PUBLISH_SMS_NOTES.md`](./ROSTER_PUBLISH_SMS_NOTES.md)). TCPA opt-in / STOP before send.
+2. **Messaging caps** — **Resolved (Jul 2026):** Plus 50 SMS / 200 WhatsApp (add-on); Pro 200 SMS / 500 WhatsApp. See **Automated roster messaging** under Definitions. Still open: TCPA opt-in / STOP implementation before US SMS send; WhatsApp template approval and per-staff `whatsappOptIn`.
 3. **Device trial Terms** — 30-day clock start, one extension rule, post-trial read-only behavior, no data deletion.
 4. **Grandfathering** — Policy when Plus org exceeds 50 staff or Pro exceeds 100 staff mid-cycle.
 5. **Pro price** — $49.99 confirmed; revisit after first paid cohort if conversion stalls.
+6. **Messaging overage packs** — Optional v2: **+$3 / 100** extra automated messages (operator or Stripe); not in v1.
 
 ---
 
@@ -172,7 +210,8 @@ Surface for support:
 - `locationCount` / free limit (2)
 - Device trial: `deviceTrialStartedAt`, `deviceTrialExpiresAt`, extension used (Y/N)
 - Subscription plan + add-on quantities (devices, admins, WhatsApp)
+- Messaging usage: `smsSentThisMonth` / `whatsappSentThisMonth` vs plan caps (when step 13 ships)
 
 ---
 
-*Last updated: 2026-07-03. Plus staff cap 50; Pro staff cap 100.*
+*Last updated: 2026-07-09. Plus staff cap 50; Pro staff cap 100. Messaging caps: Plus 50 SMS / 200 WhatsApp; Pro 200 SMS / 500 WhatsApp.*

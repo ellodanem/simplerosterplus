@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getRosterWeekCoverageGaps, newRosterShareToken, rosterSharePath } from "@/lib/roster-share";
+import { sendRosterWhatsappOnPublish } from "@/lib/messaging/roster-whatsapp-notify";
 import { getSession } from "@/lib/session";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -82,7 +83,14 @@ async function postRosterWeekStatus(request: Request, params: Promise<{ id: stri
       status: "published",
       shareToken,
     },
-    select: { id: true, status: true, shareToken: true },
+    select: { id: true, status: true, shareToken: true, updatedAt: true },
+  });
+
+  const whatsapp = await sendRosterWhatsappOnPublish({
+    organizationId: session.orgId,
+    rosterWeekId: updated.id,
+    rosterWeekPublishAt: updated.updatedAt,
+    request,
   });
 
   return NextResponse.json({
@@ -90,5 +98,6 @@ async function postRosterWeekStatus(request: Request, params: Promise<{ id: stri
     shareToken: updated.shareToken,
     sharePath: updated.shareToken ? rosterSharePath(updated.shareToken) : null,
     openShiftCount: gaps?.openShiftCount ?? 0,
+    whatsapp,
   });
 }

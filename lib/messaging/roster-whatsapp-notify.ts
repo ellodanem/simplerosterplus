@@ -1,0 +1,365 @@
+import { prisma } from "@/lib/prisma";
+import { getApprovedBlockMap } from "@/lib/leave-blocks";
+import { messagingMonthKey } from "@/lib/messaging/month-key";
+import { toWhatsappAddress } from "@/lib/messaging/phone-whatsapp";
+import {
+  getTwilioWhatsappConfig,
+  sendWhatsappTemplate,
+  twilioWhatsappConfigured,
+} from "@/lib/messaging/twilio-whatsapp";
+import { getWhatsappAccess } from "@/lib/messaging/whatsapp-access";
+import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import {
+  buildPersonalScheduleBody,
+  buildRosterShareUrl,
+  formatWeekRangeLabel,
+  type ShiftTemplateLite,
+} from "@/lib/roster-personal-message";
+import {
+  filterRosterStaffForWeek,
+  staffIdsWithRosterEntries,
+} from "@/lib/roster-display-staff";
+import { formatYmdInZone } from "@/lib/datetime-policy";
+import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
+
+export const ROSTER_NOTIFY_CHANNEL_WHATSAPP = "whatsapp";
+export const ROSTER_NOTIFY_KIND_PUBLISH = "publish";
+
+export type RosterWhatsappNotifySummary = {
+  configured: boolean;
+  enabled: boolean;
+  attempted: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  capReached: boolean;
+  reasons: string[];
+};
+
+type SkipReason = "not_entitled" | "disabled" | "not_configured" | "cap" | "no_phone" | "not_opted_in";
+
+async function incrementWhatsappSentCount(organizationId: string, delta: number): Promise<void> {
+  if (delta <= 0) return;
+  const month = messagingMonthKey();
+  await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { whatsappSentMonth: true, whatsappSentCount: true },
+    });
+    if (!org) return;
+
+    const reset = org.whatsappSentMonth !== month;
+    const nextCount = (reset ? 0 : org.whatsappSentCount) + delta;
+
+    await tx.organization.update({
+      where: { id: organizationId },
+      data: {
+        whatsappSentMonth: month,
+        whatsappSentCount: nextCount,
+      },
+    });
+  });
+}
+
+/**
+ * After a roster week is published, send utility-template WhatsApp alerts to opted-in staff.
+ */
+export async function sendRosterWhatsappOnPublish(input: {
+  organizationId: string;
+  rosterWeekId: string;
+  rosterWeekPublishAt: Date;
+  request?: Request;
+}): Promise<RosterWhatsappNotifySummary> {
+  const summary: RosterWhatsappNotifySummary = {
+    configured: twilioWhatsappConfigured(),
+    enabled: false,
+    attempted: 0,
+    sent: 0,
+    skipped: 0,
+    failed: 0,
+    capReached: false,
+    reasons: [],
+  };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: input.organizationId },
+    select: {
+      id: true,
+      name: true,
+      plan: true,
+      isDemo: true,
+      subscriptionStatus: true,
+      stripeSubscriptionId: true,
+      suspendedAt: true,
+      addonWhatsapp: true,
+      messagingWhatsappEnabled: true,
+      whatsappSentMonth: true,
+      whatsappSentCount: true,
+    },
+  });
+  if (!org) return summary;
+
+  const access = getWhatsappAccess(org);
+  summary.enabled = access.enabled;
+
+  if (!access.entitled) {
+    summary.reasons.push("not_entitled");
+    return summary;
+  }
+  if (!org.messagingWhatsappEnabled) {
+    summary.reasons.push("disabled");
+    return summary;
+  }
+
+  const twilioConfig = getTwilioWhatsappConfig();
+  if (!twilioConfig?.rosterContentSid) {
+    summary.reasons.push("not_configured");
+    return summary;
+  }
+
+  if (access.atCap) {
+    summary.capReached = true;
+    summary.reasons.push("cap");
+    return summary;
+  }
+
+  const week = await prisma.rosterWeek.findFirst({
+    where: { id: input.rosterWeekId, organizationId: input.organizationId, status: "published" },
+    select: {
+      id: true,
+      weekStart: true,
+      shareToken: true,
+      locationId: true,
+      location: { select: { timeZone: true } },
+      organization: { select: { timeZone: true } },
+      entries: {
+        select: { staffId: true, date: true, shiftTemplateId: true },
+      },
+    },
+  });
+  if (!week?.shareToken) return summary;
+
+  const anchorYmd = ymdForDbDate(week.weekStart);
+  const weekEnd = weekEndYmd(anchorYmd);
+  const days = daysOfWeek(anchorYmd);
+  const timeZone = week.location.timeZone ?? week.organization.timeZone;
+  const todayYmd = formatYmdInZone(new Date(), timeZone);
+  const weekEndDate = new Date(week.weekStart.getTime() + 6 * 86_400_000);
+
+  const [staffRows, templates, holidays] = await Promise.all([
+    prisma.staff.findMany({
+      where: {
+        organizationId: input.organizationId,
+        locationId: week.locationId,
+        archivedAt: null,
+        whatsappOptIn: true,
+        contactNumber: { not: null },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        contactNumber: true,
+        startDate: true,
+        archivedAt: true,
+        excludeFromRoster: true,
+      },
+    }),
+    prisma.shiftTemplate.findMany({
+      where: { organizationId: input.organizationId },
+      select: { id: true, name: true, startTime: true, endTime: true },
+    }),
+    prisma.publicHoliday.findMany({
+      where: {
+        organizationId: input.organizationId,
+        locationId: week.locationId,
+        date: { gte: week.weekStart, lte: weekEndDate },
+      },
+      select: { date: true, name: true, stationClosed: true },
+    }),
+  ]);
+
+  const staffIdsWithEntries = staffIdsWithRosterEntries(week.entries);
+  const visibleStaff = filterRosterStaffForWeek(staffRows, {
+    weekEndYmd: weekEnd,
+    todayYmd,
+    staffIdsWithEntries,
+  });
+
+  const templateMap = new Map<string, ShiftTemplateLite>(
+    templates.map((t) => [t.id, t]),
+  );
+
+  const entries: Record<string, string> = {};
+  for (const e of week.entries) {
+    if (e.shiftTemplateId) {
+      entries[`${e.staffId}__${ymdForDbDate(e.date)}`] = e.shiftTemplateId;
+    }
+  }
+
+  const blockMap = await getApprovedBlockMap({
+    staffIds: visibleStaff.map((s) => s.id),
+    rangeStartDate: week.weekStart,
+    rangeEndDate: weekEndDate,
+  });
+
+  const holidayMap: Record<string, { name: string; stationClosed: boolean }> = {};
+  for (const h of holidays) {
+    holidayMap[ymdForDbDate(h.date)] = { name: h.name, stationClosed: h.stationClosed };
+  }
+
+  const { url: baseUrl } = await resolvePublicAppUrlForOrg(input.organizationId, {
+    request: input.request,
+  });
+  const shareUrl = baseUrl ? buildRosterShareUrl(baseUrl, week.shareToken) : "";
+  const weekLabel = formatWeekRangeLabel(anchorYmd, weekEnd);
+
+  let sentDelta = 0;
+  let remaining = access.remaining ?? 0;
+
+  for (const staff of visibleStaff) {
+    if (access.monthlyCap !== null && remaining <= 0) {
+      summary.capReached = true;
+      summary.skipped += 1;
+      continue;
+    }
+
+    const phone = staff.contactNumber?.trim();
+    if (!phone) {
+      summary.skipped += 1;
+      await logNotification({
+        organizationId: input.organizationId,
+        rosterWeekId: week.id,
+        staffId: staff.id,
+        rosterWeekPublishAt: input.rosterWeekPublishAt,
+        status: "skipped",
+        errorMessage: "no_phone",
+      });
+      continue;
+    }
+
+    const to = toWhatsappAddress(phone);
+    if (!to) {
+      summary.skipped += 1;
+      await logNotification({
+        organizationId: input.organizationId,
+        rosterWeekId: week.id,
+        staffId: staff.id,
+        rosterWeekPublishAt: input.rosterWeekPublishAt,
+        status: "skipped",
+        errorMessage: "invalid_phone",
+      });
+      continue;
+    }
+
+    const existing = await prisma.rosterNotificationLog.findUnique({
+      where: {
+        rosterWeekId_staffId_channel_kind_rosterWeekPublishAt: {
+          rosterWeekId: week.id,
+          staffId: staff.id,
+          channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
+          kind: ROSTER_NOTIFY_KIND_PUBLISH,
+          rosterWeekPublishAt: input.rosterWeekPublishAt,
+        },
+      },
+      select: { status: true },
+    });
+    if (existing?.status === "sent") {
+      summary.skipped += 1;
+      continue;
+    }
+
+    summary.attempted += 1;
+
+    const scheduleBody = buildPersonalScheduleBody({
+      staffId: staff.id,
+      days,
+      entries,
+      templates: templateMap,
+      blockMap,
+      holidays: holidayMap,
+    });
+
+    const result = await sendWhatsappTemplate({
+      to,
+      contentSid: twilioConfig.rosterContentSid,
+      contentVariables: {
+        "1": staff.firstName,
+        "2": weekLabel,
+        "3": scheduleBody,
+        "4": shareUrl || "—",
+      },
+    });
+
+    if (result.ok) {
+      summary.sent += 1;
+      sentDelta += 1;
+      remaining -= 1;
+      await logNotification({
+        organizationId: input.organizationId,
+        rosterWeekId: week.id,
+        staffId: staff.id,
+        rosterWeekPublishAt: input.rosterWeekPublishAt,
+        status: "sent",
+        externalSid: result.sid,
+      });
+    } else {
+      summary.failed += 1;
+      await logNotification({
+        organizationId: input.organizationId,
+        rosterWeekId: week.id,
+        staffId: staff.id,
+        rosterWeekPublishAt: input.rosterWeekPublishAt,
+        status: "failed",
+        errorMessage: result.error,
+      });
+    }
+  }
+
+  if (sentDelta > 0) {
+    await incrementWhatsappSentCount(input.organizationId, sentDelta);
+  }
+
+  return summary;
+}
+
+async function logNotification(input: {
+  organizationId: string;
+  rosterWeekId: string;
+  staffId: string;
+  rosterWeekPublishAt: Date;
+  status: string;
+  externalSid?: string;
+  errorMessage?: string;
+}): Promise<void> {
+  try {
+    await prisma.rosterNotificationLog.upsert({
+      where: {
+        rosterWeekId_staffId_channel_kind_rosterWeekPublishAt: {
+          rosterWeekId: input.rosterWeekId,
+          staffId: input.staffId,
+          channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
+          kind: ROSTER_NOTIFY_KIND_PUBLISH,
+          rosterWeekPublishAt: input.rosterWeekPublishAt,
+        },
+      },
+      create: {
+        organizationId: input.organizationId,
+        rosterWeekId: input.rosterWeekId,
+        staffId: input.staffId,
+        channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
+        kind: ROSTER_NOTIFY_KIND_PUBLISH,
+        rosterWeekPublishAt: input.rosterWeekPublishAt,
+        status: input.status,
+        externalSid: input.externalSid ?? null,
+        errorMessage: input.errorMessage ?? null,
+      },
+      update: {
+        status: input.status,
+        externalSid: input.externalSid ?? null,
+        errorMessage: input.errorMessage ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("[roster-whatsapp-notify] log failed", err);
+  }
+}

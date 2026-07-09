@@ -23,6 +23,7 @@ const STAFF_SELECT = {
   dateOfBirth: true,
   startDate: true,
   contactNumber: true,
+  whatsappOptIn: true,
   sortOrder: true,
   location: { select: { id: true, name: true } },
   staffRole: { select: { id: true, name: true } },
@@ -174,6 +175,24 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if ("contactNumber" in body) {
     const v = parseOptionalString(body.contactNumber);
     if (v !== undefined) data.contactNumber = v;
+  }
+
+  if ("whatsappOptIn" in body) {
+    if (typeof body.whatsappOptIn !== "boolean") {
+      return NextResponse.json({ error: "whatsappOptIn must be a boolean" }, { status: 400 });
+    }
+    const nextContact =
+      "contactNumber" in body
+        ? parseOptionalString(body.contactNumber)
+        : existing.contactNumber;
+    if (body.whatsappOptIn && !nextContact?.trim()) {
+      return NextResponse.json(
+        { error: "Add a contact number before enabling WhatsApp schedule alerts." },
+        { status: 400 },
+      );
+    }
+    data.whatsappOptIn = body.whatsappOptIn;
+    data.whatsappOptInAt = body.whatsappOptIn ? new Date() : null;
   }
 
   if ("dateOfBirth" in body) {

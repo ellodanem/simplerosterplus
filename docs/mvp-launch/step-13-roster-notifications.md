@@ -2,7 +2,7 @@
 
 **Status:** See [STATUS.md](./STATUS.md). **Starts `blocked`** — post-MVP enhancement. Not required for first testers; step 05 (publish + manual share) already closes the core loop.
 
-**Depends on:** Step 05 (publish exists), and an owner decision on channel + market + opt-in.
+**Depends on:** Step 05 (publish exists). **Opt-in model decided (Jul 2026):** org toggle + per-staff `whatsappOptIn` — see [../ROSTER_PUBLISH_SMS_NOTES.md](../ROSTER_PUBLISH_SMS_NOTES.md) § Owner decisions.
 
 ---
 
@@ -12,7 +12,7 @@ Automatically notify staff of *their* shifts when a week is published — email 
 
 **Read first:** [../ROSTER_PUBLISH_SMS_NOTES.md](../ROSTER_PUBLISH_SMS_NOTES.md) — full direction, market context (US SMS vs Caribbean WhatsApp), what works, what's usually wrong.
 
-**This is a paid feature** ([../PRICING.md](../PRICING.md)): **SMS roster publish** is included on **Plus/Pro** (personal-schedule / change alerts only, volume cap TBD — Plus ~50/mo, Pro ~200/mo); **WhatsApp publish** is a **+$5/mo add-on** (included on Pro). So sends must be gated by plan + per-staff opt-in, and metered against the plan's cap.
+**This is a paid feature** ([../PRICING.md](../PRICING.md)): **SMS roster publish** is included on **Plus/Pro** (personal-schedule / change alerts only; **Plus 50/mo, Pro 200/mo**); **WhatsApp publish** is a **+$5/mo add-on** on Plus (**200/mo**) or **included on Pro** (**500/mo**). Sends must be gated by plan + per-staff opt-in, and metered against the plan's per-channel cap.
 
 ---
 
@@ -26,7 +26,7 @@ Automatically notify staff of *their* shifts when a week is published — email 
 
 ## Implement (when un-gated, per ROSTER_PUBLISH_SMS_NOTES.md)
 
-1. **Schema:** per-staff `smsOptIn` / `emailOptIn`, plus a notification log for idempotency (Shift Close used `AppSettings` keys in `present-absence-notify.ts` — not ported to SR+ yet).
+1. **Schema:** per-staff `whatsappOptIn` (+ `whatsappOptInAt` audit), org `messagingWhatsappEnabled`, monthly send counters, notification log for idempotency. Defer `smsOptIn` / `emailOptIn` until those channels ship.
 2. **Personal content only:** each staff gets *their* shifts + link — never the full grid blasted to everyone.
 3. **Channels in priority order:** email (cheapest; `Staff.email` exists) → SMS to `contactNumber` (opt-in; Twilio; STOP/TCPA) → WhatsApp (optional; can share a Twilio provider with SMS later).
 4. **Change alerts:** after first publish, notify only people whose shifts changed.
@@ -35,12 +35,17 @@ Automatically notify staff of *their* shifts when a week is published — email 
 
 ---
 
-## Open questions (owner decides before un-gating)
+## Owner decisions (Jul 2026)
 
-- Opt-in at staff create, org-wide toggle, or both?
+- **Opt-in:** **Both** — org master toggle in Settings **and** per-staff checkbox on create/edit (`whatsappOptIn`, default off). See [../ROSTER_PUBLISH_SMS_NOTES.md](../ROSTER_PUBLISH_SMS_NOTES.md).
+- **Manual share:** Unlimited; no opt-in (manager uses link/print/phone browser). Separate from automated Twilio sends.
+- **Staff UI copy:** No “message and data rates may apply” on WhatsApp opt-in (Caribbean trust).
+
+## Open questions (still before un-gating)
+
 - Tokenized public "my schedule" link vs require employee login first?
 - Notify every publish vs only on change after first publish?
-- US-only TCPA copy + STOP flow vs generic international SMS?
+- US-only TCPA copy + STOP flow vs generic international SMS (when SMS ships)?
 
 ---
 
@@ -54,7 +59,8 @@ Automatically notify staff of *their* shifts when a week is published — email 
 
 ## Definition of done
 
-- [ ] Owner has chosen channel(s), market, and opt-in model
+- [x] Owner has chosen opt-in model (org + per-staff; manual share exempt)
+- [ ] Owner has chosen remaining open items (link shape, publish vs change-only, SMS legal)
 - [ ] Published week sends personal (not full-grid) notifications to opted-in staff
 - [ ] Opt-in + STOP/unsubscribe respected (if SMS)
 - [ ] Notification log prevents duplicates

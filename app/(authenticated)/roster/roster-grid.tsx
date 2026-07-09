@@ -1042,6 +1042,9 @@ export function RosterGrid({
         shareUrl={shareUrl}
         shareBaseUrl={shareBaseUrl}
         openShiftCountFromToday={openShiftCountFromToday}
+        orgName={orgName}
+        weekStartYmd={weekStartYmd}
+        weekEndYmd={days[days.length - 1] ?? weekStartYmd}
       />
 
       {templates.length === 0 ? (

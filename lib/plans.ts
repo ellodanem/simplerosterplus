@@ -23,6 +23,12 @@ export const PRO_STAFF_WARN_95 = 95;
 export const PRO_ADMINS_INCLUDED = 5;
 export const PRO_DEVICES_INCLUDED = 3;
 
+/** Automated WhatsApp utility messages per calendar month — see docs/PRICING.md */
+export const PLUS_WHATSAPP_MONTHLY = 200;
+export const PRO_WHATSAPP_MONTHLY = 500;
+export const PLUS_WHATSAPP_WARN = 160;
+export const PRO_WHATSAPP_WARN = 400;
+
 export const DEVICE_TRIAL_DAYS = 30;
 export const DEVICE_TRIAL_EXTENSION_DAYS = 30;
 export const DEMO_SANDBOX_DAYS = 14;

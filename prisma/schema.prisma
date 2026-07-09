@@ -56,6 +56,11 @@ model Organization {
   addonDeviceQty           Int      @default(0)
   addonAdminQty            Int      @default(0)
   addonWhatsapp            Boolean  @default(false)
+  /// When true, publish may send automated WhatsApp alerts to opted-in staff (paid plans).
+  messagingWhatsappEnabled Boolean  @default(false)
+  /// Calendar month key `YYYY-MM` for whatsappSentCount reset.
+  whatsappSentMonth        String?
+  whatsappSentCount        Int      @default(0)
   /// Operator suspended this org (non-payment, abuse). Non-null = access blocked.
   suspendedAt          DateTime?
 
@@ -77,6 +82,27 @@ model Organization {
   payPeriods            PayPeriod[]
   testerFeedbacks       TesterFeedback[]
   schedulingRules       SchedulingRule[]
+  rosterNotifications   RosterNotificationLog[]
+}
+
+/// Idempotent log for automated roster publish notifications (step 13).
+model RosterNotificationLog {
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rosterWeekId         String
+  staffId              String
+  channel              String
+  kind                 String
+  /// Matches RosterWeek.updatedAt at send time — allows resend after unpublish/republish.
+  rosterWeekPublishAt  DateTime
+  status               String
+  externalSid          String?
+  errorMessage         String?
+  createdAt            DateTime     @default(now())
+
+  @@unique([rosterWeekId, staffId, channel, kind, rosterWeekPublishAt])
+  @@index([organizationId, createdAt])
 }
 
 /// A physical (or logical) site under an organization. Single-location orgs get one default
@@ -266,6 +292,9 @@ model Staff {
   dateOfBirth         DateTime?    @db.Date
   startDate           DateTime?    @db.Date
   contactNumber  String?
+  /// Automated WhatsApp roster alerts (utility templates via Twilio). Default off.
+  whatsappOptIn     Boolean   @default(false)
+  whatsappOptInAt   DateTime?
   sortOrder      Int          @default(0)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

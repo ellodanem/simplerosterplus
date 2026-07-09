@@ -1,6 +1,6 @@
 # Roster publish & SMS/WhatsApp distribution — agent reference
 
-**Status:** Product discussion captured 2026-05-30. Not implemented.
+**Status:** Product discussion captured 2026-05-30; owner decisions Jul 2026. Automated send not implemented; manual publish + share (step 05) shipped.
 **Related:** [`PRODUCT_NOTES.md`](./PRODUCT_NOTES.md) · [`MVP_LAUNCH_READINESS.md`](./MVP_LAUNCH_READINESS.md) · [`../SIMPLE_ROSTER_PLUS_SOURCE_HANDOFF.md`](../SIMPLE_ROSTER_PLUS_SOURCE_HANDOFF.md)
 
 ---
@@ -16,8 +16,8 @@ Owner asked whether **publishing the roster to SMS** (or WhatsApp) would be a us
 | Area | Status |
 |------|--------|
 | `RosterWeek.status` | Schema supports `draft` \| `published`; weeks default to `draft` on upsert |
-| Publish UI / API | **Not wired** — roster page shows a "Published" badge when `status === "published"`, but there is no Publish button or route that sets status or sends notifications |
-| SMS / WhatsApp / Twilio | **Not implemented** — no messaging provider integration in repo |
+| Publish UI / API | **Shipped (step 05)** — publish/unpublish API + share token link; **no automated notifications** on publish yet |
+| SMS / WhatsApp / Twilio | **WhatsApp v1 shipped (Jul 2026)** — Twilio send on publish, opt-in, caps; SMS/email still out |
 | Shift Close handoff | Explicitly deferred **WhatsApp roster broadcast** for SR+ v1 (`SIMPLE_ROSTER_PLUS_SOURCE_HANDOFF.md` §9) |
 | Staff contact data | `Staff.contactNumber` and optional `Staff.email` already exist (staff CRUD captures both) |
 | Product filter | [`PRODUCT_NOTES.md`](./PRODUCT_NOTES.md) favors **alerts, summaries, and AI guidance** over heavy broadcast workflows |
@@ -99,15 +99,51 @@ Good framing: **"Notify staff when the week is published (their shifts only)"** 
 
 ---
 
-## Open questions (not decided)
+## Owner decisions (Jul 2026)
 
-- Opt-in collected at staff create, org-wide toggle, or both?
-- Public unauthenticated "my schedule" link (tokenized URL) vs require employee login first?
-- Notify on every publish vs only when shifts change after first publish?
-- US-only TCPA copy and STOP flow vs generic international SMS?
+### Manual share vs automated send (two lanes)
+
+| Lane | Who acts | Opt-in? | Plan cap? |
+|------|----------|---------|-----------|
+| **Manual share** | Manager copies link, print, or opens share on phone/browser | **No** — manager chooses the channel (WhatsApp group, SMS, etc.) | No |
+| **Automated send** | App sends via Twilio on publish (step 13) | **Yes** — org + per-staff (below) | Yes — [`PRICING.md`](./PRICING.md) |
+
+Manual share is the free/default path (step 05). Automated WhatsApp is the paid add-on / Pro feature.
+
+### Opt-in model — **both** (org + per-staff)
+
+Automated WhatsApp sends only when **all** are true:
+
+1. Org on **Plus + WhatsApp add-on** or **Pro**
+2. Org setting **`messagingWhatsappEnabled`** (or equivalent) is on
+3. **`Staff.whatsappOptIn`** is true for that person
+4. Valid **`Staff.contactNumber`**
+5. Under monthly WhatsApp cap
+
+Default **`whatsappOptIn` = false**. Manager enables per staff on create/edit.
+
+### Staff create/edit copy (WhatsApp opt-in)
+
+Use plain language. **Do not** include “Message and data rates may apply” — Caribbean users read that as a hidden charge and trust drops.
+
+**Checkbox label (example):**
+
+> **WhatsApp schedule alerts** — Send my shifts to this number when the weekly roster is published.
+
+**Helper text (optional):**
+
+> Staff can be removed from alerts anytime by turning this off.
+
+Opt-out on WhatsApp: manager unchecks the box (no STOP keyword; that is SMS/TCPA when SMS ships).
+
+### Still open (owner)
+
+- Tokenized public "my schedule" link vs full-week share link vs employee login
+- Notify on every publish vs changes-only after first publish
+- US SMS: TCPA copy + STOP flow (defer until SMS channel ships)
 
 ---
 
 ## One-line summary for agents
 
-> SMS roster **notifications** (personal shifts + link) fit the US market and SR+ positioning; SMS as the way to **read the full team roster** does not. Email first, SMS second, WhatsApp optional by market. Publish + notify is not built yet — only `draft`/`published` status exists in schema.
+> Manual roster share (link/print) is unlimited and needs no opt-in. Automated WhatsApp (step 13) needs **org toggle + per-staff opt-in**, utility templates, Twilio, and plan caps. Personal shifts + link only — never full-grid blast.

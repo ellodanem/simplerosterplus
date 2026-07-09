@@ -16,6 +16,7 @@ export type StaffEditValues = {
   locationName?: string;
   deviceUserId: string;
   contactNumber: string;
+  whatsappOptIn: boolean;
   dateOfBirth: string;
   startDate: string;
   punchExempt: boolean;
@@ -105,6 +106,7 @@ export function StaffEditForm({
           locationId: v.locationId,
           deviceUserId: v.deviceUserId,
           contactNumber: v.contactNumber,
+          whatsappOptIn: v.whatsappOptIn,
           dateOfBirth: v.dateOfBirth,
           startDate: v.startDate,
           punchExempt: v.punchExempt,
@@ -134,6 +136,7 @@ export function StaffEditForm({
             departmentName: data.staff.department?.name ?? null,
             locationId: data.staff.location?.id ?? v.locationId,
             locationName: data.staff.location?.name ?? v.locationName,
+            whatsappOptIn: Boolean(data.staff.whatsappOptIn),
           }
         : v;
 
@@ -327,6 +330,24 @@ export function StaffEditForm({
           value={v.contactNumber}
           onChange={(x) => update("contactNumber", x)}
         />
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
+              checked={v.whatsappOptIn}
+              disabled={!v.contactNumber.trim()}
+              onChange={(e) => update("whatsappOptIn", e.target.checked)}
+            />
+            <span>
+              WhatsApp schedule alerts
+              <span className="mt-1 block text-xs font-normal text-zinc-500">
+                Send my shifts to this number when the weekly roster is published. Staff can be
+                removed from alerts anytime by turning this off.
+              </span>
+            </span>
+          </label>
+        </div>
         <Field
           id="ed"
           label="Device user ID"

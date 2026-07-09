@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/app/components/modal";
+import { buildRosterManualWhatsAppText } from "@/lib/roster-personal-message";
 
-type ShareAction = "copyLink" | "openSharePage" | "print";
+type ShareAction = "copyLink" | "openSharePage" | "print" | "whatsapp";
 
 type ReleaseGapInfo = {
   openShiftCount: number;
@@ -44,6 +45,9 @@ export function RosterShareControls({
   shareUrl,
   shareBaseUrl,
   openShiftCountFromToday,
+  orgName,
+  weekStartYmd,
+  weekEndYmd,
 }: {
   weekId: string;
   initialLive: boolean;
@@ -51,6 +55,9 @@ export function RosterShareControls({
   shareUrl: string | null;
   shareBaseUrl: string | null;
   openShiftCountFromToday: number;
+  orgName: string;
+  weekStartYmd: string;
+  weekEndYmd: string;
 }) {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -188,6 +195,16 @@ export function RosterShareControls({
       case "print":
         window.open(link, "_blank", "noopener,noreferrer")?.print();
         break;
+      case "whatsapp": {
+        const text = buildRosterManualWhatsAppText({
+          orgName,
+          weekStartYmd,
+          weekEndYmd,
+          shareUrl: link,
+        });
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+        break;
+      }
     }
   }
 
@@ -332,14 +349,11 @@ export function RosterShareControls({
               <button
                 type="button"
                 role="menuitem"
-                disabled
-                title="Not available yet"
-                className={menuItemDisabled}
+                disabled={busy}
+                onClick={() => void ensureLiveThen("whatsapp")}
+                className={menuItemEnabled}
               >
                 WhatsApp
-                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                  Soon
-                </span>
               </button>
               {live ? (
                 <>
