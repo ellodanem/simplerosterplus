@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { SCHEDULING_RULES_ENABLED } from "@/lib/auto-scheduler-feature";
 import {
   getSchedulingRulesSettings,
   saveSchedulingRulesSettings,
@@ -26,6 +27,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!SCHEDULING_RULES_ENABLED) {
+    return NextResponse.json({ error: "Scheduling rules are not available yet." }, { status: 403 });
+  }
 
   let body: Record<string, unknown>;
   try {

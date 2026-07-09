@@ -4,6 +4,7 @@ import { getApprovedBlockMap, type BlockReason } from "@/lib/leave-blocks";
 import { filterProposalsBySchedulingRules, findCalendarDayInWeek } from "@/lib/roster-scheduling-rules";
 import { getSchedulingRules, rulesToLegacySettings } from "@/lib/roster-scheduling-rules-settings";
 import { getAutoSchedulerQuota } from "@/lib/auto-scheduler-usage";
+import { SCHEDULING_RULES_ENABLED } from "@/lib/auto-scheduler-feature";
 import { staffEligibleForRosterWeek } from "@/lib/roster-display-staff";
 import {
   isRosterDayLocked,
@@ -587,18 +588,20 @@ async function completePreview(
     finalSkipped = [...skipped, ...heuristics.skipped];
   }
 
-  const { proposals: filtered, skipped: ruleSkipped } = filterProposalsBySchedulingRules({
-    proposals: finalProposals,
-    currentEntries: ctx.currentEntries,
-    staff: ctx.staff.map((s) => ({ id: s.id, role: s.role })),
-    days: ctx.days,
-    timeZone: ctx.timeZone,
-    blockMap: ctx.blockMap,
-    holidays: ctx.holidays,
-    settings: ctx.schedulingRulesSettings,
-    rules: ctx.schedulingRules,
-    workedAnchorLastWeek: ctx.workedAnchorLastWeek,
-  });
+  const { proposals: filtered, skipped: ruleSkipped } = SCHEDULING_RULES_ENABLED
+    ? filterProposalsBySchedulingRules({
+        proposals: finalProposals,
+        currentEntries: ctx.currentEntries,
+        staff: ctx.staff.map((s) => ({ id: s.id, role: s.role })),
+        days: ctx.days,
+        timeZone: ctx.timeZone,
+        blockMap: ctx.blockMap,
+        holidays: ctx.holidays,
+        settings: ctx.schedulingRulesSettings,
+        rules: ctx.schedulingRules,
+        workedAnchorLastWeek: ctx.workedAnchorLastWeek,
+      })
+    : { proposals: finalProposals, skipped: [] as AutoSchedulerSkipped[] };
 
   return {
     mode,

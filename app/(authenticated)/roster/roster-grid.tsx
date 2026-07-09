@@ -46,7 +46,7 @@ import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
 import { AutoSchedulerModal } from "./auto-scheduler-modal";
 import type { AutoSchedulerMode } from "@/lib/auto-scheduler";
-import { AUTO_SCHEDULER_ENABLED } from "@/lib/auto-scheduler-feature";
+import { AUTO_SCHEDULER_ENABLED, SCHEDULING_RULES_ENABLED } from "@/lib/auto-scheduler-feature";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 import { birthdayLabel } from "@/lib/staff-birthday";
 
@@ -377,8 +377,9 @@ export function RosterGrid({
   );
 
   const schedulingRuleViolations = useMemo(
-    () =>
-      collectSchedulingRuleViolations({
+    () => {
+      if (!SCHEDULING_RULES_ENABLED) return [];
+      return collectSchedulingRuleViolations({
         staff: staffRows,
         days,
         timeZone,
@@ -388,7 +389,8 @@ export function RosterGrid({
         settings: schedulingRulesSettings,
         rules: schedulingRules.length > 0 ? schedulingRules : undefined,
         workedAnchorLastWeek,
-      }),
+      });
+    },
     [staffRows, days, timeZone, entries, blockMap, holidays, schedulingRulesSettings, schedulingRules, workedAnchorLastWeek],
   );
 
@@ -931,14 +933,27 @@ export function RosterGrid({
                   </button>
                   <button
                     type="button"
+                    disabled={!SCHEDULING_RULES_ENABLED}
+                    title={SCHEDULING_RULES_ENABLED ? undefined : "Coming soon"}
                     onClick={() => {
+                      if (!SCHEDULING_RULES_ENABLED) return;
                       setShowSettingsMenu(false);
                       setShowSchedulingRulesSettings(true);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                      SCHEDULING_RULES_ENABLED
+                        ? "text-zinc-700 hover:bg-zinc-50"
+                        : "cursor-not-allowed text-zinc-400"
+                    }`}
                   >
                     <span>Scheduling rules</span>
-                    <span className="text-[11px] text-zinc-400">Patterns</span>
+                    {SCHEDULING_RULES_ENABLED ? (
+                      <span className="text-[11px] text-zinc-400">Patterns</span>
+                    ) : (
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                        Soon
+                      </span>
+                    )}
                   </button>
                 </div>
               </>
@@ -1027,7 +1042,7 @@ export function RosterGrid({
               Off days: {staffBelowMinimumOffDaysCount} below minimum
             </span>
           ) : null}
-          {schedulingRulesSettings.enabled && schedulingRuleViolationCount > 0 ? (
+          {SCHEDULING_RULES_ENABLED && schedulingRulesSettings.enabled && schedulingRuleViolationCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-sm font-medium text-amber-900">
               Rules: {schedulingRuleViolationCount} need attention
             </span>
@@ -1525,7 +1540,7 @@ export function RosterGrid({
         />
       ) : null}
 
-      {showSchedulingRulesSettings ? (
+      {SCHEDULING_RULES_ENABLED && showSchedulingRulesSettings ? (
         <SchedulingRulesSettingsModal
           initialSettings={schedulingRulesSettings}
           initialRules={schedulingRules}

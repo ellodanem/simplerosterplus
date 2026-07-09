@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { SCHEDULING_RULES_ENABLED } from "@/lib/auto-scheduler-feature";
 import { RULE_TEMPLATES, type SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
 
 function toRecord(row: {
@@ -28,6 +29,9 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function PUT(request: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!SCHEDULING_RULES_ENABLED) {
+    return NextResponse.json({ error: "Scheduling rules are not available yet." }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const existing = await prisma.schedulingRule.findFirst({
@@ -58,6 +62,9 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function DELETE(_request: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!SCHEDULING_RULES_ENABLED) {
+    return NextResponse.json({ error: "Scheduling rules are not available yet." }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const existing = await prisma.schedulingRule.findFirst({
