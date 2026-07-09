@@ -4,6 +4,7 @@ import { requireOperator } from "@/lib/ops/context";
 import { getOrganizationDetail } from "@/lib/ops/data";
 import { stripeConfigured, stripeCustomerUrl } from "@/lib/ops/stripe";
 import { OrgActions } from "./org-actions";
+import { OrgPlanEditor } from "./org-plan-editor";
 import {
   formatUsd,
   planLabel,
@@ -167,6 +168,15 @@ export default async function OrganizationDetailPage({
                 Values shown mirror the database.
               </p>
             )}
+            <OrgPlanEditor
+              orgId={org.id}
+              plan={org.plan}
+              addonWhatsapp={org.addonWhatsapp}
+              addonDeviceQty={org.addonDeviceQty}
+              addonAdminQty={org.addonAdminQty}
+              stripeLinked={org.stripeSubscriptionId !== null}
+              canEdit={operator.role === "billing" || operator.role === "superadmin"}
+            />
           </div>
         </Card>
       </div>

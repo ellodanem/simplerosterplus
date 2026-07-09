@@ -291,6 +291,7 @@ export async function getOrganizationDetail(id: string) {
       addonWhatsapp: true,
       suspendedAt: true,
       stripeCustomerId: true,
+      stripeSubscriptionId: true,
       createdAt: true,
     },
   });

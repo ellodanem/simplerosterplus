@@ -32,8 +32,14 @@ export type BillingTier = "demo" | "free" | "plus" | "pro";
 
 /** Effective tier for plan-limit enforcement. */
 export function resolveBillingTier(org: OrgBillingSnapshot): BillingTier {
-  if (org.isDemo) return "demo";
   const plan = org.plan?.toLowerCase() ?? PLAN_FREE;
+
+  // Demo sandboxes honor an operator-comped plan slug; unset plan keeps legacy unlimited demo.
+  if (org.isDemo) {
+    if (plan === PLAN_PRO) return "pro";
+    if (plan === PLAN_PLUS || plan === "starter") return "plus";
+    return "demo";
+  }
 
   if (plan === PLAN_PRO) {
     if (hasPaidSubscriptionAccess(org) || isCompedPaidPlan(org)) return "pro";

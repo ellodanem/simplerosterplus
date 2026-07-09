@@ -1,7 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ensureAppUserFromClerk } from "@/lib/clerk/provision";
-import { DEMO_SANDBOX_DAYS } from "@/lib/plans";
+import { DEMO_SANDBOX_DAYS, PLAN_PRO } from "@/lib/plans";
 import { seedDemoSandbox } from "@/lib/demo/seed-sandbox";
 
 function addDays(date: Date, days: number): Date {
@@ -63,7 +63,9 @@ export async function provisionDemoSandboxForUser(args: {
     data: {
       isDemo: true,
       demoExpiresAt,
-      plan: null,
+      plan: PLAN_PRO,
+      subscriptionStatus: "active",
+      addonWhatsapp: true,
       timeZone: "America/Toronto",
     },
   });
