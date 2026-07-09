@@ -21,6 +21,7 @@ import { getRosterWeekStartWeekday } from "@/lib/roster-week-settings";
 import { getOvertimeSettings } from "@/lib/overtime-settings";
 import { getMinimumOffDaysSettings } from "@/lib/minimum-off-days-settings";
 import { getSchedulingRulesSettings, getSchedulingRules, rulesToLegacySettings } from "@/lib/roster-scheduling-rules-settings";
+import { AUTO_SCHEDULER_ENABLED } from "@/lib/auto-scheduler-feature";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import {
   currentWeekStartYmd,
@@ -87,12 +88,13 @@ export default async function RosterPage({
   const openRequests =
     params.requests === "open" || params.requests === "1" || params.requests === "true";
   const openAutoScheduler =
-    params.autoScheduler === "fill" ||
-    params.autoScheduler === "fill_day" ||
-    params.autoScheduler === "copy" ||
-    params.autoScheduler === "open" ||
-    params.autoScheduler === "1" ||
-    params.autoScheduler === "true";
+    AUTO_SCHEDULER_ENABLED &&
+    (params.autoScheduler === "fill" ||
+      params.autoScheduler === "fill_day" ||
+      params.autoScheduler === "copy" ||
+      params.autoScheduler === "open" ||
+      params.autoScheduler === "1" ||
+      params.autoScheduler === "true");
   const autoSchedulerDay =
     params.day && YMD_RE.test(params.day) ? params.day : null;
   const autoSchedulerMode =

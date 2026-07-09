@@ -46,6 +46,7 @@ import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
 import { AutoSchedulerModal } from "./auto-scheduler-modal";
 import type { AutoSchedulerMode } from "@/lib/auto-scheduler";
+import { AUTO_SCHEDULER_ENABLED } from "@/lib/auto-scheduler-feature";
 import { formatRosterStaffName, formatStaffFullName } from "@/lib/staff-display-name";
 import { birthdayLabel } from "@/lib/staff-birthday";
 
@@ -255,7 +256,7 @@ export function RosterGrid({
     if (initialOpenRequests) setShowRequests(true);
   }, [initialOpenRequests]);
   useEffect(() => {
-    if (initialOpenAutoScheduler) {
+    if (AUTO_SCHEDULER_ENABLED && initialOpenAutoScheduler) {
       setAutoSchedulerMode(initialAutoSchedulerMode);
       setAutoSchedulerDay(initialAutoSchedulerDay ?? null);
       setShowAutoScheduler(true);
@@ -828,17 +829,28 @@ export function RosterGrid({
           >
             Shift presets
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAutoSchedulerMode("fill_open");
-              setShowAutoScheduler(true);
-            }}
-            disabled={weekLocked}
-            className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
-          >
-            Auto scheduler
-          </button>
+          {AUTO_SCHEDULER_ENABLED ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAutoSchedulerMode("fill_open");
+                setShowAutoScheduler(true);
+              }}
+              disabled={weekLocked}
+              className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
+            >
+              Auto scheduler
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Coming soon"
+              className="cursor-not-allowed rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-sm font-medium text-zinc-400"
+            >
+              Auto scheduler
+            </button>
+          )}
           <div className="relative">
             <button
               type="button"
@@ -1241,6 +1253,7 @@ export function RosterGrid({
                                 Off: {c.offCount}
                               </span>
                               {!weekLocked &&
+                              AUTO_SCHEDULER_ENABLED &&
                               fillableDays.includes(d) ? (
                                 <button
                                   type="button"
@@ -1547,7 +1560,7 @@ export function RosterGrid({
         }}
       />
 
-      {showAutoScheduler ? (
+      {AUTO_SCHEDULER_ENABLED && showAutoScheduler ? (
         <AutoSchedulerModal
           weekId={weekId}
           initialMode={autoSchedulerMode}

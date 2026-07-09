@@ -13,6 +13,7 @@ import { getSession } from "@/lib/session";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import { RosterShareTable } from "@/app/components/roster-share-table";
 import type { RosterShareViewData } from "@/lib/roster-share-data";
+import { AUTO_SCHEDULER_ENABLED } from "@/lib/auto-scheduler-feature";
 import { HomeTodayShiftCard } from "./home-today-shift-card";
 
 export const metadata = {
@@ -192,14 +193,14 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-            {canAutoSchedule ? (
+            {AUTO_SCHEDULER_ENABLED && canAutoSchedule ? (
               <Link
                 href={autoSchedulerHref}
                 className="mt-4 block w-full rounded-lg bg-emerald-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-800"
               >
                 Open auto scheduler
               </Link>
-            ) : (
+            ) : AUTO_SCHEDULER_ENABLED ? (
               <button
                 type="button"
                 disabled
@@ -207,6 +208,15 @@ export default async function HomePage() {
                 className="mt-4 w-full rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-400"
               >
                 Week fully assigned
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Coming soon"
+                className="mt-4 w-full rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-400"
+              >
+                Coming soon
               </button>
             )}
           </section>

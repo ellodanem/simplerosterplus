@@ -4,6 +4,7 @@ import {
   type AutoSchedulerMode,
   type AutoSchedulerProposal,
 } from "@/lib/auto-scheduler";
+import { AUTO_SCHEDULER_ENABLED } from "@/lib/auto-scheduler-feature";
 import { getSession } from "@/lib/session";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -22,6 +23,9 @@ function isProposal(value: unknown): value is AutoSchedulerProposal {
 export async function POST(request: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!AUTO_SCHEDULER_ENABLED) {
+    return NextResponse.json({ error: "Auto Scheduler is not available yet." }, { status: 403 });
+  }
   const { id: weekId } = await params;
 
   let body: Record<string, unknown>;
