@@ -140,9 +140,9 @@ function AddDeviceDrawer({
         locationId: form.locationId,
         connectionMode: mode,
         notes: form.notes,
+        serialNumber: form.serialNumber,
       };
       if (mode === "pull_tcp") {
-        body.serialNumber = form.serialNumber;
         body.ipAddress = form.ipAddress;
         body.port = portValue;
       }
@@ -211,16 +211,17 @@ function AddDeviceDrawer({
               />
             ) : null}
 
+            <Field
+              id="ad-serial"
+              label="Serial number"
+              required
+              value={form.serialNumber}
+              onChange={(x) => update("serialNumber", x)}
+              help="Printed on the device sticker. We match every /iclock callback by this SN."
+            />
+
             {showPullTcp ? (
               <>
-                <Field
-                  id="ad-serial"
-                  label="Serial number"
-                  required
-                  value={form.serialNumber}
-                  onChange={(x) => update("serialNumber", x)}
-                  help="Printed on the back of the device. Required so we can route punches."
-                />
                 <Field
                   id="ad-ip"
                   label="IP address"
@@ -253,9 +254,8 @@ function AddDeviceDrawer({
 
           {!showPullTcp ? (
             <p className="text-xs text-zinc-500">
-              After you add the device, type the server address above into the terminal. The serial
-              number is captured on the first ADMS callback if you do not enter it on the device
-              screen.
+              After you add the device, type the server address above into the terminal. Punches
+              only land when the terminal&apos;s SN matches the serial you enter here.
             </p>
           ) : (
             <p className="text-xs text-amber-800">
@@ -293,8 +293,8 @@ function AddDeviceDrawer({
                   saving ||
                   !form.name.trim() ||
                   !form.locationId ||
-                  (showPullTcp &&
-                    (!form.serialNumber.trim() || !form.ipAddress.trim()))
+                  !form.serialNumber.trim() ||
+                  (showPullTcp && !form.ipAddress.trim())
                 }
                 className="rounded-lg bg-emerald-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
@@ -351,7 +351,8 @@ function AdmsSetupChecklist({ publicBaseUrl }: { publicBaseUrl: string }) {
       </ul>
       <p className="mt-2 text-emerald-800">
         No comm key or full URL needed — the terminal adds the <span className="font-mono">/iclock</span>{" "}
-        path itself. We match punches by the device serial on first contact.
+        path itself. Enter the serial from the device sticker below so we know which terminal is
+        calling in.
       </p>
     </div>
   );

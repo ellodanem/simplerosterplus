@@ -27,12 +27,9 @@ Complete this **24–48 hours before** the session. Target: everything green bef
 
 ### 3. Device row in SR+
 
-Two valid paths:
-
-| Path | When to use |
-|------|-------------|
-| **SN known upfront** | Add device (ADMS push) with serial from device sticker **before** configuring the terminal. |
-| **SN from first callback** | Add device **without** serial; configure terminal URLs; watch server logs for `[ADMS] … SN=<serial>`; edit device row and paste serial **before** expecting punches. Serial locks after first successful match (`lastSeenAt` set). |
+Add the device (ADMS push) with the **serial from the device sticker** before configuring the
+terminal. Serial is required — every `/iclock` callback is matched by `SN`, and punches are not
+stored until an enabled device row has that serial.
 
 Device must be **enabled**, **ADMS push** mode, at the correct **location**.
 
@@ -124,7 +121,7 @@ Bring: laptop with SR+ admin open, staging logs (Vercel or server), printed staf
 |---|--------|------|------------|
 | 1 | **Roster + staff IDs** | 10 min | Show published roster; confirm each enrolled employee has matching **Device user ID** in SR+ Staff. |
 | 2 | **Register device / pairing** | 10 min | **Devices → Add device** (or open existing row). Show the Server address / Port / Protocol headline and F22 checklist. Set **Public URL** if partner questions the domain. |
-| 3 | **Partner configures terminal** | 15–25 min | Partner enters the server address (443, HTTPS) on F22; enable ATTLOG; save. You watch logs for first `getrequest` / `cdata`. If SN was blank, paste serial from log into device edit. |
+| 3 | **Partner configures terminal** | 15–25 min | Partner enters the server address (443, HTTPS) on F22; enable ATTLOG; save. You watch logs for first `getrequest` / `cdata` matching the registered serial. |
 | 4 | **Live punch → attendance week** | 15 min | Partner enrols or uses test finger/face; punch on terminal. Refresh **Attendance → Log** and week view. Confirm staff name, in/out, times in org TZ. |
 | 5 | **Second model (if available)** | 15 min | Repeat URL + ATTLOG setup on alternate hardware (K40 vs SpeedFace, etc.). Note any menu label differences. |
 | 6 | **Unmapped ID drill (optional)** | 10 min | Punch with unknown PIN or curl unmapped ID `99`; show **Devices → Unmapped device punches** panel; map to staff; confirm backfill. |

@@ -127,7 +127,6 @@ export async function POST(request: Request) {
 
   const notes = parseOptionalString(body.notes) ?? null;
 
-  // Pull-TCP-only fields. Allowed (but optional) on ADMS too — informational.
   const serialFromBody = parseOptionalString(body.serialNumber);
   const ipAddress = parseOptionalString(body.ipAddress) ?? null;
   const port = parseOptionalPort(body.port);
@@ -138,10 +137,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // For pull_tcp the operator should know the serial up front; ADMS captures it on first
-  // contact, so leave it null and let the device populate it.
-  const serialNumber =
-    connectionMode === "pull_tcp" ? (serialFromBody ?? null) : null;
+  // Serial is required for both modes: ADMS identifies the terminal by SN on every
+  // /iclock callback, and pull TCP needs it to target the device.
+  if (!serialFromBody) {
+    return NextResponse.json(
+      { error: "serialNumber is required (printed on the device sticker)" },
+      { status: 400 },
+    );
+  }
+  const serialNumber = serialFromBody;
 
   // Generate a fresh comm key for ADMS pairing. 16 hex chars (~64 bits) — way stronger than
   // ZKTeco's stock 8-digit key, and any device that supports a long key will accept this.
