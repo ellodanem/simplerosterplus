@@ -21,9 +21,10 @@ export function hasPaidSubscriptionAccess(org: OrgBillingSnapshot): boolean {
 }
 
 /** Operator-comped or legacy orgs may have a paid plan slug without Stripe. */
-export function isCompedPaidPlan(
-  org: Pick<OrgBillingSnapshot, "plan" | "stripeSubscriptionId">,
-): boolean {
+export function isCompedPaidPlan(org: {
+  plan?: string | null;
+  stripeSubscriptionId?: string | null;
+}): boolean {
   const plan = org.plan?.toLowerCase();
   if (plan !== PLAN_PLUS && plan !== "starter" && plan !== PLAN_PRO) return false;
   return !org.stripeSubscriptionId;
