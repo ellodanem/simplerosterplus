@@ -117,7 +117,7 @@ export default async function DevicesPage() {
             resolvedSource={resolvedPublic.source}
             hostnameHyphenWarning={hostnameHyphenWarning}
           />
-          <AddDeviceButton locations={locations} publicBaseUrl={publicBaseUrl} />
+          <AddDeviceButton locations={locations} />
         </div>
       </div>
 

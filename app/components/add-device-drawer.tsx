@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/app/components/modal";
-import { buildAdmsServerFields } from "@/lib/public-url";
 import type { ConnectionMode } from "@/lib/device-input";
 
 export type LocationOption = { id: string; name: string };
@@ -21,7 +20,6 @@ type Pairing = {
 type FormState = {
   name: string;
   locationId: string;
-  notes: string;
   serialNumber: string;
   ipAddress: string;
   port: string;
@@ -31,20 +29,13 @@ function emptyForm(defaultLocationId: string): FormState {
   return {
     name: "",
     locationId: defaultLocationId,
-    notes: "",
     serialNumber: "",
     ipAddress: "",
     port: "4370",
   };
 }
 
-export function AddDeviceButton({
-  locations,
-  publicBaseUrl,
-}: {
-  locations: LocationOption[];
-  publicBaseUrl: string;
-}) {
+export function AddDeviceButton({ locations }: { locations: LocationOption[] }) {
   const [open, setOpen] = useState(false);
   const disabled = locations.length === 0;
   return (
@@ -62,12 +53,7 @@ export function AddDeviceButton({
       >
         Add device
       </button>
-      <AddDeviceDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        locations={locations}
-        publicBaseUrl={publicBaseUrl}
-      />
+      <AddDeviceDrawer open={open} onClose={() => setOpen(false)} locations={locations} />
     </>
   );
 }
@@ -76,12 +62,10 @@ function AddDeviceDrawer({
   open,
   onClose,
   locations,
-  publicBaseUrl,
 }: {
   open: boolean;
   onClose: () => void;
   locations: LocationOption[];
-  publicBaseUrl: string;
 }) {
   const router = useRouter();
   const defaultLocationId = locations[0]?.id ?? "";
@@ -139,7 +123,6 @@ function AddDeviceDrawer({
         name: form.name,
         locationId: form.locationId,
         connectionMode: mode,
-        notes: form.notes,
         serialNumber: form.serialNumber,
       };
       if (mode === "pull_tcp") {
@@ -169,11 +152,7 @@ function AddDeviceDrawer({
 
   const showLocation = locations.length > 1;
   const isPairingScreen = savedDeviceName !== null;
-  const title = isPairingScreen
-    ? mode === "adms_push"
-      ? "Configure your terminal"
-      : "Device added"
-    : "Add device";
+  const title = isPairingScreen ? "Set up your terminal" : "Add device";
 
   return (
     <Modal open={open} onClose={handleClose} title={title} size="lg">
@@ -186,20 +165,30 @@ function AddDeviceDrawer({
         />
       ) : (
         <form onSubmit={onSubmit} className="space-y-4">
-          {!showPullTcp ? (
-            <AdmsSetupChecklist publicBaseUrl={publicBaseUrl} />
-          ) : (
-            <PullTcpBanner onBack={backToAdms} />
-          )}
+          {showPullTcp ? <PullTcpBanner onBack={backToAdms} /> : null}
+
+          <p className="text-sm text-zinc-600">
+            {showPullTcp
+              ? "On-site setup only. Most customers use cloud setup instead."
+              : "Add your device here first. We\u2019ll show you what to enter on the terminal next."}
+          </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
               id="ad-name"
-              label="Name"
+              label="Device name"
               required
+              placeholder="e.g. Front door"
               value={form.name}
               onChange={(x) => update("name", x)}
-              help="Unique within this location."
+            />
+            <Field
+              id="ad-serial"
+              label="Serial number"
+              required
+              placeholder="From the sticker on the device"
+              value={form.serialNumber}
+              onChange={(x) => update("serialNumber", x)}
             />
             {showLocation ? (
               <SelectField
@@ -211,24 +200,15 @@ function AddDeviceDrawer({
               />
             ) : null}
 
-            <Field
-              id="ad-serial"
-              label="Serial number"
-              required
-              value={form.serialNumber}
-              onChange={(x) => update("serialNumber", x)}
-              help="Printed on the device sticker. We match every /iclock callback by this SN."
-            />
-
             {showPullTcp ? (
               <>
                 <Field
                   id="ad-ip"
                   label="IP address"
                   required
+                  placeholder="e.g. 192.168.1.201"
                   value={form.ipAddress}
                   onChange={(x) => update("ipAddress", x)}
-                  help="LAN IP, e.g. 192.168.1.201."
                 />
                 <Field
                   id="ad-port"
@@ -236,33 +216,10 @@ function AddDeviceDrawer({
                   type="number"
                   value={form.port}
                   onChange={(x) => update("port", x)}
-                  help="ZKTeco default is 4370."
                 />
               </>
             ) : null}
-
-            <div className="sm:col-span-2">
-              <Field
-                id="ad-notes"
-                label="Notes"
-                value={form.notes}
-                onChange={(x) => update("notes", x)}
-                help="Optional. Visible only inside the app."
-              />
-            </div>
           </div>
-
-          {!showPullTcp ? (
-            <p className="text-xs text-zinc-500">
-              After you add the device, type the server address above into the terminal. Punches
-              only land when the terminal&apos;s SN matches the serial you enter here.
-            </p>
-          ) : (
-            <p className="text-xs text-amber-800">
-              Pull TCP is for on-site networks where this server can reach the device directly. It
-              is not used for the cloud MVP; scheduled pull sync is not wired yet.
-            </p>
-          )}
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -271,9 +228,9 @@ function AddDeviceDrawer({
               <button
                 type="button"
                 onClick={openPullTcp}
-                className="text-xs text-zinc-500 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+                className="text-xs text-zinc-400 hover:text-zinc-600"
               >
-                Advanced: Pull TCP (on-site only)
+                On-site setup
               </button>
             ) : (
               <span />
@@ -298,7 +255,7 @@ function AddDeviceDrawer({
                 }
                 className="rounded-lg bg-emerald-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
-                {saving ? "Adding…" : "Add device"}
+                {saving ? "Adding…" : "Continue"}
               </button>
             </div>
           </div>
@@ -308,78 +265,16 @@ function AddDeviceDrawer({
   );
 }
 
-function AdmsSetupChecklist({ publicBaseUrl }: { publicBaseUrl: string }) {
-  const base = publicBaseUrl.trim();
-  const server = base ? buildAdmsServerFields(base) : null;
-
-  return (
-    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs text-emerald-950">
-      <p className="text-sm font-semibold text-emerald-900">ADMS push (recommended)</p>
-      <p className="mt-1 text-emerald-900">
-        On the terminal&apos;s <span className="font-semibold">Comm → Cloud Server</span> (or{" "}
-        <span className="font-semibold">ADMS</span>) screen, enter just these three values, then
-        turn on attendance upload:
-      </p>
-
-      {server ? (
-        <dl className="mt-3 grid gap-2 sm:grid-cols-3">
-          <ServerHeroField label="Server address" value={server.serverHost} />
-          <ServerHeroField label="Port" value={String(server.serverPort)} />
-          <ServerHeroField label="Protocol" value="HTTPS" />
-        </dl>
-      ) : (
-        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-900">
-          Set your <span className="font-semibold">Public URL</span> on the Devices page (or{" "}
-          <span className="font-mono">APP_URL</span> in the deployment env) so we can show the exact
-          domain to type into the terminal.
-        </p>
-      )}
-
-      <ul className="mt-3 list-disc space-y-1 pl-4 text-emerald-900">
-        <li>
-          Turn on <span className="font-semibold">Domain name</span> / DNS so the terminal uses the
-          address above (not an IP).
-        </li>
-        <li>
-          Enable <span className="font-semibold">ATTLOG</span> / real-time attendance — not
-          OPERLOG-only.
-        </li>
-        <li>
-          Each staff member&apos;s <span className="font-semibold">Device user ID</span> in SR+
-          must match their enrolment PIN on the terminal.
-        </li>
-      </ul>
-      <p className="mt-2 text-emerald-800">
-        No comm key or full URL needed — the terminal adds the <span className="font-mono">/iclock</span>{" "}
-        path itself. Enter the serial from the device sticker below so we know which terminal is
-        calling in.
-      </p>
-    </div>
-  );
-}
-
-function ServerHeroField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-emerald-300 bg-white px-3 py-2">
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">{label}</dt>
-      <dd className="mt-0.5 font-mono text-sm font-semibold break-all text-emerald-950">{value}</dd>
-    </div>
-  );
-}
-
 function PullTcpBanner({ onBack }: { onBack: () => void }) {
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-      <p className="font-semibold text-amber-900">Pull TCP — advanced / on-site only</p>
-      <p className="mt-1">
-        Not used for the cloud MVP. Use only when this server can reach the device on the LAN.
-      </p>
+    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+      <p>On-site setup is not available in the cloud app yet.</p>
       <button
         type="button"
         onClick={onBack}
-        className="mt-2 text-xs font-medium text-amber-900 underline hover:text-amber-950"
+        className="mt-1 text-sm font-medium text-amber-900 underline hover:text-amber-950"
       >
-        ← Use ADMS push instead
+        Use cloud setup instead
       </button>
     </div>
   );
@@ -401,13 +296,7 @@ function PostCreatePanel({
       <div className="space-y-3">
         <p className="text-sm text-zinc-700">
           <span className="font-semibold">{deviceName}</span> is in your devices list.
-          {mode === "pull_tcp" ? (
-            <>
-              {" "}
-              Pull TCP sync is not wired in the cloud MVP — punches will not arrive until that job
-              ships.
-            </>
-          ) : null}
+          {mode === "pull_tcp" ? " On-site sync is not available yet." : null}
         </p>
         <div className="flex justify-end">
           <button
@@ -422,64 +311,43 @@ function PostCreatePanel({
     );
   }
 
+  const server = {
+    serverHost: pairing.serverHost,
+    serverPort: pairing.serverPort,
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-700">
-        <span className="font-semibold">{deviceName}</span> is registered. On the terminal&apos;s{" "}
-        <span className="font-semibold">Comm → Cloud Server</span> or{" "}
-        <span className="font-semibold">ADMS</span> screen, enter these three values, enable ATTLOG,
-        then save. <span className="font-semibold">Last active</span> updates once we receive{" "}
-        <span className="font-mono">/iclock/*</span> traffic from a matching serial.
+        <span className="font-semibold">{deviceName}</span> is saved. On the device, open{" "}
+        <span className="font-semibold">Menu → Cloud Server</span> and enter:
       </p>
 
-      <dl className="grid gap-3 sm:grid-cols-3">
-        <PairingRow label="Server address" value={pairing.serverHost} mono big />
-        <PairingRow label="Port" value={String(pairing.serverPort)} big />
-        <PairingRow label="Protocol" value="HTTPS" big />
-      </dl>
-
-      <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-600">
-        <li>Turn on Domain name / DNS so the terminal uses the address (not an IP).</li>
-        <li>Enable ATTLOG (real-time attendance upload) — not OPERLOG-only.</li>
-        <li>Staff device user IDs must match terminal enrolment PINs.</li>
-      </ul>
-
-      <details className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
-        <summary className="cursor-pointer font-medium text-zinc-800">
-          Older firmware that wants full URLs (and curl testing)
-        </summary>
-        <p className="mt-2 text-zinc-600">
-          Some older ZKTeco screens (or a curl test) want the complete push/poll URLs and path
-          instead of just a server address. A comm key is not required — SR+ ADMS v1 identifies
-          devices by serial number.
+      {server.serverHost ? (
+        <dl className="grid gap-3 sm:grid-cols-3">
+          <CopyField label="Server address" value={server.serverHost} highlight />
+          <CopyField label="Port" value={String(server.serverPort)} highlight />
+          <CopyField label="Protocol" value="HTTPS" highlight />
+        </dl>
+      ) : (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          The server address is not set yet. Use <span className="font-semibold">Public URL</span>{" "}
+          on the Devices page, then open this device again.
         </p>
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-          <PairingRow label="Push URL" value={pairing.pushUrl} mono />
-          <PairingRow label="Poll URL" value={pairing.pollUrl} mono />
-          <PairingRow label="Server path" value={pairing.serverPath} />
-          <PairingRow
-            label="Communication key (optional)"
-            value={pairing.commKey}
-            mono
-            warn="Shown once. Only needed if your firmware requires it — we store a hash, not the plaintext."
-          />
+      )}
+
+      <p className="text-sm text-zinc-600">
+        Turn on <span className="font-semibold">real-time attendance</span>, save, and you&apos;re
+        done. This device will show as active once it connects.
+      </p>
+
+      <details className="text-xs text-zinc-500">
+        <summary className="cursor-pointer hover:text-zinc-700">Technical details</summary>
+        <dl className="mt-2 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+          <CopyField label="Push URL" value={pairing.pushUrl} />
+          <CopyField label="Poll URL" value={pairing.pollUrl} />
         </dl>
       </details>
-
-      {!pairing.publicBaseUrl ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Use <span className="font-medium">Public URL</span> on the Devices page, or set{" "}
-          <span className="font-mono">APP_URL</span> /{" "}
-          <span className="font-mono">NEXT_PUBLIC_APP_URL</span>, so pairing URLs match what
-          devices on the LAN can reach.
-        </div>
-      ) : (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          If <span className="font-mono">{pairing.publicBaseUrl}</span> is not reachable from the
-          device network (e.g. localhost during dev), use a public host or tunnel the operator can
-          route to.
-        </div>
-      )}
 
       <div className="flex justify-end">
         <button
@@ -487,67 +355,64 @@ function PostCreatePanel({
           onClick={onClose}
           className="rounded-lg bg-emerald-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800"
         >
-          I&apos;ve configured the terminal
+          Done
         </button>
       </div>
     </div>
   );
 }
 
-function PairingRow({
+function CopyField({
   label,
   value,
-  mono,
-  warn,
-  big,
+  highlight,
 }: {
   label: string;
   value: string;
-  mono?: boolean;
-  warn?: string;
-  big?: boolean;
+  highlight?: boolean;
 }) {
-  return (
-    <div className={big ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2" : undefined}>
-      <dt
-        className={`text-xs uppercase tracking-wide ${big ? "text-emerald-700" : "text-zinc-500"}`}
-      >
-        {label}
-      </dt>
-      <dd className="mt-1 flex items-center gap-2">
-        <code
-          className={`flex-1 truncate rounded px-2 py-1 ${
-            big ? "bg-white font-semibold text-emerald-950" : "bg-zinc-100 text-zinc-800"
-          } ${mono ? "font-mono text-sm break-all whitespace-normal" : "text-sm"}`}
-        >
-          {value}
-        </code>
-        <CopyButton value={value} />
-      </dd>
-      {warn ? <p className="mt-1 text-xs text-amber-700">{warn}</p> : null}
-    </div>
-  );
-}
-
-function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Clipboard not available (insecure context, etc.); silent failure is fine here.
+      // Clipboard not available; silent failure is fine.
     }
   }
+
   return (
-    <button
-      type="button"
-      onClick={copy}
-      className="shrink-0 rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+    <div
+      className={
+        highlight ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2" : undefined
+      }
     >
-      {copied ? "Copied" : "Copy"}
-    </button>
+      <dt
+        className={`text-xs uppercase tracking-wide ${
+          highlight ? "text-emerald-700" : "text-zinc-500"
+        }`}
+      >
+        {label}
+      </dt>
+      <dd className="mt-1 flex items-center gap-2">
+        <code
+          className={`flex-1 rounded px-2 py-1 font-mono text-sm break-all whitespace-normal ${
+            highlight ? "bg-white font-semibold text-emerald-950" : "bg-zinc-100 text-zinc-800"
+          }`}
+        >
+          {value}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </dd>
+    </div>
   );
 }
 
@@ -558,12 +423,12 @@ function Field(props: {
   onChange: (v: string) => void;
   type?: string;
   required?: boolean;
-  help?: string;
+  placeholder?: string;
 }) {
-  const { id, label, value, onChange, type, required, help } = props;
+  const { id, label, value, onChange, type, required, placeholder } = props;
   return (
     <div>
-      <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+      <label className="text-sm font-medium text-zinc-700" htmlFor={id}>
         {label}
         {required ? <span className="ml-0.5 text-red-600">*</span> : null}
       </label>
@@ -571,11 +436,11 @@ function Field(props: {
         id={id}
         type={type ?? "text"}
         required={required}
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+        className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
       />
-      {help ? <p className="mt-1 text-xs text-zinc-500">{help}</p> : null}
     </div>
   );
 }
@@ -590,14 +455,14 @@ function SelectField(props: {
   const { id, label, value, onChange, options } = props;
   return (
     <div>
-      <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+      <label className="text-sm font-medium text-zinc-700" htmlFor={id}>
         {label}
       </label>
       <select
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
+        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
