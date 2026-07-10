@@ -91,8 +91,7 @@ export default async function AuthenticatedLayout({
       </header>
       <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</div>
       <footer className="mt-auto border-t border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 text-xs text-zinc-500">
-          <span>Design partner preview — your feedback shapes what we ship next.</span>
+        <div className="mx-auto flex max-w-7xl items-center justify-end gap-4 px-4 py-3 text-xs text-zinc-500">
           <FeedbackButton userEmail={session.email} />
         </div>
       </footer>
