@@ -99,7 +99,7 @@ Confirm:
 
 - `summary.last24hCount` reflects test punches
 - `devices[]` shows your terminal with `lastSeenAt`, `punchCount24h`
-- No **ATTLOG?** hint on **Devices** list (hint = contacted server but zero punches → usually OPERLOG-only)
+- No **No punches?** hint on **Devices** list (hint = contacted server but zero punches → usually OPERLOG-only)
 
 **UI:** **Devices** → **Punches (24h)** column populated after curl or live punch.
 
@@ -135,7 +135,7 @@ Bring: laptop with SR+ admin open, staging logs (Vercel or server), printed staf
 | Symptom | Likely cause | Check |
 |---------|----------------|-------|
 | **No server logs** | Wrong URL, HTTP not HTTPS, DNS, firewall | curl getrequest from laptop on same `{BASE}`; verify **Public URL**; try hyphen-free hostname |
-| **Contact, 0 punches** (`ATTLOG?` in UI) | OPERLOG enabled but not ATTLOG | F22 upload settings; post OPERLOG-only traffic updates `lastSeenAt` but not punch count |
+| **Contact, 0 punches** (`No punches?` in UI) | OPERLOG enabled but not ATTLOG | F22 upload settings; post OPERLOG-only traffic updates `lastSeenAt` but not punch count |
 | **Punches, no staff name** | Unmapped `deviceUserId` | **Devices → Unmapped device punches**; map ID to staff (step 03) |
 | **Wrong times** | Device clock drift / wrong TZ | Org timezone in SR+; device date/time; after live punches, clock learn may apply offset (see logs) |
 | **`no enabled device for SN=…` in logs** | Serial mismatch or device disabled | Compare log SN to device row; set serial before first match if using callback workflow |

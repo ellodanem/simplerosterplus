@@ -132,7 +132,9 @@ Expected JSON includes:
 - `latest` — most recent ADMS punch (or `null` if none)
 - `lastRequest` — last `/iclock/*` callback seen by this server process (in-memory; resets on restart)
 
-**UI:** **Devices** list shows **Punches (24h)** and an **ATTLOG?** label when the device contacted the server in the last 24h but stored zero punches (usual cause: OPERLOG-only upload).
+**UI:** **Devices** list shows **Punches (24h)** and a **No punches?** hint when the device contacted the server in the last 24h but stored zero punches (usual cause: OPERLOG-only upload). Manager-facing copy stays plain; protocol detail lives here and in the field-test runbook / operator console.
+
+**Diagnostics (not on the Devices page):** `GET /api/attendance/adms-health` (session required). Hyphenated hostnames are awkward on some ZKTeco keypads — prefer a hyphen-free subdomain; the **Public URL** modal still warns when relevant.
 
 **OPERLOG-only test:** POST with `table=OPERLOG` (no ATTLOG lines) — `lastSeenAt` should update, `punchCount24h` stays 0, hint appears.
 

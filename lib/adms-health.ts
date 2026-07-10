@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getLastAdmsRequest } from "@/lib/adms-last-request";
 
 export const ATTLOG_UPLOAD_HINT =
-  "Check ATTLOG upload enabled (not OPERLOG-only)";
+  "Device connected, but no punches yet. On the terminal, turn on real-time attendance upload.";
 
 const MS_24H = 24 * 60 * 60 * 1000;
 const MS_7D = 7 * MS_24H;

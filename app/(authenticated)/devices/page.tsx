@@ -96,10 +96,7 @@ export default async function DevicesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Devices</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            ZKTeco terminals registered to your organization. Punches arrive via ADMS push when the
-            terminal reaches <span className="font-mono">/iclock/*</span>;{" "}
-            <span className="font-medium">Last active</span> updates on each successful ingest.
-            Match staff using the same device user ID as on the terminal.
+            Register your attendance terminals here. After setup, punches show up in Attendance.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -147,8 +144,8 @@ export default async function DevicesPage() {
             {devices.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-500">
-                  No devices yet. Use <span className="font-medium">Add device</span> to register a
-                  terminal; punches appear here once ADMS push reaches the server.
+                  No devices yet. Use <span className="font-medium">Add device</span> to get
+                  started.
                 </td>
               </tr>
             ) : (
@@ -187,7 +184,7 @@ export default async function DevicesPage() {
                           className="ml-1.5 text-xs text-amber-700"
                           title={hint}
                         >
-                          ATTLOG?
+                          No punches?
                         </span>
                       ) : null}
                     </td>
@@ -227,22 +224,6 @@ export default async function DevicesPage() {
         initialRows={unmappedRows}
         initialStaffByLocationId={staffByLocationId}
       />
-
-      {hostnameHyphenWarning ? (
-        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          {hostnameHyphenWarning}
-        </p>
-      ) : null}
-
-      <p className="mt-4 text-xs text-zinc-500">
-        ADMS push updates <span className="font-medium">Last active</span> when a registered,
-        enabled terminal contacts <span className="font-mono">/iclock/*</span>.{" "}
-        <span className="font-medium">Punches (24h)</span> counts ADMS rows ingested in the last
-        24 hours. If a device shows recent contact but zero punches, hover{" "}
-        <span className="font-medium">ATTLOG?</span> for the usual fix (enable attendance upload,
-        not OPERLOG-only). Full diagnostics:{" "}
-        <span className="font-mono">GET /api/attendance/adms-health</span>.
-      </p>
     </div>
   );
 }
