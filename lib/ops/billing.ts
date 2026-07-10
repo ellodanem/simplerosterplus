@@ -25,8 +25,14 @@ export function planMonthlyUsd(plan: string | null | undefined): number {
 }
 
 // Exact monthly USD for an org: prefer the Stripe-mirrored `mrrCents`, fall back to the
-// plan→price estimate only when no mirror exists yet.
-export function orgMonthlyUsd(o: { plan?: string | null; mrrCents?: number | null }): number {
+// plan→price estimate only when no mirror exists yet. Operator comps (paid plan, no Stripe
+// subscription) contribute $0 — they are not recurring revenue.
+export function orgMonthlyUsd(o: {
+  plan?: string | null;
+  mrrCents?: number | null;
+  stripeSubscriptionId?: string | null;
+}): number {
+  if (!o.stripeSubscriptionId) return 0;
   if (o.mrrCents != null) return o.mrrCents / 100;
   return planMonthlyUsd(o.plan ?? null);
 }

@@ -109,7 +109,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     prisma.organization.groupBy({ by: ["plan"], _count: { _all: true } }),
     prisma.organization.findMany({
       where: { subscriptionStatus: "active" },
-      select: { plan: true, mrrCents: true },
+      select: { plan: true, mrrCents: true, stripeSubscriptionId: true },
     }),
     dailySeries("Organization", "createdAt", 90),
     prisma.organization.findMany({
@@ -215,6 +215,7 @@ export async function listOrganizationsForOps(search?: string): Promise<OrgListR
       name: true,
       plan: true,
       mrrCents: true,
+      stripeSubscriptionId: true,
       subscriptionStatus: true,
       isDemo: true,
       suspendedAt: true,
@@ -563,7 +564,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
   const [activeSubs, trialing, pastDue, dunning] = await Promise.all([
     prisma.organization.findMany({
       where: { subscriptionStatus: "active" },
-      select: { plan: true, mrrCents: true },
+      select: { plan: true, mrrCents: true, stripeSubscriptionId: true },
     }),
     prisma.organization.count({ where: { subscriptionStatus: "trialing" } }),
     prisma.organization.count({ where: { subscriptionStatus: { in: ["past_due", "unpaid"] } } }),
