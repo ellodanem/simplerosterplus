@@ -33,21 +33,24 @@ URL wiring: `SRP_APP_SIGNUP_URL`, `SRP_APP_DEMO_URL`, `SRP_APP_LOGIN_URL` in pag
 
 See `MAPPING.md` for section-level CTA map.
 
-### Page structure (current)
+### Page structure (current — 2026 modern redesign)
 
-1. Header — Log in · Start Free (`#contact`)
-2. `#hero` — H1, Start Free + Explore demo, badges, `solution-attendance.png` hero image + `@2x`
-3. `#audience` — single-site vs multi-site manager cards + industry chips
-4. `#pain` — problem questions + `pain-before-workflow.png`
-5. `#dream` — three outcome cards
-6. `#solution` — three feature blocks + scope aside (`app-roster-week.png`, `solution-attendance.png`, `solution-auto-scheduler.png`)
-7. `#in-action` — four-scenario carousel (one slide per view)
-8. `#how-it-works` — four numbered steps + Start Free / Explore demo
-9. `#pricing` — Free / Plus / Pro plan grid
-10. `#faq` — support cards + accordions
-11. `#contact` — self-serve CTAs + optional contact form + pricing line
-12. `#cta-close` — Start Free + Explore demo
-13. Footer
+Full rebuild for a leaner, more modern feel (tip: *simple is better*). Only the H1 copy was retained verbatim; everything else was redesigned. Reference review: [roapp.io](https://roapp.io/roster-management/) (clean benefit blocks, honest free-trial line), [rosterelf.com](https://www.rosterelf.com/) (spreadsheets-vs-software comparison), [shifton.com](https://shifton.com/) (problem→fix "why switch", floating hero status chips, 4-step how-it-works).
+
+1. Header — Log in · Start Free (`#contact`), glass bar with scroll shadow (`is-scrolled`)
+2. `#hero` — retained H1, gradient + grid backdrop, dual CTA, checkmark trust row, `solution-attendance.png` + `@2x` with floating status chips (`.hero-chip`)
+3. `.context-strip` — "Built for shift-based teams in" industry chips
+4. `#why` — "Why managers switch": three problem→fix cards (Shifton-style)
+5. `#features` — three alternating image/text rows (`app-roster-week.png`, `solution-attendance.png`, `solution-auto-scheduler.png`) + Start Free
+6. `#how` — four numbered steps + Start Free
+7. `#compare` — spreadsheets & chats vs Simple Roster Plus table (RosterElf-style, stacks on mobile)
+8. `#pricing` — Free / Plus / Pro plan grid + footnote
+9. `#faq` — single-column accordions (support-card column removed)
+10. `#contact` — self-serve CTAs + collapsible contact form (`<details class="contact-toggle">`) + pricing line
+11. `#cta-close` — Start Free + Explore demo (dark emerald band)
+12. Footer
+
+**Removed in redesign (simplicity):** `#audience` cards, separate `#pain`/`#dream` sections (folded into `#why`), `#in-action` four-slide carousel + its JS, FAQ support-card column. CTA classes (`cta-signup`/`cta-contact`/`demo-cta`), login IDs, `SRP_*` config, and the `#contact` form backend are all preserved.
 
 ### SEO and head (canonical only)
 
@@ -234,4 +237,4 @@ Legacy filenames (`solution-ai-assist.png`, `hero-weekly-schedule-attendance.png
 
 ---
 
-*Last updated: 14 June 2026 — Gate 2 hybrid funnel (Step 11); selective CTA classes.*
+*Last updated: 10 July 2026 — full modern redesign (leaner structure, problem→fix "why switch", comparison table, floating hero chips, collapsible contact form). Only the H1 retained; CTA wiring, `SRP_*` config, and form backend preserved. Gate 2 hybrid funnel unchanged.*
