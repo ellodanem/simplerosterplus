@@ -5,7 +5,8 @@
 **Guide:** Craig Morrison *Step by Step Landing Page* (LP template = structure only)  
 **Build:** Modern HTML5 + existing `index.html` design tokens (no Bootstrap 3)  
 **Positioning:** See `srp/.cursor/rules/simple-roster-plus-positioning.mdc` — **managers**, weekly schedules + attendance **in minutes**, **Auto Scheduler** (not “AI”).  
-**Mission (canonical):** *Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with Auto Scheduler keeping the process fast and simple.*  
+**Mission (canonical):** *Simple Roster Plus helps managers create weekly schedules and track attendance in minutes. Auto Scheduler is coming soon to keep the process even faster.*  
+**Ship status (Jul 2026):** On the live page, **Auto Scheduler** and **SMS roster publish** are labeled **Coming soon** everywhere they appear (hero trust row, features, pricing, FAQ, footer). **Available today:** weekly roster, publish + share link/print, attendance, ZKTeco ingest.  
 **Legacy experiment:** `landing page/` (repo sibling) — not canonical; see `LANDING-PAGE.md` § Two copies.  
 **Out of scope for now:** Analytics / conversion tracking (Step 10)
 
@@ -16,7 +17,7 @@
 | Item | Choice |
 |------|--------|
 | **Persona** | **Manager** at a shift-based small business—builds the weekly schedule, tracks attendance, wants speed not HR bloat. |
-| **App origin** | `https://simplerosterplus.vercel.app` (custom marketing domain later) |
+| **App origin** | `https://app.simplerosterplus.com` (Clerk production; do not use `*.vercel.app` for auth) |
 | **Primary CTA label** | **Start Free** (same label everywhere) |
 | **Self-serve path** | `.cta-signup` → `SRP_APP_SIGNUP_URL` (`/sign-up`) — hero, `#contact` panel, `#cta-close` |
 | **Nurture path** | `.cta-contact` → `#contact` — header, how-it-works, footer |

@@ -65,6 +65,12 @@ Full rebuild for a leaner, more modern feel (tip: *simple is better*). Only the 
 - Product feature is **Auto Scheduler** (capitalized in headings, pricing, FAQ).
 - Solution block 3 uses `solution-auto-scheduler.png`.
 - FAQ: “How does Auto Scheduler help?”
+- **Coming soon (Jul 2026):** Auto Scheduler and SMS roster publish are labeled with `.soon-tag` badges on the live page until they ship in the app (`lib/auto-scheduler-feature.ts`). Do not imply they are live in marketing copy.
+- **Available today:** weekly roster, copy last week, publish + share link/print, attendance week view, ZKTeco ADMS ingest, weekly exception summary on Home.
+
+### Coming-soon UI (`.soon-tag`)
+
+Amber pill badge used on hero trust row, feature headings, pricing bullets, comparison table, and FAQ. Clock icon replaces checkmark for coming-soon hero trust item (`.hero-trust li.is-soon`). Pricing list items use `.plan-features li.is-soon` with clock-style bullet.
 
 ### Images (canonical page references)
 
@@ -185,7 +191,9 @@ Summary of work done in chat against the **experiment** copy (`landing page/`). 
 
 | Use | Avoid |
 |-----|--------|
-| **Auto Scheduler** (product feature name) | AI, AI assist, AI-powered |
+| **Auto Scheduler** (product feature name) + **Coming soon** when not shipped | Implying Auto Scheduler is live today |
+| **SMS roster publish** + **Coming soon** when not shipped | Promising automated SMS on publish |
+| Share link + print (available today) | Screenshots & texts only (understate what ships) |
 | the auto scheduler (in running prose, if lowercase fits) | chatbot hype |
 | managers, weekly schedule, attendance in minutes | enterprise HR, payroll suite |
 | Honest scope (roster + attendance) | fake testimonials, fake logos |
@@ -237,4 +245,4 @@ Legacy filenames (`solution-ai-assist.png`, `hero-weekly-schedule-attendance.png
 
 ---
 
-*Last updated: 10 July 2026 — full modern redesign (leaner structure, problem→fix "why switch", comparison table, floating hero chips, collapsible contact form). Only the H1 retained; CTA wiring, `SRP_*` config, and form backend preserved. Gate 2 hybrid funnel unchanged.*
+*Last updated: 10 July 2026 — Auto Scheduler and SMS roster publish marked **Coming soon** on live page (hero, features, pricing, FAQ, footer); share link + print called out as available today.*
