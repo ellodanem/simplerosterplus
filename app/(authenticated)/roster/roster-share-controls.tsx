@@ -7,7 +7,46 @@ import { buildRosterManualWhatsAppText } from "@/lib/roster-personal-message";
 
 type ShareAction = "copyLink" | "openSharePage" | "print" | "whatsapp";
 
-type ReleaseGapInfo = {
+type WhatsappPublishSummary = {
+  configured: boolean;
+  enabled: boolean;
+  attempted: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  capReached: boolean;
+  reasons: string[];
+};
+
+function formatWhatsappPublishSummary(summary: WhatsappPublishSummary): string | null {
+  if (summary.reasons.includes("not_entitled")) {
+    return "WhatsApp alerts need Plus with the WhatsApp add-on, or Pro.";
+  }
+  if (summary.reasons.includes("disabled")) {
+    return "WhatsApp alerts are off — enable them in Settings → WhatsApp alerts.";
+  }
+  if (summary.reasons.includes("not_configured")) {
+    return "Server WhatsApp is not configured (Twilio credentials or roster template missing on this deployment).";
+  }
+  if (summary.reasons.includes("cap")) {
+    return "Monthly WhatsApp limit reached. Manual share still works.";
+  }
+  if (summary.sent > 0) {
+    return `WhatsApp sent to ${summary.sent} staff member${summary.sent === 1 ? "" : "s"}.`;
+  }
+  if (summary.failed > 0) {
+    return `WhatsApp failed for ${summary.failed} staff — check Twilio logs (template or number may be invalid).`;
+  }
+  if (summary.attempted === 0 && summary.skipped > 0) {
+    return "No WhatsApp sent — no opted-in staff with contact numbers on this roster.";
+  }
+  if (summary.attempted === 0) {
+    return "No WhatsApp sent — no opted-in staff with contact numbers.";
+  }
+  return null;
+}
+
+type PublishGapInfo = {
   openShiftCount: number;
   openShiftDayLabel: string | null;
 };
@@ -68,10 +107,10 @@ export function RosterShareControls({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const [releaseGapInfo, setReleaseGapInfo] = useState<ReleaseGapInfo | null>(null);
-  const [pendingAction, setPendingAction] = useState<ShareAction | null>(null);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishGapInfo, setPublishGapInfo] = useState<PublishGapInfo | null>(null);
   const [showDraftConfirm, setShowDraftConfirm] = useState(false);
+  const [whatsappNotice, setWhatsappNotice] = useState<string | null>(null);
 
   const displayUrl = useMemo(() => {
     if (url) return url;
@@ -101,11 +140,10 @@ export function RosterShareControls({
     return absoluteShareUrl(shareBaseUrl, sharePathValue);
   }
 
-  async function releaseWeek(
-    acknowledgeGaps = false,
-  ): Promise<{ ok: boolean; shareUrl: string | null }> {
+  async function publishWeek(acknowledgeGaps = false): Promise<boolean> {
     setBusy(true);
     setError(null);
+    setWhatsappNotice(null);
     try {
       const res = await fetch(`/api/roster/weeks/${weekId}/status`, {
         method: "POST",
@@ -119,30 +157,34 @@ export function RosterShareControls({
         openShiftDayLabel?: string | null;
         status?: string;
         sharePath?: string | null;
+        whatsapp?: WhatsappPublishSummary;
       };
       if (res.status === 409 && data.code === "OPEN_SHIFTS") {
-        setReleaseGapInfo({
+        setPublishGapInfo({
           openShiftCount: data.openShiftCount ?? 0,
           openShiftDayLabel: data.openShiftDayLabel ?? null,
         });
-        setShowReleaseModal(true);
-        return { ok: false, shareUrl: null };
+        setShowPublishModal(true);
+        return false;
       }
       if (!res.ok) {
-        throw new Error(data.error ?? "Could not release roster for sharing");
+        throw new Error(data.error ?? "Could not publish roster");
       }
       const isLive = data.status === "published";
-      const releasedUrl = resolveShareUrl(data.sharePath);
+      const publishedUrl = resolveShareUrl(data.sharePath);
       setLive(isLive);
       if (data.sharePath) {
         setPath(data.sharePath);
-        if (releasedUrl) setUrl(releasedUrl);
+        if (publishedUrl) setUrl(publishedUrl);
+      }
+      if (data.whatsapp) {
+        setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
       }
       router.refresh();
-      return { ok: isLive, shareUrl: releasedUrl };
+      return isLive;
     } catch (e) {
       setError((e as Error).message);
-      return { ok: false, shareUrl: null };
+      return false;
     } finally {
       setBusy(false);
     }
@@ -151,6 +193,7 @@ export function RosterShareControls({
   async function returnToDraft() {
     setBusy(true);
     setError(null);
+    setWhatsappNotice(null);
     try {
       const res = await fetch(`/api/roster/weeks/${weekId}/status`, {
         method: "POST",
@@ -208,43 +251,32 @@ export function RosterShareControls({
     }
   }
 
-  async function ensureLiveThen(action: ShareAction) {
-    setMenuOpen(false);
-    const existingLink = displayUrl;
-    if (live && existingLink) {
-      executeShareAction(action, existingLink);
-      return;
-    }
-    setPendingAction(action);
+  function startPublish() {
     if (openShiftCountFromToday > 0) {
-      setReleaseGapInfo({
+      setPublishGapInfo({
         openShiftCount: openShiftCountFromToday,
         openShiftDayLabel: null,
       });
-      setShowReleaseModal(true);
+      setShowPublishModal(true);
       return;
     }
-    const { ok, shareUrl: releasedUrl } = await releaseWeek();
-    if (ok && releasedUrl) {
-      setPendingAction(null);
-      executeShareAction(action, releasedUrl);
-    }
+    void publishWeek();
   }
 
-  async function confirmReleaseWithGaps() {
-    setShowReleaseModal(false);
-    const action = pendingAction;
-    setPendingAction(null);
-    const { ok, shareUrl: releasedUrl } = await releaseWeek(true);
-    if (ok && action && releasedUrl) {
-      executeShareAction(action, releasedUrl);
-    }
+  async function confirmPublishWithGaps() {
+    setShowPublishModal(false);
+    await publishWeek(true);
   }
 
-  function cancelReleaseModal() {
-    setShowReleaseModal(false);
-    setPendingAction(null);
-    setReleaseGapInfo(null);
+  function cancelPublishModal() {
+    setShowPublishModal(false);
+    setPublishGapInfo(null);
+  }
+
+  function handleShareAction(action: ShareAction) {
+    setMenuOpen(false);
+    if (!displayUrl) return;
+    executeShareAction(action, displayUrl);
   }
 
   const menuItemClass =
@@ -258,7 +290,7 @@ export function RosterShareControls({
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {live ? (
             <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-              Live
+              Published
             </span>
           ) : (
             <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600">
@@ -273,90 +305,99 @@ export function RosterShareControls({
           ) : live ? (
             <span className="text-zinc-500">Staff can view the share link</span>
           ) : (
-            <span className="text-zinc-500">Not shared yet — use Share when ready</span>
+            <span className="text-zinc-500">Publish when ready — share options unlock after</span>
           )}
         </div>
 
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            disabled={busy}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-          >
-            {busy ? "Working…" : copied ? "Link copied!" : "Share"}
-            <ShareMenuChevron />
-          </button>
-
-          {menuOpen ? (
-            <div
-              role="menu"
-              className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg"
+        <div className="flex items-center gap-2">
+          {!live ? (
+            <button
+              type="button"
+              onClick={startPublish}
+              disabled={busy}
+              className="inline-flex items-center rounded-md border border-emerald-600 bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
             >
+              {busy ? "Publishing…" : "Publish"}
+            </button>
+          ) : (
+            <div ref={menuRef} className="relative">
               <button
                 type="button"
-                role="menuitem"
-                disabled={busy}
-                onClick={() => void ensureLiveThen("copyLink")}
-                className={menuItemEnabled}
+                onClick={() => setMenuOpen((open) => !open)}
+                disabled={busy || !displayUrl}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
-                Copy share link
+                {busy ? "Working…" : copied ? "Link copied!" : "Share"}
+                <ShareMenuChevron />
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={busy}
-                onClick={() => void ensureLiveThen("openSharePage")}
-                className={menuItemEnabled}
-              >
-                Open share page
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={busy}
-                onClick={() => void ensureLiveThen("print")}
-                className={menuItemEnabled}
-              >
-                Print
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled
-                title="Coming soon"
-                className={menuItemDisabled}
-              >
-                Email
-                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                  Soon
-                </span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled
-                title="Coming soon"
-                className={menuItemDisabled}
-              >
-                Export (PDF)
-                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                  Soon
-                </span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={busy}
-                onClick={() => void ensureLiveThen("whatsapp")}
-                className={menuItemEnabled}
-              >
-                WhatsApp
-              </button>
-              {live ? (
-                <>
+
+              {menuOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() => handleShareAction("copyLink")}
+                    className={menuItemEnabled}
+                  >
+                    Copy share link
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() => handleShareAction("openSharePage")}
+                    className={menuItemEnabled}
+                  >
+                    Open share page
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() => handleShareAction("print")}
+                    className={menuItemEnabled}
+                  >
+                    Print
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled
+                    title="Coming soon"
+                    className={menuItemDisabled}
+                  >
+                    Email
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                      Soon
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled
+                    title="Coming soon"
+                    className={menuItemDisabled}
+                  >
+                    Export (PDF)
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                      Soon
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() => handleShareAction("whatsapp")}
+                    className={menuItemEnabled}
+                  >
+                    WhatsApp
+                  </button>
                   <div className="my-1 border-t border-zinc-100" aria-hidden="true" />
                   <button
                     type="button"
@@ -370,10 +411,10 @@ export function RosterShareControls({
                   >
                     Back to draft
                   </button>
-                </>
+                </div>
               ) : null}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -383,42 +424,49 @@ export function RosterShareControls({
         </div>
       ) : null}
 
-      {showReleaseModal && releaseGapInfo ? (
+      {whatsappNotice ? (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {whatsappNotice}
+        </div>
+      ) : null}
+
+      {showPublishModal && publishGapInfo ? (
         <Modal
-          open={showReleaseModal}
-          title="Share this roster?"
-          onClose={cancelReleaseModal}
+          open={showPublishModal}
+          title="Publish this roster?"
+          onClose={cancelPublishModal}
           size="md"
         >
           <p className="text-sm text-zinc-700">
-            Sharing makes this week official for anyone with the link. This week still has{" "}
+            Publishing makes this week official and sends WhatsApp alerts to opted-in staff. This
+            week still has{" "}
             <strong>
-              {releaseGapInfo.openShiftCount} open slot
-              {releaseGapInfo.openShiftCount === 1 ? "" : "s"}
+              {publishGapInfo.openShiftCount} open slot
+              {publishGapInfo.openShiftCount === 1 ? "" : "s"}
             </strong>
-            {releaseGapInfo.openShiftDayLabel
-              ? ` (most on ${releaseGapInfo.openShiftDayLabel})`
+            {publishGapInfo.openShiftDayLabel
+              ? ` (most on ${publishGapInfo.openShiftDayLabel})`
               : " from today on"}
-            . Staff may see gaps if you share now.
+            . Staff may see gaps if you publish now.
           </p>
           <p className="mt-2 text-sm text-zinc-600">
-            Share anyway, or go back and fill slots first.
+            Publish anyway, or go back and fill slots first.
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={cancelReleaseModal}
+              onClick={cancelPublishModal}
               className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
             >
               Fill slots first
             </button>
             <button
               type="button"
-              onClick={() => void confirmReleaseWithGaps()}
+              onClick={() => void confirmPublishWithGaps()}
               disabled={busy}
               className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
             >
-              Share anyway
+              Publish anyway
             </button>
           </div>
         </Modal>
@@ -432,8 +480,8 @@ export function RosterShareControls({
           size="md"
         >
           <p className="text-sm text-zinc-700">
-            The share link will stop working until you share again. You can still edit the roster
-            while it is a draft.
+            The share link will stop working until you publish again. You can edit the roster while
+            it is a draft.
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <button
