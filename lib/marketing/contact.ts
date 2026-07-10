@@ -135,7 +135,13 @@ export function marketingAllowedOrigins(): string[] {
       .filter(Boolean);
   }
   const site = process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_URL?.trim();
-  const defaults = ["https://simplerosterplus.vercel.app", "http://127.0.0.1:5500", "http://localhost:5500"];
+  const defaults = [
+    "https://www.simplerosterplus.com",
+    "https://simplerosterplus.com",
+    "https://simplerosterplus.vercel.app",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+  ];
   if (site) defaults.unshift(site.replace(/\/$/, ""));
   return [...new Set(defaults)];
 }

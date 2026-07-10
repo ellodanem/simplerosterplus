@@ -69,6 +69,41 @@ function isAdminHost(request: NextRequest): boolean {
   return host.startsWith("admin.") || (!!configured && host === configured);
 }
 
+/** Production Vercel alias — Clerk production rejects this origin (blank SignIn). */
+const LEGACY_VERCEL_APP_HOST = "simplerosterplus.vercel.app";
+
+function canonicalAppOrigin(): string {
+  const raw = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim();
+  if (raw) {
+    try {
+      return new URL(raw.startsWith("http") ? raw : `https://${raw}`).origin;
+    } catch {
+      /* fall through */
+    }
+  }
+  return "https://app.simplerosterplus.com";
+}
+
+/**
+ * Send browser traffic off the legacy Vercel hostname onto the Clerk-allowed app host.
+ * Leave /iclock and /api alone so device ingest and webhooks keep working on whatever URL is configured.
+ */
+function redirectLegacyVercelAppHost(request: NextRequest): NextResponse | null {
+  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (host !== LEGACY_VERCEL_APP_HOST) return null;
+
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/iclock") || pathname.startsWith("/api/")) return null;
+
+  const dest = new URL(request.url);
+  const canonical = new URL(canonicalAppOrigin());
+  if (dest.host === canonical.host) return null;
+
+  dest.protocol = canonical.protocol;
+  dest.host = canonical.host;
+  return NextResponse.redirect(dest, 308);
+}
+
 async function gateOperator(
   request: NextRequest,
   opsPath: string,
@@ -140,6 +175,9 @@ async function handleRequest(
   if (pathname.startsWith("/iclock")) {
     return NextResponse.next();
   }
+
+  const legacyRedirect = redirectLegacyVercelAppHost(request);
+  if (legacyRedirect) return legacyRedirect;
 
   if (isAdminHost(request)) {
     if (pathname.startsWith("/api")) {
