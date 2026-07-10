@@ -6,6 +6,7 @@
 // map below is a PLACEHOLDER for display/estimation only; real amounts come from Stripe
 // invoices once wired. Canonical tiers: docs/PRICING.md (Free / Plus / Pro).
 
+import { isCompedPaidPlan } from "@/lib/billing-access";
 import { planLabel as canonicalPlanLabel } from "@/lib/plans";
 
 export type PlanSlug = "free" | "trial" | "starter" | "plus" | "pro";
@@ -38,7 +39,17 @@ export function orgMonthlyUsd(o: {
 }
 
 export function planLabel(plan: string | null | undefined): string {
+  if (plan === "comp") return "Comp";
   return canonicalPlanLabel(plan);
+}
+
+/** Bucket key for ops plan-mix charts: comps are not paid Pro/Plus. */
+export function opsPlanMixKey(o: {
+  plan?: string | null;
+  stripeSubscriptionId?: string | null;
+}): string {
+  if (isCompedPaidPlan(o)) return "comp";
+  return o.plan ?? "none";
 }
 
 export function formatUsd(amount: number): string {

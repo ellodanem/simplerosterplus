@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { orgMonthlyUsd } from "@/lib/ops/billing";
+import { opsPlanMixKey, orgMonthlyUsd } from "@/lib/ops/billing";
 import { deriveDeviceStatus, relativeTime, type DeviceStatus } from "@/lib/ops/device-status";
 
 // ============================================================================
@@ -91,7 +91,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     devicesTotal,
     devicesOnline,
     punchesToday,
-    planGroups,
+    planRows,
     activeSubs,
     signupSeries,
     attentionOrgs,
@@ -106,7 +106,9 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       where: { deletedAt: null, enabled: true, lastSeenAt: { gte: onlineSince } },
     }),
     prisma.attendanceLog.count({ where: { punchAt: { gte: todayStart } } }),
-    prisma.organization.groupBy({ by: ["plan"], _count: { _all: true } }),
+    prisma.organization.findMany({
+      select: { plan: true, stripeSubscriptionId: true },
+    }),
     prisma.organization.findMany({
       where: { subscriptionStatus: "active" },
       select: { plan: true, mrrCents: true, stripeSubscriptionId: true },
@@ -134,8 +136,13 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   const mrrUsd = activeSubs.reduce((sum, o) => sum + orgMonthlyUsd(o), 0);
   const activeOrgs = totalOrgs - suspendedOrgs;
 
-  const planMix = planGroups
-    .map((g) => ({ plan: g.plan ?? "none", count: g._count._all }))
+  const planMixMap = new Map<string, number>();
+  for (const o of planRows) {
+    const key = opsPlanMixKey(o);
+    planMixMap.set(key, (planMixMap.get(key) ?? 0) + 1);
+  }
+  const planMix = [...planMixMap.entries()]
+    .map(([plan, count]) => ({ plan, count }))
     .sort((a, b) => b.count - a.count);
 
   const attention: AttentionItem[] = [];
@@ -590,7 +597,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
   const planMap = new Map<string, { count: number; mrrUsd: number }>();
   let mrrUsd = 0;
   for (const o of activeSubs) {
-    const plan = o.plan ?? "none";
+    const plan = opsPlanMixKey(o);
     const price = orgMonthlyUsd(o);
     mrrUsd += price;
     const cur = planMap.get(plan) ?? { count: 0, mrrUsd: 0 };

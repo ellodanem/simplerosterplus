@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPlatformOverview } from "@/lib/ops/data";
-import { formatUsd } from "@/lib/ops/billing";
+import { formatUsd, planLabel } from "@/lib/ops/billing";
 import { StatCard, Card, Pill, Sparkline } from "./ops-ui";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +90,7 @@ export default async function OperatorOverviewPage() {
               o.planMix.map((p) => (
                 <div key={p.plan}>
                   <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    {p.plan}
+                    {planLabel(p.plan)}
                   </p>
                   <p className="text-xl font-semibold tabular-nums text-zinc-900">{p.count}</p>
                 </div>
