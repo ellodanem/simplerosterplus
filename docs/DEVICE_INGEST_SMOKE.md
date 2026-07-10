@@ -20,13 +20,17 @@ The terminal serial in requests must match a **enabled**, non-deleted `Device.se
 
 ## F22 / terminal settings (summary)
 
-- HTTPS port **443**
-- Push URL: `{base}/iclock/cdata`
-- Poll URL: `{base}/iclock/getrequest`
+On modern firmware the terminal takes a **server address**, not a full URL — it appends
+`/iclock/*` itself. Enter three values and turn on ATTLOG:
+
+- Server address: your domain only (e.g. `attendance.example.com`, no `https://`, no path)
+- Port **443**, protocol **HTTPS**, enable **Domain name** / DNS
 - Enable **ATTLOG** / real-time attendance upload (not OPERLOG-only)
 - Comm key: **not required** for SR+ ADMS v1 (serial-only identification)
 
-Replace `{base}` with your public origin (no trailing slash, no path).
+Older firmware (or curl) that wants full URLs uses `{base}/iclock/cdata` (push) and
+`{base}/iclock/getrequest` (poll). Replace `{base}` with your public origin (no trailing slash,
+no path).
 
 **Resolution order (SR+):**
 

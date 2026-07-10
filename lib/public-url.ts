@@ -84,3 +84,24 @@ export function buildAdmsIclockUrls(base: string): { pushUrl: string; pollUrl: s
     pollUrl: `${b}/iclock/getrequest`,
   };
 }
+
+/**
+ * Split the public base URL into the hostname + port a ZKTeco terminal actually types into its
+ * Cloud Server / ADMS screen. The firmware appends `/iclock/*` itself, so `serverPath` is a
+ * constant. Returns nulls when `base` is empty or unparseable so callers can fall back.
+ */
+export function buildAdmsServerFields(base: string): {
+  serverHost: string;
+  serverPort: number;
+  serverPath: string;
+} | null {
+  const trimmed = base.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    const port = url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80;
+    return { serverHost: url.hostname, serverPort: port, serverPath: "/iclock" };
+  } catch {
+    return null;
+  }
+}

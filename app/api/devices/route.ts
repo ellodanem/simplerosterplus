@@ -10,7 +10,11 @@ import {
   parseOptionalPort,
   parseOptionalString,
 } from "@/lib/device-input";
-import { buildAdmsIclockUrls, resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import {
+  buildAdmsIclockUrls,
+  buildAdmsServerFields,
+  resolvePublicAppUrlForOrg,
+} from "@/lib/public-url";
 import { checkDeviceSlotLimit } from "@/lib/plan-limits";
 
 const DEVICE_LIST_SELECT = {
@@ -176,19 +180,26 @@ export async function POST(request: Request) {
 
     let pairing: AdmsPairing | null = null;
     if (connectionMode === "adms_push" && plaintextCommKey) {
-      const origin = deriveOrigin(request);
       const { url: publicBaseUrl } = await resolvePublicAppUrlForOrg(session.orgId, {
         request,
       });
       const { pushUrl, pollUrl } = buildAdmsIclockUrls(publicBaseUrl);
+      // The Server address the operator types into the terminal must be the org's configured
+      // public domain, not whatever host they happen to be browsing from. Fall back to the
+      // request origin only when no public URL is resolvable.
+      let server = buildAdmsServerFields(publicBaseUrl);
+      if (!server) {
+        const origin = deriveOrigin(request);
+        server = { serverHost: origin.host, serverPort: origin.port, serverPath: "/iclock" };
+      }
       pairing = {
         publicBaseUrl,
         pushUrl,
         pollUrl,
         commKey: plaintextCommKey,
-        serverHost: origin.host,
-        serverPort: origin.port,
-        serverPath: "/iclock",
+        serverHost: server.serverHost,
+        serverPort: server.serverPort,
+        serverPath: server.serverPath,
       };
     }
 

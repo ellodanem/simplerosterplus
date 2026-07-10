@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/app/components/modal";
-import { buildAdmsIclockUrls } from "@/lib/public-url";
+import { buildAdmsServerFields } from "@/lib/public-url";
 import type { ConnectionMode } from "@/lib/device-input";
 
 export type LocationOption = { id: string; name: string };
@@ -253,7 +253,7 @@ function AddDeviceDrawer({
 
           {!showPullTcp ? (
             <p className="text-xs text-zinc-500">
-              After you add the device, copy the push and poll URLs into the terminal. The serial
+              After you add the device, type the server address above into the terminal. The serial
               number is captured on the first ADMS callback if you do not enter it on the device
               screen.
             </p>
@@ -310,41 +310,35 @@ function AddDeviceDrawer({
 
 function AdmsSetupChecklist({ publicBaseUrl }: { publicBaseUrl: string }) {
   const base = publicBaseUrl.trim();
-  const urls = base ? buildAdmsIclockUrls(base) : null;
-  const baseLabel =
-    base || "Set Public URL on Devices, or APP_URL / NEXT_PUBLIC_APP_URL in deployment env";
+  const server = base ? buildAdmsServerFields(base) : null;
 
   return (
     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs text-emerald-950">
       <p className="text-sm font-semibold text-emerald-900">ADMS push (recommended)</p>
       <p className="mt-1 text-emerald-900">
-        Configure the terminal with your public HTTPS base and enable attendance upload (ATTLOG).
+        On the terminal&apos;s <span className="font-semibold">Comm → Cloud Server</span> (or{" "}
+        <span className="font-semibold">ADMS</span>) screen, enter just these three values, then
+        turn on attendance upload:
       </p>
-      <dl className="mt-3 space-y-2">
-        <div>
-          <dt className="font-medium uppercase tracking-wide text-emerald-800">Public base URL</dt>
-          <dd className="mt-0.5 font-mono text-sm break-all">{baseLabel}</dd>
-        </div>
-        <div>
-          <dt className="font-medium uppercase tracking-wide text-emerald-800">Push URL</dt>
-          <dd className="mt-0.5 font-mono text-sm break-all">
-            {urls?.pushUrl ?? `${baseLabel}/iclock/cdata`}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-medium uppercase tracking-wide text-emerald-800">Poll URL</dt>
-          <dd className="mt-0.5 font-mono text-sm break-all">
-            {urls?.pollUrl ?? `${baseLabel}/iclock/getrequest`}
-          </dd>
-        </div>
-      </dl>
+
+      {server ? (
+        <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+          <ServerHeroField label="Server address" value={server.serverHost} />
+          <ServerHeroField label="Port" value={String(server.serverPort)} />
+          <ServerHeroField label="Protocol" value="HTTPS" />
+        </dl>
+      ) : (
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-900">
+          Set your <span className="font-semibold">Public URL</span> on the Devices page (or{" "}
+          <span className="font-mono">APP_URL</span> in the deployment env) so we can show the exact
+          domain to type into the terminal.
+        </p>
+      )}
+
       <ul className="mt-3 list-disc space-y-1 pl-4 text-emerald-900">
         <li>
-          Use HTTPS port <span className="font-semibold">443</span> when the device supports it.
-        </li>
-        <li>
-          Serial (<span className="font-semibold">SN</span>) must match this device row after the
-          first callback (or enter it on the terminal if your model requires it up front).
+          Turn on <span className="font-semibold">Domain name</span> / DNS so the terminal uses the
+          address above (not an IP).
         </li>
         <li>
           Enable <span className="font-semibold">ATTLOG</span> / real-time attendance — not
@@ -355,12 +349,19 @@ function AdmsSetupChecklist({ publicBaseUrl }: { publicBaseUrl: string }) {
           must match their enrolment PIN on the terminal.
         </li>
       </ul>
-      {!base ? (
-        <p className="mt-2 text-amber-900">
-          Without a public base URL, pairing copy may show localhost — devices on another network
-          cannot reach that.
-        </p>
-      ) : null}
+      <p className="mt-2 text-emerald-800">
+        No comm key or full URL needed — the terminal adds the <span className="font-mono">/iclock</span>{" "}
+        path itself. We match punches by the device serial on first contact.
+      </p>
+    </div>
+  );
+}
+
+function ServerHeroField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-emerald-300 bg-white px-3 py-2">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">{label}</dt>
+      <dd className="mt-0.5 font-mono text-sm font-semibold break-all text-emerald-950">{value}</dd>
     </div>
   );
 }
@@ -423,36 +424,37 @@ function PostCreatePanel({
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-700">
-        <span className="font-semibold">{deviceName}</span> is registered. Enter the URLs below on
-        the terminal&apos;s <span className="font-semibold">Network → Cloud Server</span> or{" "}
-        <span className="font-semibold">ADMS</span> screen, enable ATTLOG, then save.{" "}
-        <span className="font-semibold">Last active</span> updates when ingest receives{" "}
+        <span className="font-semibold">{deviceName}</span> is registered. On the terminal&apos;s{" "}
+        <span className="font-semibold">Comm → Cloud Server</span> or{" "}
+        <span className="font-semibold">ADMS</span> screen, enter these three values, enable ATTLOG,
+        then save. <span className="font-semibold">Last active</span> updates once we receive{" "}
         <span className="font-mono">/iclock/*</span> traffic from a matching serial.
       </p>
 
-      <dl className="grid gap-3">
-        <PairingRow label="Public base URL" value={pairing.publicBaseUrl} mono />
-        <PairingRow label="Push URL" value={pairing.pushUrl} mono />
-        <PairingRow label="Poll URL" value={pairing.pollUrl} mono />
+      <dl className="grid gap-3 sm:grid-cols-3">
+        <PairingRow label="Server address" value={pairing.serverHost} mono big />
+        <PairingRow label="Port" value={String(pairing.serverPort)} big />
+        <PairingRow label="Protocol" value="HTTPS" big />
       </dl>
 
       <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-600">
-        <li>Enable ATTLOG (real-time attendance upload).</li>
-        <li>Serial on punches must match this device after the first callback.</li>
-        <li>Staff device user IDs must match terminal enrolment.</li>
+        <li>Turn on Domain name / DNS so the terminal uses the address (not an IP).</li>
+        <li>Enable ATTLOG (real-time attendance upload) — not OPERLOG-only.</li>
+        <li>Staff device user IDs must match terminal enrolment PINs.</li>
       </ul>
 
       <details className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
         <summary className="cursor-pointer font-medium text-zinc-800">
-          Optional: communication key &amp; legacy server fields
+          Older firmware that wants full URLs (and curl testing)
         </summary>
         <p className="mt-2 text-zinc-600">
-          F22 and SR+ ADMS v1 identify devices by serial number — a comm key is not required. Some
-          older ZKTeco screens use host + path instead of full URLs.
+          Some older ZKTeco screens (or a curl test) want the complete push/poll URLs and path
+          instead of just a server address. A comm key is not required — SR+ ADMS v1 identifies
+          devices by serial number.
         </p>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-          <PairingRow label="Server address" value={pairing.serverHost} />
-          <PairingRow label="Server port" value={String(pairing.serverPort)} />
+          <PairingRow label="Push URL" value={pairing.pushUrl} mono />
+          <PairingRow label="Poll URL" value={pairing.pollUrl} mono />
           <PairingRow label="Server path" value={pairing.serverPath} />
           <PairingRow
             label="Communication key (optional)"
@@ -496,20 +498,26 @@ function PairingRow({
   value,
   mono,
   warn,
+  big,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   warn?: string;
+  big?: boolean;
 }) {
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{label}</dt>
+    <div className={big ? "rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2" : undefined}>
+      <dt
+        className={`text-xs uppercase tracking-wide ${big ? "text-emerald-700" : "text-zinc-500"}`}
+      >
+        {label}
+      </dt>
       <dd className="mt-1 flex items-center gap-2">
         <code
-          className={`flex-1 truncate rounded bg-zinc-100 px-2 py-1 text-zinc-800 ${
-            mono ? "font-mono text-sm break-all whitespace-normal" : "text-sm"
-          }`}
+          className={`flex-1 truncate rounded px-2 py-1 ${
+            big ? "bg-white font-semibold text-emerald-950" : "bg-zinc-100 text-zinc-800"
+          } ${mono ? "font-mono text-sm break-all whitespace-normal" : "text-sm"}`}
         >
           {value}
         </code>

@@ -64,18 +64,31 @@ Full curl matrix: [DEVICE_INGEST_SMOKE.md](./DEVICE_INGEST_SMOKE.md).
 
 On the device: **COMM → Cloud Server** (or **ADMS** / **Network → Server** — label varies by model).
 
+**The only per-customer value is the domain.** Everything else is a constant. On modern
+firmware you type three things and turn on ATTLOG:
+
 | Setting | Value |
 |---------|--------|
-| Server host | Hostname only (no `https://`, no path) — prefer **hyphen-free** hostname |
+| Server address | Domain only, no `https://`, no path (e.g. `attendance.example.com`) — prefer **hyphen-free** hostname |
 | Port | **443** |
-| Protocol | **HTTPS** |
-| Push / upload URL | `{BASE}/iclock/cdata` |
-| Poll / get URL | `{BASE}/iclock/getrequest` |
+| Protocol / SSL | **HTTPS** on; enable **Domain name** / DNS so it uses the address, not an IP |
 | Attendance upload | **ATTLOG** / real-time attendance **enabled** |
 | OPERLOG-only | **Off** (or not the only upload type) |
 | Comm key | **Not required** for SR+ ADMS v1 (serial-only identification) |
 
-Copy exact URLs from **Devices → Add device** checklist or post-create pairing card.
+The firmware appends `/iclock/*` itself, so you do **not** enter a full URL. Copy the exact
+server address from **Devices → Add device** (it shows Server address / Port / Protocol as the
+headline).
+
+**Older firmware that wants a full URL instead of a server address:**
+
+| Setting | Value |
+|---------|--------|
+| Push / upload URL | `{BASE}/iclock/cdata` |
+| Poll / get URL | `{BASE}/iclock/getrequest` |
+| Server path | `/iclock` |
+
+These are in the **Add device** post-create card under "Older firmware that wants full URLs".
 
 ### 6. Health endpoint (step 02)
 
@@ -110,8 +123,8 @@ Bring: laptop with SR+ admin open, staging logs (Vercel or server), printed staf
 | # | Block | Time | What to do |
 |---|--------|------|------------|
 | 1 | **Roster + staff IDs** | 10 min | Show published roster; confirm each enrolled employee has matching **Device user ID** in SR+ Staff. |
-| 2 | **Register device / pairing URLs** | 10 min | **Devices → Add device** (or open existing row). Show push/poll URLs and F22 checklist. Set **Public URL** if partner questions hostname. |
-| 3 | **Partner configures terminal** | 15–25 min | Partner enters URLs on F22; enable ATTLOG; save. You watch logs for first `getrequest` / `cdata`. If SN was blank, paste serial from log into device edit. |
+| 2 | **Register device / pairing** | 10 min | **Devices → Add device** (or open existing row). Show the Server address / Port / Protocol headline and F22 checklist. Set **Public URL** if partner questions the domain. |
+| 3 | **Partner configures terminal** | 15–25 min | Partner enters the server address (443, HTTPS) on F22; enable ATTLOG; save. You watch logs for first `getrequest` / `cdata`. If SN was blank, paste serial from log into device edit. |
 | 4 | **Live punch → attendance week** | 15 min | Partner enrols or uses test finger/face; punch on terminal. Refresh **Attendance → Log** and week view. Confirm staff name, in/out, times in org TZ. |
 | 5 | **Second model (if available)** | 15 min | Repeat URL + ATTLOG setup on alternate hardware (K40 vs SpeedFace, etc.). Note any menu label differences. |
 | 6 | **Unmapped ID drill (optional)** | 10 min | Punch with unknown PIN or curl unmapped ID `99`; show **Devices → Unmapped device punches** panel; map to staff; confirm backfill. |
