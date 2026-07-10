@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireOperator } from "@/lib/ops/context";
+import { BrandMark } from "@/app/components/brand-logo";
 import { OpsNav } from "./ops-nav";
 import { OpsLogoutButton } from "./ops-logout-button";
 
@@ -17,9 +18,7 @@ export default async function OperatorConsoleLayout({
     <div className="flex min-h-screen bg-zinc-50">
       <aside className="flex w-60 shrink-0 flex-col bg-zinc-950">
         <Link href="/ops" className="flex items-center gap-2 px-4 py-4">
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
-            SR+
-          </span>
+          <BrandMark size={32} />
           <span className="leading-tight">
             <span className="block text-sm font-semibold text-white">Simple Roster Plus</span>
             <span className="block text-[10px] font-medium uppercase tracking-wider text-emerald-400">

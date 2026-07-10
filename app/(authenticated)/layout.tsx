@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/app/components/app-nav";
+import { BrandLogo } from "@/app/components/brand-logo";
 import { BillingStatusBanner, PlanLimitBanner } from "@/app/components/plan-limit-banner";
 import { DemoSandboxBanner } from "@/app/components/demo-sandbox-banner";
 import { FeedbackButton } from "@/app/components/feedback-button";
@@ -73,9 +74,10 @@ export default async function AuthenticatedLayout({
           <div className="flex min-w-0 items-center gap-5">
             <Link
               href="/"
-              className="shrink-0 text-sm font-semibold tracking-tight text-zinc-900 hover:text-emerald-900"
+              className="shrink-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              aria-label="Simple Roster Plus, home"
             >
-              Simple Roster Plus
+              <BrandLogo height={28} priority />
             </Link>
             <AppNav />
           </div>

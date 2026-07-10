@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "@/app/components/brand-logo";
 
 type OrgOption = { id: string; name: string };
 
@@ -58,8 +59,9 @@ export function LoginForm() {
   return (
     <div className="flex min-h-full flex-col items-center justify-center bg-zinc-50 px-4 py-16">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+        <BrandLogo height={32} priority className="mb-6" />
         <h1 className="text-xl font-semibold text-zinc-900">Sign in</h1>
-        <p className="mt-1 text-sm text-zinc-500">Simple Roster Plus</p>
+        <p className="mt-1 text-sm text-zinc-500">Welcome back</p>
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
             <label className="block text-sm font-medium text-zinc-700" htmlFor="email">

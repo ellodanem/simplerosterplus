@@ -17,7 +17,9 @@
   <meta name="twitter:title" content="Simple Roster Plus | Weekly Schedules &amp; Attendance for Managers">
   <meta name="twitter:description" content="Free for up to 10 staff. Weekly schedules and attendance for shift managers—no HR bloat.">
   <meta name="twitter:image" content="https://simplerosterplus.vercel.app/images/solution-attendance.png">
+  <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="brand/srp-icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -125,20 +127,16 @@
       align-items: center;
       text-decoration: none;
       line-height: 0;
-      --logo-ink: #0f172a;
-      --logo-green: #166534;
-      --logo-soft: #cbd5e1;
     }
-    .logo svg { height: clamp(28px, 5.5vw, 36px); width: auto; display: block; }
+    .logo img {
+      height: clamp(28px, 5.5vw, 36px);
+      width: auto;
+      display: block;
+    }
     .logo:focus-visible {
       outline: 2px solid var(--accent-blue);
       outline-offset: 3px;
       border-radius: 8px;
-    }
-    footer .logo {
-      --logo-ink: #f8fafc;
-      --logo-green: #4ade80;
-      --logo-soft: #64748b;
     }
 
     .btn {
@@ -1202,23 +1200,14 @@
   <header>
     <div class="header-inner">
       <a class="logo" href="#hero" aria-label="Simple Roster Plus, home">
-        <svg viewBox="0 0 196 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <rect x="8" y="6" width="84" height="52" rx="8" stroke="var(--logo-ink)" stroke-width="1.75"/>
-          <path stroke="var(--logo-ink)" stroke-width="1.75" d="M8 20h84"/>
-          <path stroke="var(--logo-ink)" stroke-width="2" stroke-linecap="round" d="M28 12V6M64 12V6"/>
-          <text x="24.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">S</text>
-          <text x="50" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">R</text>
-          <text x="75.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">P</text>
-          <rect x="14" y="24" width="26" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
-          <rect x="44" y="23" width="18" height="7" rx="3" fill="var(--logo-green)" opacity="0.4"/>
-          <rect x="66" y="23" width="20" height="7" rx="3" fill="var(--logo-green)"/>
-          <rect x="14" y="35" width="22" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
-          <rect x="40" y="34" width="24" height="7" rx="3" fill="var(--logo-green)"/>
-          <circle cx="78" cy="50" r="11" fill="var(--logo-green)"/>
-          <path stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M72 50l4 4 9-11"/>
-          <text x="118" y="30" font-size="12.5" font-weight="700" fill="var(--logo-ink)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Simple Roster</text>
-          <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
-        </svg>
+        <img
+          src="brand/srp-logo-lockup.png"
+          srcset="brand/srp-logo-lockup-640.png 640w, brand/srp-logo-lockup-1280.png 1280w, brand/srp-logo-lockup.png 1361w"
+          sizes="(max-width: 640px) 160px, 200px"
+          width="200"
+          height="38"
+          alt="Simple Roster Plus"
+        >
       </a>
       <div class="header-actions">
         <a class="btn btn-ghost" id="app-login" href="https://simplerosterplus.vercel.app/login" rel="noopener noreferrer">Log in</a>
@@ -1723,21 +1712,14 @@
   <footer>
     <div class="footer-inner">
       <a class="logo" href="#hero" aria-label="Simple Roster Plus, home">
-        <svg viewBox="0 0 196 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <rect x="8" y="6" width="84" height="52" rx="8" stroke="var(--logo-ink)" stroke-width="1.75"/>
-          <path stroke="var(--logo-ink)" stroke-width="1.75" d="M8 20h84"/>
-          <path stroke="var(--logo-ink)" stroke-width="2" stroke-linecap="round" d="M28 12V6M64 12V6"/>
-          <text x="24.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">S</text>
-          <text x="50" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">R</text>
-          <text x="75.5" y="16.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">P</text>
-          <rect x="14" y="24" width="26" height="5" rx="2" fill="var(--logo-ink)" opacity="0.32"/>
-          <rect x="44" y="23" width="18" height="7" rx="3" fill="var(--logo-green)" opacity="0.4"/>
-          <rect x="66" y="23" width="20" height="7" rx="3" fill="var(--logo-green)"/>
-          <circle cx="78" cy="50" r="11" fill="var(--logo-green)"/>
-          <path stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M72 50l4 4 9-11"/>
-          <text x="118" y="30" font-size="12.5" font-weight="700" fill="var(--logo-ink)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Simple Roster</text>
-          <text x="118" y="46" font-size="12.5" font-weight="700" fill="var(--logo-green)" font-family="Plus Jakarta Sans, system-ui, sans-serif">Plus</text>
-        </svg>
+        <img
+          src="brand/srp-logo-lockup-on-dark.png"
+          srcset="brand/srp-logo-lockup-on-dark-640.png 640w, brand/srp-logo-lockup-on-dark-1280.png 1280w, brand/srp-logo-lockup-on-dark.png 1361w"
+          sizes="(max-width: 640px) 160px, 200px"
+          width="200"
+          height="38"
+          alt="Simple Roster Plus"
+        >
       </a>
       <p class="footer-mission">Simple Roster Plus helps managers create weekly schedules and track attendance in minutes, with Auto Scheduler keeping the process fast and simple.</p>
       <nav class="footer-links" aria-label="Footer">

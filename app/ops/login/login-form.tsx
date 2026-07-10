@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { BrandMark } from "@/app/components/brand-logo";
 
 export function OperatorLoginForm() {
   const router = useRouter();
@@ -40,9 +41,7 @@ export function OperatorLoginForm() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-16">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
         <div className="flex items-center gap-2">
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
-            SR+
-          </span>
+          <BrandMark size={32} priority />
           <div className="leading-tight">
             <p className="text-sm font-semibold text-white">Simple Roster Plus</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-400">

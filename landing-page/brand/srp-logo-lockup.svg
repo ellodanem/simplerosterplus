@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none" role="img" aria-label="Simple Roster Plus">
+  <defs>
+    <clipPath id="srp-lockup-clip">
+      <rect x="0" y="0" width="64" height="64" rx="14"/>
+    </clipPath>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#166534"/>
+  <g clip-path="url(#srp-lockup-clip)" opacity="0.22" fill="none" stroke="#86efac" stroke-width="1.25">
+    <rect x="14" y="16" width="36" height="32" rx="4"/>
+    <path d="M14 24h36"/>
+    <path stroke-linecap="round" d="M24 13v6M40 13v6"/>
+    <path d="M20 30h6M29 30h6M38 30h6M20 37h6M29 37h6M38 37h6"/>
+  </g>
+  <text
+    x="32"
+    y="39"
+    text-anchor="middle"
+    fill="#ffffff"
+    font-family="Plus Jakarta Sans, Arial Black, Arial, sans-serif"
+    font-size="22"
+    font-weight="800"
+    letter-spacing="-1.2"
+  >SRP</text>
+  <text
+    x="78"
+    y="40"
+    font-family="Plus Jakarta Sans, system-ui, sans-serif"
+    font-size="22"
+    font-weight="700"
+  >
+    <tspan fill="#0f172a">Simple </tspan>
+    <tspan fill="#166534">Roster </tspan>
+    <tspan fill="#0f172a">Plus</tspan>
+  </text>
+</svg>

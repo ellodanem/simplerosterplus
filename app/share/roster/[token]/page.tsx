@@ -86,7 +86,8 @@ export default async function SharedRosterPage({ params }: PageProps) {
         <ShareToolbar />
         <RosterShareTable data={data} todayYmd={todayYmd} />
 
-        <p className="no-print mt-6 text-center text-xs text-zinc-400">
+        <p className="no-print mt-6 flex items-center justify-center gap-2 text-xs text-zinc-400">
+          <img src="/brand/srp-icon-32.png" alt="" width={16} height={16} className="opacity-80" />
           Powered by Simple Roster Plus · read-only link
         </p>
       </div>
