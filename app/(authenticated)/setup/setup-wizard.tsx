@@ -145,9 +145,15 @@ export function SetupWizard({
 
   const canGoLive = completeness.complete;
 
+  async function goToStep(next: StepId) {
+    if (next === step) return;
+    setStep(next);
+    await refreshState();
+  }
+
   return (
     <div className="space-y-6">
-      <ProgressBar steps={progress.order} current={step} />
+      <ProgressBar steps={progress.order} current={step} onSelect={goToStep} />
 
       {toast ? (
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
@@ -531,7 +537,15 @@ export function SetupWizard({
   );
 }
 
-function ProgressBar({ steps, current }: { steps: StepId[]; current: StepId }) {
+function ProgressBar({
+  steps,
+  current,
+  onSelect,
+}: {
+  steps: StepId[];
+  current: StepId;
+  onSelect: (step: StepId) => void;
+}) {
   const labels: Record<StepId, string> = {
     business: "Business",
     shifts: "Shifts",
@@ -541,25 +555,29 @@ function ProgressBar({ steps, current }: { steps: StepId[]; current: StepId }) {
     "go-live": "Go live",
   };
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+    <nav aria-label="Setup steps" className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
       <ol className="flex flex-wrap items-center gap-2 text-sm">
         {steps.map((s) => {
           const active = s === current;
           return (
-            <li
-              key={s}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${
-                active ? "bg-emerald-50 text-emerald-900" : "bg-zinc-50 text-zinc-600"
-              }`}
-            >
-              <span className={`text-xs font-semibold ${active ? "text-emerald-800" : "text-zinc-500"}`}>
+            <li key={s}>
+              <button
+                type="button"
+                onClick={() => onSelect(s)}
+                aria-current={active ? "step" : undefined}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  active
+                    ? "bg-emerald-50 text-emerald-800"
+                    : "bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                }`}
+              >
                 {labels[s]}
-              </span>
+              </button>
             </li>
           );
         })}
       </ol>
-    </div>
+    </nav>
   );
 }
 
