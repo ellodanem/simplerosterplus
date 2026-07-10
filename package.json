@@ -27,9 +27,11 @@
   "dependencies": {
     "@clerk/nextjs": "^7.4.3",
     "@prisma/client": "^6.19.3",
+    "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "date-fns-tz": "^3.2.0",
     "date-holidays": "^3.30.2",
+    "html2canvas": "^1.4.1",
     "jose": "^6.2.3",
     "next": "16.2.6",
     "react": "19.2.4",

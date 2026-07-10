@@ -44,6 +44,7 @@ import { TemplatesManager, type Template } from "./templates-manager";
 import { RequestsModal, type RequestStaff } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
+import type { RosterShareViewData } from "@/lib/roster-share-data";
 import { AutoSchedulerModal } from "./auto-scheduler-modal";
 import type { AutoSchedulerMode } from "@/lib/auto-scheduler";
 import { AUTO_SCHEDULER_ENABLED, SCHEDULING_RULES_ENABLED } from "@/lib/auto-scheduler-feature";
@@ -153,6 +154,7 @@ export function RosterGrid({
   weekStartYmd,
   weekStartWeekday,
   orgName,
+  locationName,
   weekPublished,
   weekEverPublished,
   sharePath,
@@ -189,6 +191,7 @@ export function RosterGrid({
   weekStartYmd: string;
   weekStartWeekday: number;
   orgName: string;
+  locationName: string;
   weekPublished: boolean;
   /** True when this week was shared at least once; past-day locks apply only then. */
   weekEverPublished: boolean;
@@ -442,6 +445,45 @@ export function RosterGrid({
     }
     return total;
   }, [days, dayCounts, todayYmd]);
+
+  const whatsappCaptureData = useMemo<RosterShareViewData>(
+    () => ({
+      orgName,
+      locationName,
+      timeZone,
+      weekStartYmd,
+      weekEndYmd: days[days.length - 1] ?? weekStartYmd,
+      days,
+      staff: staffRows.map((s) => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        role: s.role,
+      })),
+      templates: templates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        startTime: t.startTime,
+        endTime: t.endTime,
+        color: t.color ?? null,
+      })),
+      entries,
+      holidays,
+      blockMap,
+    }),
+    [
+      orgName,
+      locationName,
+      timeZone,
+      weekStartYmd,
+      days,
+      staffRows,
+      templates,
+      entries,
+      holidays,
+      blockMap,
+    ],
+  );
 
   function cellKey(staffId: string, ymd: string): string {
     return `${staffId}__${ymd}`;
@@ -1060,6 +1102,7 @@ export function RosterGrid({
         orgName={orgName}
         weekStartYmd={weekStartYmd}
         weekEndYmd={days[days.length - 1] ?? weekStartYmd}
+        captureData={whatsappCaptureData}
       />
 
       {templates.length === 0 ? (

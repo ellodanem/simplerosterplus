@@ -1,9 +1,12 @@
 "use client";
 
+import html2canvas from "html2canvas";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/app/components/modal";
+import { RosterShareTable } from "@/app/components/roster-share-table";
 import { buildRosterManualWhatsAppText } from "@/lib/roster-personal-message";
+import type { RosterShareViewData } from "@/lib/roster-share-data";
 
 type ShareAction = "copyLink" | "openSharePage" | "print" | "whatsapp";
 
@@ -26,13 +29,13 @@ function formatWhatsappPublishSummary(summary: WhatsappPublishSummary): string |
     return "WhatsApp alerts are off — enable them in Settings → WhatsApp alerts.";
   }
   if (summary.reasons.includes("not_configured")) {
-    return "Server WhatsApp is not configured (Twilio credentials or roster template missing on this deployment).";
+    return "Server WhatsApp is not configured (Twilio credentials, template, or Blob storage missing).";
   }
   if (summary.reasons.includes("cap")) {
     return "Monthly WhatsApp limit reached. Manual share still works.";
   }
   if (summary.sent > 0) {
-    return `WhatsApp sent to ${summary.sent} staff member${summary.sent === 1 ? "" : "s"}.`;
+    return `WhatsApp roster image sent to ${summary.sent} staff member${summary.sent === 1 ? "" : "s"}.`;
   }
   if (summary.failed > 0) {
     return `WhatsApp failed for ${summary.failed} staff — check Twilio logs (template or number may be invalid).`;
@@ -87,6 +90,7 @@ export function RosterShareControls({
   orgName,
   weekStartYmd,
   weekEndYmd,
+  captureData,
 }: {
   weekId: string;
   initialLive: boolean;
@@ -97,9 +101,11 @@ export function RosterShareControls({
   orgName: string;
   weekStartYmd: string;
   weekEndYmd: string;
+  captureData: RosterShareViewData;
 }) {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(initialLive);
   const [path, setPath] = useState(sharePath);
   const [url, setUrl] = useState(shareUrl);
@@ -140,6 +146,45 @@ export function RosterShareControls({
     return absoluteShareUrl(shareBaseUrl, sharePathValue);
   }
 
+  async function generateRosterImage(): Promise<string | null> {
+    if (!imageRef.current) return null;
+    const canvas = await html2canvas(imageRef.current, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      logging: false,
+      useCORS: true,
+    });
+    return canvas.toDataURL("image/png");
+  }
+
+  async function sendWhatsappImageBlast(): Promise<void> {
+    try {
+      const imageBase64 = await generateRosterImage();
+      if (!imageBase64) {
+        setWhatsappNotice("Could not capture roster image for WhatsApp.");
+        return;
+      }
+      const res = await fetch(`/api/roster/weeks/${weekId}/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        whatsapp?: WhatsappPublishSummary;
+      };
+      if (!res.ok) {
+        setWhatsappNotice(data.error ?? "Could not send WhatsApp roster image.");
+        return;
+      }
+      if (data.whatsapp) {
+        setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
+      }
+    } catch {
+      setWhatsappNotice("Could not send WhatsApp roster image.");
+    }
+  }
+
   async function publishWeek(acknowledgeGaps = false): Promise<boolean> {
     setBusy(true);
     setError(null);
@@ -157,7 +202,6 @@ export function RosterShareControls({
         openShiftDayLabel?: string | null;
         status?: string;
         sharePath?: string | null;
-        whatsapp?: WhatsappPublishSummary;
       };
       if (res.status === 409 && data.code === "OPEN_SHIFTS") {
         setPublishGapInfo({
@@ -177,8 +221,8 @@ export function RosterShareControls({
         setPath(data.sharePath);
         if (publishedUrl) setUrl(publishedUrl);
       }
-      if (data.whatsapp) {
-        setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
+      if (isLive) {
+        await sendWhatsappImageBlast();
       }
       router.refresh();
       return isLive;
@@ -286,6 +330,22 @@ export function RosterShareControls({
 
   return (
     <>
+      {/* Off-screen capture target for WhatsApp media template (Shift Close pattern). */}
+      <div
+        className="pointer-events-none fixed -left-[9999px] -top-[9999px] z-[-1]"
+        aria-hidden="true"
+      >
+        <div ref={imageRef} className="w-[1100px] bg-white p-6">
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-zinc-900">{captureData.orgName}</p>
+            <p className="text-sm text-zinc-600">
+              {captureData.locationName} · {captureData.weekStartYmd} – {captureData.weekEndYmd}
+            </p>
+          </div>
+          <RosterShareTable data={captureData} />
+        </div>
+      </div>
+
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {live ? (
@@ -438,8 +498,8 @@ export function RosterShareControls({
           size="md"
         >
           <p className="text-sm text-zinc-700">
-            Publishing makes this week official and sends WhatsApp alerts to opted-in staff. This
-            week still has{" "}
+            Publishing makes this week official and sends a WhatsApp roster image to opted-in
+            staff. This week still has{" "}
             <strong>
               {publishGapInfo.openShiftCount} open slot
               {publishGapInfo.openShiftCount === 1 ? "" : "s"}

@@ -271,6 +271,7 @@ export default async function RosterPage({
         weekStartYmd={weekStartYmd}
         weekStartWeekday={weekStartWeekday}
         orgName={org.name}
+        locationName={location.name}
         weekPublished={week.status === "published"}
         weekEverPublished={rosterLock.everPublished}
         sharePath={sharePath}

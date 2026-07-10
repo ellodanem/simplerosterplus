@@ -217,8 +217,8 @@ export default async function SettingsPage({
       <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">WhatsApp alerts</h2>
         <p className="mt-1 text-sm text-zinc-600">
-          Automated personal schedule messages when you publish a week. Manual link sharing is
-          always available from the roster page.
+          Automated roster image when you publish a week. Manual link sharing is always
+          available from the roster page.
         </p>
         <MessagingSettings
           initial={{

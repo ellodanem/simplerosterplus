@@ -77,8 +77,8 @@ export function MessagingSettings({
         <span>
           <span className="font-medium">WhatsApp schedule alerts on publish</span>
           <span className="mt-1 block text-zinc-600">
-            When you publish a week, opted-in staff receive their personal shifts from Simple
-            Roster Plus. Each staff member must opt in on their profile.
+            When you publish a week, opted-in staff receive a roster image from Simple Roster
+            Plus. Each staff member must opt in on their profile.
           </span>
         </span>
       </label>

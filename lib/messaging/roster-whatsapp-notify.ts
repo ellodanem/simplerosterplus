@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { getApprovedBlockMap } from "@/lib/leave-blocks";
 import { messagingMonthKey } from "@/lib/messaging/month-key";
 import { toWhatsappAddress } from "@/lib/messaging/phone-whatsapp";
 import {
@@ -8,19 +7,12 @@ import {
   twilioWhatsappConfigured,
 } from "@/lib/messaging/twilio-whatsapp";
 import { getWhatsappAccess } from "@/lib/messaging/whatsapp-access";
-import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
-import {
-  buildPersonalScheduleBody,
-  buildRosterShareUrl,
-  formatWeekRangeLabel,
-  type ShiftTemplateLite,
-} from "@/lib/roster-personal-message";
 import {
   filterRosterStaffForWeek,
   staffIdsWithRosterEntries,
 } from "@/lib/roster-display-staff";
 import { formatYmdInZone } from "@/lib/datetime-policy";
-import { daysOfWeek, weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
+import { weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 export const ROSTER_NOTIFY_CHANNEL_WHATSAPP = "whatsapp";
 export const ROSTER_NOTIFY_KIND_PUBLISH = "publish";
@@ -34,9 +26,8 @@ export type RosterWhatsappNotifySummary = {
   failed: number;
   capReached: boolean;
   reasons: string[];
+  mediaUrl?: string;
 };
-
-type SkipReason = "not_entitled" | "disabled" | "not_configured" | "cap" | "no_phone" | "not_opted_in";
 
 async function incrementWhatsappSentCount(organizationId: string, delta: number): Promise<void> {
   if (delta <= 0) return;
@@ -62,13 +53,14 @@ async function incrementWhatsappSentCount(organizationId: string, delta: number)
 }
 
 /**
- * After a roster week is published, send utility-template WhatsApp alerts to opted-in staff.
+ * After a roster week is published, send the same roster PNG (media template {{1}})
+ * to each opted-in staff member — Shift Close image-blast pattern.
  */
 export async function sendRosterWhatsappOnPublish(input: {
   organizationId: string;
   rosterWeekId: string;
   rosterWeekPublishAt: Date;
-  request?: Request;
+  mediaUrl: string;
 }): Promise<RosterWhatsappNotifySummary> {
   const summary: RosterWhatsappNotifySummary = {
     configured: twilioWhatsappConfigured(),
@@ -79,13 +71,13 @@ export async function sendRosterWhatsappOnPublish(input: {
     failed: 0,
     capReached: false,
     reasons: [],
+    mediaUrl: input.mediaUrl,
   };
 
   const org = await prisma.organization.findUnique({
     where: { id: input.organizationId },
     select: {
       id: true,
-      name: true,
       plan: true,
       isDemo: true,
       subscriptionStatus: true,
@@ -123,6 +115,11 @@ export async function sendRosterWhatsappOnPublish(input: {
     return summary;
   }
 
+  if (!input.mediaUrl.startsWith("https://")) {
+    summary.reasons.push("invalid_media");
+    return summary;
+  }
+
   const week = await prisma.rosterWeek.findFirst({
     where: { id: input.rosterWeekId, organizationId: input.organizationId, status: "published" },
     select: {
@@ -133,7 +130,7 @@ export async function sendRosterWhatsappOnPublish(input: {
       location: { select: { timeZone: true } },
       organization: { select: { timeZone: true } },
       entries: {
-        select: { staffId: true, date: true, shiftTemplateId: true },
+        select: { staffId: true, shiftTemplateId: true },
       },
     },
   });
@@ -141,42 +138,25 @@ export async function sendRosterWhatsappOnPublish(input: {
 
   const anchorYmd = ymdForDbDate(week.weekStart);
   const weekEnd = weekEndYmd(anchorYmd);
-  const days = daysOfWeek(anchorYmd);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
   const todayYmd = formatYmdInZone(new Date(), timeZone);
-  const weekEndDate = new Date(week.weekStart.getTime() + 6 * 86_400_000);
 
-  const [staffRows, templates, holidays] = await Promise.all([
-    prisma.staff.findMany({
-      where: {
-        organizationId: input.organizationId,
-        locationId: week.locationId,
-        archivedAt: null,
-        whatsappOptIn: true,
-        contactNumber: { not: null },
-      },
-      select: {
-        id: true,
-        firstName: true,
-        contactNumber: true,
-        startDate: true,
-        archivedAt: true,
-        excludeFromRoster: true,
-      },
-    }),
-    prisma.shiftTemplate.findMany({
-      where: { organizationId: input.organizationId },
-      select: { id: true, name: true, startTime: true, endTime: true },
-    }),
-    prisma.publicHoliday.findMany({
-      where: {
-        organizationId: input.organizationId,
-        locationId: week.locationId,
-        date: { gte: week.weekStart, lte: weekEndDate },
-      },
-      select: { date: true, name: true, stationClosed: true },
-    }),
-  ]);
+  const staffRows = await prisma.staff.findMany({
+    where: {
+      organizationId: input.organizationId,
+      locationId: week.locationId,
+      archivedAt: null,
+      whatsappOptIn: true,
+      contactNumber: { not: null },
+    },
+    select: {
+      id: true,
+      contactNumber: true,
+      startDate: true,
+      archivedAt: true,
+      excludeFromRoster: true,
+    },
+  });
 
   const staffIdsWithEntries = staffIdsWithRosterEntries(week.entries);
   const visibleStaff = filterRosterStaffForWeek(staffRows, {
@@ -184,34 +164,6 @@ export async function sendRosterWhatsappOnPublish(input: {
     todayYmd,
     staffIdsWithEntries,
   });
-
-  const templateMap = new Map<string, ShiftTemplateLite>(
-    templates.map((t) => [t.id, t]),
-  );
-
-  const entries: Record<string, string> = {};
-  for (const e of week.entries) {
-    if (e.shiftTemplateId) {
-      entries[`${e.staffId}__${ymdForDbDate(e.date)}`] = e.shiftTemplateId;
-    }
-  }
-
-  const blockMap = await getApprovedBlockMap({
-    staffIds: visibleStaff.map((s) => s.id),
-    rangeStartDate: week.weekStart,
-    rangeEndDate: weekEndDate,
-  });
-
-  const holidayMap: Record<string, { name: string; stationClosed: boolean }> = {};
-  for (const h of holidays) {
-    holidayMap[ymdForDbDate(h.date)] = { name: h.name, stationClosed: h.stationClosed };
-  }
-
-  const { url: baseUrl } = await resolvePublicAppUrlForOrg(input.organizationId, {
-    request: input.request,
-  });
-  const shareUrl = baseUrl ? buildRosterShareUrl(baseUrl, week.shareToken) : "";
-  const weekLabel = formatWeekRangeLabel(anchorYmd, weekEnd);
 
   let sentDelta = 0;
   let remaining = access.remaining ?? 0;
@@ -270,23 +222,12 @@ export async function sendRosterWhatsappOnPublish(input: {
 
     summary.attempted += 1;
 
-    const scheduleBody = buildPersonalScheduleBody({
-      staffId: staff.id,
-      days,
-      entries,
-      templates: templateMap,
-      blockMap,
-      holidays: holidayMap,
-    });
-
+    // Media template: static body + media {{1}} = public PNG URL (Shift Close pattern).
     const result = await sendWhatsappTemplate({
       to,
       contentSid: twilioConfig.rosterContentSid,
       contentVariables: {
-        "1": staff.firstName,
-        "2": weekLabel,
-        "3": scheduleBody,
-        "4": shareUrl || "—",
+        "1": input.mediaUrl,
       },
     });
 
