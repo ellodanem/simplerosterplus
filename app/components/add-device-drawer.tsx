@@ -153,9 +153,12 @@ function AddDeviceDrawer({
   const showLocation = locations.length > 1;
   const isPairingScreen = savedDeviceName !== null;
   const title = isPairingScreen ? "Set up your terminal" : "Add device";
+  const step = isPairingScreen ? 2 : 1;
+  const stepLabel = isPairingScreen ? "Terminal setup" : "Device details";
 
   return (
     <Modal open={open} onClose={handleClose} title={title} size="lg">
+      <StepIndicator step={step} total={2} label={stepLabel} />
       {isPairingScreen ? (
         <PostCreatePanel
           deviceName={savedDeviceName ?? ""}
@@ -164,7 +167,7 @@ function AddDeviceDrawer({
           onClose={handleClose}
         />
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="mt-4 space-y-4">
           {showPullTcp ? <PullTcpBanner onBack={backToAdms} /> : null}
 
           <p className="text-sm text-zinc-600">
@@ -265,6 +268,42 @@ function AddDeviceDrawer({
   );
 }
 
+function StepIndicator({
+  step,
+  total,
+  label,
+}: {
+  step: number;
+  total: number;
+  label: string;
+}) {
+  const progress = Math.round((step / total) * 100);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <p className="font-medium text-emerald-800">
+          Step {step} of {total}
+          <span className="font-normal text-zinc-500"> · {label}</span>
+        </p>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-zinc-100"
+        role="progressbar"
+        aria-valuenow={step}
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-label={`Step ${step} of ${total}: ${label}`}
+      >
+        <div
+          className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function PullTcpBanner({ onBack }: { onBack: () => void }) {
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -293,7 +332,7 @@ function PostCreatePanel({
 }) {
   if (!pairing) {
     return (
-      <div className="space-y-3">
+      <div className="mt-4 space-y-3">
         <p className="text-sm text-zinc-700">
           <span className="font-semibold">{deviceName}</span> is in your devices list.
           {mode === "pull_tcp" ? " On-site sync is not available yet." : null}
@@ -317,7 +356,7 @@ function PostCreatePanel({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="mt-4 space-y-4">
       <p className="text-sm text-zinc-700">
         <span className="font-semibold">{deviceName}</span> is saved. On the device, open{" "}
         <span className="font-semibold">Menu → Cloud Server</span> and enter:
