@@ -3,6 +3,7 @@ import { redirectToSignIn } from "@/lib/auth-redirect";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getSetupCompleteness, getSetupState } from "@/lib/onboarding";
+import { ensureDefaultShiftTemplates } from "@/lib/seed-default-shifts";
 import { SetupWizard } from "./setup-wizard";
 
 export const metadata = {
@@ -35,6 +36,8 @@ export default async function SetupPage({
     const next = params.next?.startsWith("/") ? params.next : "/";
     redirect(next);
   }
+
+  await ensureDefaultShiftTemplates(session.orgId, prisma);
 
   const [templates, staffCount, roles, locations] = await Promise.all([
     prisma.shiftTemplate.findMany({

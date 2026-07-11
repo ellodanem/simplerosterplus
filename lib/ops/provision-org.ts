@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { isValidTimeZone } from "@/lib/timezone";
+import { ensureDefaultShiftTemplates } from "@/lib/seed-default-shifts";
 
 const DEFAULT_LOCATION_NAME = "Main";
 const MIN_PASSWORD_LENGTH = 8;
@@ -110,6 +111,8 @@ export async function provisionOrganization(
       },
       select: { id: true, email: true },
     });
+
+    await ensureDefaultShiftTemplates(org.id, tx);
 
     return { org, location, admin };
   });

@@ -24,6 +24,24 @@ export type AutoSchedulerMode = "copy_previous" | "fill_open" | "fill_day";
 export type AutoSchedulerPreviewOptions = {
   /** Required for `fill_day` — must be a day in the target roster week. */
   dayYmd?: string;
+  /** Weeks of roster history to load (default 8). Use 1 for copy_previous. */
+  historyWeekCount?: number;
+};
+
+export type ApplyAutoSchedulerOptions = {
+  /** Reuse context from preview to avoid a second full load. */
+  ctx?: AutoSchedulerContext;
+};
+
+export type LoadAutoSchedulerContextOptions = {
+  /** Weeks of roster history to load (default 8). Use 1 for copy_previous. */
+  historyWeekCount?: number;
+};
+
+export type CopyPreviousWeekResult = {
+  copied: number;
+  skipped: number;
+  entries: { staffId: string; date: string; shiftTemplateId: string | null }[];
 };
 
 export type AutoSchedulerProposal = {
@@ -83,6 +101,8 @@ type HistoryEntry = {
   staffId: string;
   date: Date;
   shiftTemplateId: string;
+  position: string | null;
+  notes: string | null;
 };
 
 type ShiftPreferenceEngine = {
@@ -111,6 +131,7 @@ export type AutoSchedulerContext = {
   holidays: Record<string, { stationClosed: boolean }>;
   workedAnchorLastWeek: Set<string>;
   preferredWeekdayOffYmd: Map<string, string>;
+  previousWeekEntries: HistoryEntry[];
 };
 
 function addDaysUtc(d: Date, days: number): Date {
@@ -350,7 +371,9 @@ function buildPreferenceEngine(
 export async function loadAutoSchedulerContext(
   weekId: string,
   organizationId: string,
+  options: LoadAutoSchedulerContextOptions = {},
 ): Promise<AutoSchedulerContext | null> {
+  const historyWeekCount = options.historyWeekCount ?? HISTORY_WEEK_COUNT;
   const week = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId },
     select: {
@@ -377,9 +400,10 @@ export async function loadAutoSchedulerContext(
   const days = daysOfWeek(anchorYmd);
 
   const historyWeekStarts: Date[] = [];
-  for (let i = 1; i <= HISTORY_WEEK_COUNT; i++) {
+  for (let i = 1; i <= historyWeekCount; i++) {
     historyWeekStarts.push(new Date(weekStartDate.getTime() - i * SEVEN_DAYS_MS));
   }
+  const prevWeekStartMs = weekStartDate.getTime() - SEVEN_DAYS_MS;
 
   const [holidays, allStaff, templates, historyWeeks, schedulingRules] = await Promise.all([
     prisma.publicHoliday.findMany({
@@ -433,7 +457,14 @@ export async function loadAutoSchedulerContext(
             rosterWeekId: { in: historyWeekIds },
             shiftTemplateId: { not: null },
           },
-          select: { rosterWeekId: true, staffId: true, date: true, shiftTemplateId: true },
+          select: {
+            rosterWeekId: true,
+            staffId: true,
+            date: true,
+            shiftTemplateId: true,
+            position: true,
+            notes: true,
+          },
         })
       : [];
 
@@ -445,6 +476,8 @@ export async function loadAutoSchedulerContext(
         staffId: e.staffId,
         date: e.date,
         shiftTemplateId: e.shiftTemplateId as string,
+        position: e.position,
+        notes: e.notes,
       })),
   }));
 
@@ -482,6 +515,9 @@ export async function loadAutoSchedulerContext(
     days,
   });
 
+  const previousWeekEntries =
+    historyByWeek.find((w) => w.weekStartMs === prevWeekStartMs)?.entries ?? [];
+
   return {
     weekId: week.id,
     organizationId: week.organizationId,
@@ -504,6 +540,7 @@ export async function loadAutoSchedulerContext(
     holidays: holidayMap,
     workedAnchorLastWeek,
     preferredWeekdayOffYmd,
+    previousWeekEntries,
   };
 }
 
@@ -618,7 +655,9 @@ export async function previewAutoScheduler(
   mode: AutoSchedulerMode,
   options: AutoSchedulerPreviewOptions = {},
 ): Promise<AutoSchedulerPreviewResult | { error: string; status: number }> {
-  const ctx = await loadAutoSchedulerContext(weekId, organizationId);
+  const historyWeekCount =
+    options.historyWeekCount ?? (mode === "copy_previous" ? 1 : HISTORY_WEEK_COUNT);
+  const ctx = await loadAutoSchedulerContext(weekId, organizationId, { historyWeekCount });
   if (!ctx) return { error: "Roster week not found", status: 404 };
 
   const lockError = assertWeekEditable(ctx);
@@ -636,29 +675,7 @@ export async function previewAutoScheduler(
   const warnings: string[] = [];
 
   if (mode === "copy_previous") {
-    const prevWeekStart = new Date(utcDateFromYmd(ctx.anchorYmd).getTime() - SEVEN_DAYS_MS);
-    const source = await prisma.rosterWeek.findUnique({
-      where: {
-        locationId_weekStart: {
-          locationId: ctx.locationId,
-          weekStart: prevWeekStart,
-        },
-      },
-      select: { id: true },
-    });
-
-    const sourceEntries = source
-      ? await prisma.rosterEntry.findMany({
-          where: { rosterWeekId: source.id, shiftTemplateId: { not: null } },
-          select: {
-            staffId: true,
-            date: true,
-            shiftTemplateId: true,
-            position: true,
-            notes: true,
-          },
-        })
-      : [];
+    const sourceEntries = ctx.previousWeekEntries;
 
     if (sourceEntries.length === 0) {
       warnings.push(AUTO_SCHEDULER_NO_PREVIOUS_SHIFTS_WARNING);
@@ -762,8 +779,15 @@ export async function applyAutoScheduler(
   organizationId: string,
   mode: AutoSchedulerMode,
   proposals: AutoSchedulerProposal[],
+  options: ApplyAutoSchedulerOptions = {},
 ): Promise<AutoSchedulerApplyResult | { error: string; status: number }> {
-  const ctx = await loadAutoSchedulerContext(weekId, organizationId);
+  const ctx =
+    options.ctx ??
+    (await loadAutoSchedulerContext(
+      weekId,
+      organizationId,
+      mode === "copy_previous" ? { historyWeekCount: 1 } : {},
+    ));
   if (!ctx) return { error: "Roster week not found", status: 404 };
 
   const lockError = assertWeekEditable(ctx);
@@ -885,5 +909,81 @@ export async function applyAutoScheduler(
       shiftTemplateId: e.shiftTemplateId,
     })),
     usageCount,
+  };
+}
+
+/**
+ * Copy the prior week's shifts into unlocked days of the target week in one server pass.
+ * Loads scheduler context once (one week of history) instead of preview + apply each reloading eight weeks.
+ */
+export async function copyPreviousWeek(
+  weekId: string,
+  organizationId: string,
+): Promise<CopyPreviousWeekResult | { error: string; status: number }> {
+  const ctx = await loadAutoSchedulerContext(weekId, organizationId, { historyWeekCount: 1 });
+  if (!ctx) return { error: "Roster week not found", status: 404 };
+
+  const lockError = assertWeekEditable(ctx);
+  if (lockError) return { error: lockError, status: 403 };
+
+  const membershipArgs = {
+    weekEndYmd: weekEndYmd(ctx.anchorYmd),
+    todayYmd: ctx.todayYmd,
+    staffIdsWithEntries: new Set<string>(),
+  };
+
+  const proposals: AutoSchedulerProposal[] = [];
+  const skipped: AutoSchedulerSkipped[] = [];
+
+  if (ctx.previousWeekEntries.length === 0) {
+    const existing = await prisma.rosterEntry.findMany({
+      where: { rosterWeekId: weekId, shiftTemplateId: { not: null } },
+      select: { staffId: true, date: true, shiftTemplateId: true },
+    });
+    return {
+      copied: 0,
+      skipped: 0,
+      entries: existing.map((e) => ({
+        staffId: e.staffId,
+        date: ymdForDbDate(e.date),
+        shiftTemplateId: e.shiftTemplateId,
+      })),
+    };
+  }
+
+  for (const e of ctx.previousWeekEntries) {
+    const targetDate = addDaysUtc(e.date, 7);
+    const targetYmd = ymdForDbDate(targetDate);
+    const result = tryBuildProposal({
+      ctx,
+      staffId: e.staffId,
+      targetDate,
+      targetYmd,
+      shiftTemplateId: e.shiftTemplateId,
+      position: e.position,
+      notes: e.notes,
+      reason: "Same as last week",
+      membershipArgs,
+    });
+    if ("proposal" in result) proposals.push(result.proposal);
+    else skipped.push(result.skip);
+  }
+
+  const preview = await completePreview(ctx, "copy_previous", proposals, skipped, []);
+  if ("error" in preview) return preview;
+
+  const applied = await applyAutoScheduler(
+    weekId,
+    organizationId,
+    "copy_previous",
+    preview.proposals,
+    { ctx },
+  );
+  if ("error" in applied) return applied;
+
+  return {
+    copied: applied.applied,
+    skipped: preview.skipped.length,
+    entries: applied.entries,
   };
 }

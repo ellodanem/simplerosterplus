@@ -18,6 +18,14 @@ const TEMPLATE_SELECT = {
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** Normalize browser time values (sometimes HH:MM:SS) to HH:MM. */
+function normalizeHHmm(raw: string): string {
+  const trimmed = raw.trim();
+  const withSeconds = /^([01]\d|2[0-3]):([0-5]\d):\d{2}$/.exec(trimmed);
+  if (withSeconds) return `${withSeconds[1]}:${withSeconds[2]}`;
+  return trimmed;
+}
+
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,8 +49,9 @@ export async function POST(request: Request) {
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  const startTime = typeof body.startTime === "string" ? body.startTime.trim() : "";
-  const endTime = typeof body.endTime === "string" ? body.endTime.trim() : "";
+  const startTime =
+    typeof body.startTime === "string" ? normalizeHHmm(body.startTime) : "";
+  const endTime = typeof body.endTime === "string" ? normalizeHHmm(body.endTime) : "";
   const rawColor = typeof body.color === "string" ? body.color.trim() : "";
 
   if (!name) {
@@ -68,17 +77,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: breakError }, { status: 400 });
   }
 
-  const template = await prisma.shiftTemplate.create({
-    data: {
-      organizationId: session.orgId,
-      name,
-      startTime,
-      endTime,
-      unpaidBreakMinutes,
-      color,
-    },
-    select: TEMPLATE_SELECT,
-  });
-
-  return NextResponse.json({ template }, { status: 201 });
+  try {
+    const template = await prisma.shiftTemplate.create({
+      data: {
+        organizationId: session.orgId,
+        name,
+        startTime,
+        endTime,
+        unpaidBreakMinutes,
+        color,
+      },
+      select: TEMPLATE_SELECT,
+    });
+    return NextResponse.json({ template }, { status: 201 });
+  } catch (err) {
+    console.error("[roster/templates] create failed", err);
+    return NextResponse.json(
+      { error: "Could not save shift preset. Please try again." },
+      { status: 500 },
+    );
+  }
 }

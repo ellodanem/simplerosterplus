@@ -14,6 +14,7 @@ import {
 import type { SetupCompleteness, SetupState } from "@/lib/onboarding";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
 import { ROLE_PRESETS } from "@/lib/role-presets";
+import { DEFAULT_SHIFT_PRESETS } from "@/lib/shift-presets";
 
 type StepId = "business" | "shifts" | "roles" | "staff" | "attendance" | "go-live";
 
@@ -237,7 +238,8 @@ export function SetupWizard({
             <div>
               <h2 className="text-lg font-semibold text-zinc-900">Shift presets</h2>
               <p className="mt-1 text-sm text-zinc-600">
-                Create the shifts you’ll assign on the roster.
+                We added four common shifts to get you started. Edit any that don&apos;t fit, or
+                continue when you&apos;re ready.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -264,6 +266,8 @@ export function SetupWizard({
           <div className="mt-4">
             <TemplatesManager
               initial={templates}
+              presets={DEFAULT_SHIFT_PRESETS}
+              variant="setup"
               onChange={(next) => {
                 setTemplates(next);
                 setTimeout(refreshState, 0);
@@ -273,7 +277,7 @@ export function SetupWizard({
 
           {templates.length === 0 ? (
             <p className="mt-3 text-sm text-amber-700">
-              Add at least one preset to continue.
+              Add at least one shift to continue — tap a common shift above.
             </p>
           ) : null}
         </section>

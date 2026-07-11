@@ -7,6 +7,11 @@ import {
   SECONDARY_SWATCHES,
 } from "@/lib/shift-colors";
 import { formatBreakMinutes } from "@/lib/shift-duration";
+import {
+  COMMON_SHIFT_TIMES,
+  type ShiftPreset,
+  shiftPresetLabel,
+} from "@/lib/shift-presets";
 
 export type Template = {
   id: string;
@@ -26,11 +31,17 @@ function sortByName(items: Template[]): Template[] {
 export function TemplatesManager({
   initial,
   onChange,
+  presets,
+  variant = "default",
 }: {
   initial: Template[];
   onChange?: (templates: Template[]) => void;
+  presets?: readonly ShiftPreset[];
+  variant?: "default" | "setup";
 }) {
   const [items, setItems] = useState<Template[]>(initial);
+  const [pendingPreset, setPendingPreset] = useState<string | null>(null);
+  const [showCustomForm, setShowCustomForm] = useState(variant !== "setup");
 
   function applyUpdate(next: Template[]) {
     const sorted = sortByName(next);
@@ -44,9 +55,17 @@ export function TemplatesManager({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
-    const data = (await res.json().catch(() => ({}))) as { error?: string; template?: Template };
+    const raw = await res.text();
+    let data: { error?: string; template?: Template } = {};
+    try {
+      data = raw ? (JSON.parse(raw) as { error?: string; template?: Template }) : {};
+    } catch {
+      throw new Error(
+        `Could not create (HTTP ${res.status}). ${raw.slice(0, 160) || "Empty response"}`,
+      );
+    }
     if (!res.ok || !data.template) {
-      throw new Error(data.error || "Could not create");
+      throw new Error(data.error || `Could not create (HTTP ${res.status})`);
     }
     applyUpdate([...items, data.template]);
   }
@@ -81,9 +100,103 @@ export function TemplatesManager({
     applyUpdate(items.filter((t) => t.id !== id));
   }
 
+  const existingNames = new Set(items.map((t) => t.name.trim().toLowerCase()));
+  const availablePresets = presets?.filter(
+    (preset) => !existingNames.has(preset.name.trim().toLowerCase()),
+  );
+
+  async function addPreset(preset: ShiftPreset) {
+    setPendingPreset(preset.name);
+    try {
+      await onCreate({
+        name: preset.name,
+        startTime: preset.startTime,
+        endTime: preset.endTime,
+        unpaidBreakMinutes: preset.unpaidBreakMinutes,
+        color: preset.color,
+      });
+    } finally {
+      setPendingPreset(null);
+    }
+  }
+
+  async function addAllPresets() {
+    if (!availablePresets?.length) return;
+    setPendingPreset("__all__");
+    try {
+      for (const preset of availablePresets) {
+        await onCreate({
+          name: preset.name,
+          startTime: preset.startTime,
+          endTime: preset.endTime,
+          unpaidBreakMinutes: preset.unpaidBreakMinutes,
+          color: preset.color,
+        });
+      }
+    } finally {
+      setPendingPreset(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <NewTemplateForm onCreate={onCreate} />
+      {presets && presets.length > 0 ? (
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-800">Common shifts</h3>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                One tap adds a preset with times already set.
+              </p>
+            </div>
+            {availablePresets && availablePresets.length > 1 ? (
+              <button
+                type="button"
+                disabled={pendingPreset !== null}
+                onClick={() => void addAllPresets()}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                {pendingPreset === "__all__" ? "Adding…" : `Add all ${availablePresets.length}`}
+              </button>
+            ) : null}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {presets.map((preset) => {
+              const added = existingNames.has(preset.name.trim().toLowerCase());
+              const loading = pendingPreset === preset.name;
+              return (
+                <button
+                  key={preset.name}
+                  type="button"
+                  disabled={added || pendingPreset !== null}
+                  onClick={() => void addPreset(preset)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                    added
+                      ? "cursor-default bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+                      : "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-zinc-100 disabled:opacity-60"
+                  }`}
+                >
+                  {added ? `✓ ${shiftPresetLabel(preset)}` : loading ? "Adding…" : shiftPresetLabel(preset)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {variant === "setup" ? (
+        <button
+          type="button"
+          onClick={() => setShowCustomForm((open) => !open)}
+          className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+        >
+          {showCustomForm ? "Hide custom shift form" : "Add a custom shift"}
+        </button>
+      ) : null}
+
+      {showCustomForm ? (
+        <NewTemplateForm onCreate={onCreate} variant={variant} />
+      ) : null}
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -101,7 +214,9 @@ export function TemplatesManager({
             {items.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-zinc-500">
-                  No shift presets yet. Create one above.
+                  {variant === "setup"
+                    ? "No shifts yet. Tap a common shift above to get started."
+                    : "No shift presets yet. Create one above."}
                 </td>
               </tr>
             ) : (
@@ -109,6 +224,7 @@ export function TemplatesManager({
                 <TemplateRow
                   key={t.id}
                   template={t}
+                  variant={variant}
                   onUpdate={(values) => onUpdate(t.id, values)}
                   onDelete={() => onDelete(t.id)}
                 />
@@ -123,8 +239,10 @@ export function TemplatesManager({
 
 function NewTemplateForm({
   onCreate,
+  variant = "default",
 }: {
   onCreate: (values: Omit<Template, "id">) => Promise<void>;
+  variant?: "default" | "setup";
 }) {
   const [name, setName] = useState("");
   const [startTime, setStartTime] = useState("09:00");
@@ -157,7 +275,9 @@ function NewTemplateForm({
       onSubmit={onSubmit}
       className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4"
     >
-      <h3 className="text-sm font-semibold text-zinc-800">New shift preset</h3>
+      <h3 className="text-sm font-semibold text-zinc-800">
+        {variant === "setup" ? "Custom shift" : "New shift preset"}
+      </h3>
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <div>
           <label className="text-xs font-medium text-zinc-600" htmlFor="tn">
@@ -171,32 +291,22 @@ function NewTemplateForm({
             className="mt-1 w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
           />
         </div>
-        <div>
-          <label className="text-xs font-medium text-zinc-600" htmlFor="ts">
-            Start <span className="text-red-600">*</span>
-          </label>
-          <input
-            id="ts"
-            type="time"
-            required
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="mt-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-zinc-600" htmlFor="te">
-            End <span className="text-red-600">*</span>
-          </label>
-          <input
-            id="te"
-            type="time"
-            required
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="mt-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
-          />
-        </div>
+        <TimeField
+          id="ts"
+          label="Start"
+          required
+          value={startTime}
+          onChange={setStartTime}
+          variant={variant}
+        />
+        <TimeField
+          id="te"
+          label="End"
+          required
+          value={endTime}
+          onChange={setEndTime}
+          variant={variant}
+        />
       </div>
       <div className="mt-3">
         <UnpaidBreakField value={unpaidBreakMinutes} onChange={setUnpaidBreakMinutes} />
@@ -281,10 +391,12 @@ function TemplateRow({
   template,
   onUpdate,
   onDelete,
+  variant = "default",
 }: {
   template: Template;
   onUpdate: (values: Partial<Omit<Template, "id">>) => Promise<void>;
   onDelete: () => void;
+  variant?: "default" | "setup";
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(template.name);
@@ -319,17 +431,21 @@ function TemplateRow({
               className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
               placeholder="Name"
             />
-            <input
-              type="time"
+            <TimeField
+              id={`edit-start-${template.id}`}
+              label="Start"
+              hideLabel
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+              onChange={setStartTime}
+              variant={variant}
             />
-            <input
-              type="time"
+            <TimeField
+              id={`edit-end-${template.id}`}
+              label="End"
+              hideLabel
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
+              onChange={setEndTime}
+              variant={variant}
             />
             <div className="flex items-center gap-2">
               <button
@@ -405,6 +521,74 @@ function TemplateRow({
         </button>
       </td>
     </tr>
+  );
+}
+
+function TimeField({
+  id,
+  label,
+  value,
+  onChange,
+  required,
+  variant = "default",
+  hideLabel,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  variant?: "default" | "setup";
+  hideLabel?: boolean;
+}) {
+  const options =
+    variant === "setup" && !COMMON_SHIFT_TIMES.includes(value as (typeof COMMON_SHIFT_TIMES)[number])
+      ? [value, ...COMMON_SHIFT_TIMES]
+      : COMMON_SHIFT_TIMES;
+
+  if (variant === "setup") {
+    return (
+      <div>
+        {hideLabel ? null : (
+          <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+            {label}
+            {required ? <span className="text-red-600"> *</span> : null}
+          </label>
+        )}
+        <select
+          id={id}
+          required={required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${hideLabel ? "" : "mt-1 "}rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm`}
+        >
+          {options.map((time) => (
+            <option key={time} value={time}>
+              {time}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {hideLabel ? null : (
+        <label className="text-xs font-medium text-zinc-600" htmlFor={id}>
+          {label}
+          {required ? <span className="text-red-600"> *</span> : null}
+        </label>
+      )}
+      <input
+        id={id}
+        type="time"
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${hideLabel ? "" : "mt-1 "}rounded-lg border border-zinc-300 px-2 py-1.5 text-sm`}
+      />
+    </div>
   );
 }
 

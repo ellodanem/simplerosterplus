@@ -5,6 +5,7 @@ import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
 import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
 import { checkAdminLimit } from "@/lib/plan-limits";
 import { PLAN_FREE } from "@/lib/plans";
+import { ensureDefaultShiftTemplates } from "@/lib/seed-default-shifts";
 
 const DEFAULT_LOCATION_NAME = "Main";
 
@@ -63,6 +64,7 @@ export async function ensureOrganizationFromClerk(args: {
         sortOrder: 0,
       },
     });
+    await ensureDefaultShiftTemplates(created.id, tx);
     return created;
   }).catch(async (err) => {
     if (!isUniqueConstraintError(err)) throw err;
