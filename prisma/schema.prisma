@@ -227,11 +227,12 @@ model AppUser {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  decidedDayOffs   StaffDayOff[]           @relation("DayOffDecidedBy")
-  decidedVacations StaffVacation[]         @relation("VacationDecidedBy")
-  createdPunches   AttendanceLog[]         @relation("PunchCreatedBy")
-  correctedPunches AttendanceLog[]         @relation("PunchCorrectedBy")
-  decidedOverrides AttendanceDayOverride[] @relation("OverrideDecidedBy")
+  decidedDayOffs        StaffDayOff[]        @relation("DayOffDecidedBy")
+  decidedVacations      StaffVacation[]      @relation("VacationDecidedBy")
+  decidedShiftRequests  StaffShiftRequest[]  @relation("ShiftRequestDecidedBy")
+  createdPunches        AttendanceLog[]      @relation("PunchCreatedBy")
+  correctedPunches      AttendanceLog[]      @relation("PunchCorrectedBy")
+  decidedOverrides      AttendanceDayOverride[] @relation("OverrideDecidedBy")
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -303,6 +304,7 @@ model Staff {
 
   dayOffs             StaffDayOff[]
   vacations           StaffVacation[]
+  shiftRequests       StaffShiftRequest[]
   sickLeaves          StaffSickLeave[]
   rosterEntries       RosterEntry[]
   attendanceLogs      AttendanceLog[]
@@ -314,9 +316,10 @@ model Staff {
   @@index([locationId])
 }
 
-/// Status shared by leave requests (vacation + day off). `requested` rows sit in the Requests
-/// inbox waiting on a supervisor; `approved` rows actively block roster cells; `denied` rows
-/// stay around as audit trail and never block.
+/// Status shared by Requests inbox rows (vacation, day off, shift request). `requested` rows
+/// wait on a supervisor. For leave, `approved` blocks roster cells; for shift requests,
+/// `approved` is a soft preference only (does not assign or clear shifts). `denied` is audit
+/// trail and never blocks.
 enum LeaveRequestStatus {
   requested
   approved
@@ -362,6 +365,30 @@ model StaffVacation {
   @@index([staffId, status])
 }
 
+/// Soft shift preference for a single calendar day. Approve does not assign the roster cell —
+/// managers honor it when scheduling. Unique on `(staffId, date, shiftTemplateId)` so the same
+/// ask can be re-requested after deny; other templates (or leave) on the same day are separate rows.
+model StaffShiftRequest {
+  id              String             @id @default(cuid())
+  staffId         String
+  staff           Staff              @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date            DateTime           @db.Date
+  shiftTemplateId String
+  shiftTemplate   ShiftTemplate      @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
+  status          LeaveRequestStatus @default(requested)
+  reason          String?
+  decidedByUserId String?
+  decidedBy       AppUser?           @relation("ShiftRequestDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([staffId, date, shiftTemplateId])
+  @@index([staffId])
+  @@index([staffId, status])
+  @@index([shiftTemplateId])
+}
+
 enum SickLeaveStatus {
   requested
   approved
@@ -394,7 +421,8 @@ model ShiftTemplate {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  rosterEntries RosterEntry[]
+  rosterEntries  RosterEntry[]
+  shiftRequests  StaffShiftRequest[]
 
   @@index([organizationId])
 }
