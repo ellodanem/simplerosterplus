@@ -661,11 +661,12 @@ export function RosterGrid({
   }
 
   function requestDates(req: {
-    type: "vacation" | "dayOff";
+    type: "vacation" | "dayOff" | "shiftRequest";
     startDate?: string;
     endDate?: string;
     date?: string;
   }): string[] {
+    if (req.type === "shiftRequest") return [];
     if (req.type === "dayOff") return req.date ? [req.date] : [];
     if (!req.startDate || !req.endDate) return [];
     const dates: string[] = [];
@@ -676,12 +677,13 @@ export function RosterGrid({
   }
 
   function applyApprovedRequestChange(req: {
-    type: "vacation" | "dayOff";
+    type: "vacation" | "dayOff" | "shiftRequest";
     staff: { id: string };
     startDate?: string;
     endDate?: string;
     date?: string;
   }, clearedDates: string[]) {
+    if (req.type === "shiftRequest") return;
     const nextDates = requestDates(req);
     if (nextDates.length > 0) {
       setBlockMap((curr) => {
@@ -702,11 +704,12 @@ export function RosterGrid({
 
   function removeApprovedRequestChange(req: {
     staff: { id: string };
-    type: "vacation" | "dayOff";
+    type: "vacation" | "dayOff" | "shiftRequest";
     startDate?: string;
     endDate?: string;
     date?: string;
   }) {
+    if (req.type === "shiftRequest") return;
     const nextDates = requestDates(req);
     if (nextDates.length === 0) return;
     setBlockMap((curr) => {
@@ -1618,12 +1621,20 @@ export function RosterGrid({
         open={showRequests}
         onClose={() => setShowRequests(false)}
         staff={staffRows as RequestStaff[]}
+        shiftTemplates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          startTime: t.startTime,
+          endTime: t.endTime,
+        }))}
         onPendingCountChange={setPendingRequests}
         onRequestChanged={(change) => {
+          if (change.request.type === "shiftRequest") return;
+          const leaveReq = change.request;
           if (change.kind === "approved") {
-            applyApprovedRequestChange(change.request, change.clearedDates);
+            applyApprovedRequestChange(leaveReq, change.clearedDates);
           } else {
-            removeApprovedRequestChange(change.request);
+            removeApprovedRequestChange(leaveReq);
           }
         }}
       />

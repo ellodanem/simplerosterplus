@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { utcDateFromYmd } from "./datetime-policy";
 import { ymdForDbDate } from "./roster-week";
 
-export type RequestType = "vacation" | "dayOff";
+export type RequestType = "vacation" | "dayOff" | "shiftRequest";
 export type ConflictSummary = { count: number; dates: string[] };
 
 type ConflictRange = {
@@ -13,7 +13,7 @@ type ConflictRange = {
   endDate: Date;
 };
 
-export function requestConflictKey(type: RequestType, id: string): string {
+export function requestConflictKey(type: "vacation" | "dayOff", id: string): string {
   return `${type}:${id}`;
 }
 
@@ -35,14 +35,26 @@ export type SerializedRequest = {
   startDate?: string;
   /** Only set for `vacation` rows. */
   endDate?: string;
-  /** Only set for `dayOff` rows. */
+  /** Only set for `dayOff` and `shiftRequest` rows. */
   date?: string;
+  /** Only set for `shiftRequest` rows. */
+  shiftTemplateId?: string;
+  /** Only set for `shiftRequest` rows. */
+  shiftName?: string;
+  /** Only set for `shiftRequest` rows (template times for display). */
+  shiftStartTime?: string;
+  shiftEndTime?: string;
   /**
-   * Roster entries that would be cleared on approve. Only computed for `requested` rows; left
-   * undefined for already-decided rows because the conflict question doesn't apply.
+   * When a pending shift request's date already has a different roster assignment — soft
+   * approve still only records preference; this is informational.
+   */
+  scheduledShiftName?: string | null;
+  /**
+   * Roster entries that would be cleared on approve. Only computed for leave `requested`
+   * rows; undefined for shift requests (soft approve never clears) and decided leave.
    */
   conflictCount?: number;
-  /** Same as `conflictCount` — only set for `requested` rows. */
+  /** Same as `conflictCount` — only set for leave `requested` rows. */
   conflictDates?: string[];
 };
 
@@ -148,6 +160,20 @@ type DayOffRow = {
   decidedBy: DecidedByMini;
 };
 
+type ShiftRequestRow = {
+  id: string;
+  staffId: string;
+  date: Date;
+  shiftTemplateId: string;
+  status: LeaveRequestStatus;
+  reason: string | null;
+  decidedAt: Date | null;
+  createdAt: Date;
+  staff: StaffMini;
+  decidedBy: DecidedByMini;
+  shiftTemplate: { id: string; name: string; startTime: string; endTime: string };
+};
+
 export const requestStaffSelect = {
   id: true,
   firstName: true,
@@ -156,6 +182,13 @@ export const requestStaffSelect = {
 } as const;
 
 export const decidedBySelect = { email: true } as const;
+
+export const shiftTemplateSelect = {
+  id: true,
+  name: true,
+  startTime: true,
+  endTime: true,
+} as const;
 
 export async function serializeVacation(
   row: VacationRow,
@@ -206,6 +239,78 @@ export async function serializeDayOff(
     base.conflictDates = conflicts.dates;
   }
   return base;
+}
+
+export async function serializeShiftRequest(
+  row: ShiftRequestRow,
+  scheduledShiftName?: string | null,
+): Promise<SerializedRequest> {
+  const base = baseSerialized("shiftRequest", row, {
+    date: ymdForDbDate(row.date),
+    shiftTemplateId: row.shiftTemplateId,
+    shiftName: row.shiftTemplate.name,
+    shiftStartTime: row.shiftTemplate.startTime,
+    shiftEndTime: row.shiftTemplate.endTime,
+  });
+  if (row.status === "requested" && scheduledShiftName !== undefined) {
+    base.scheduledShiftName = scheduledShiftName;
+  } else if (row.status === "requested") {
+    base.scheduledShiftName = null;
+  }
+  return base;
+}
+
+/**
+ * For pending shift requests, look up the roster assignment on that day (if any) so the UI
+ * can show a soft note when it differs from the requested template.
+ */
+export async function getScheduledShiftNames(
+  organizationId: string,
+  rows: { key: string; staffId: string; date: Date; shiftTemplateId: string }[],
+): Promise<Map<string, string | null>> {
+  const result = new Map<string, string | null>();
+  if (rows.length === 0) return result;
+
+  let minDate = rows[0].date;
+  let maxDate = rows[0].date;
+  for (const row of rows) {
+    if (row.date < minDate) minDate = row.date;
+    if (row.date > maxDate) maxDate = row.date;
+  }
+
+  const entries = await prisma.rosterEntry.findMany({
+    where: {
+      staff: { organizationId },
+      staffId: { in: Array.from(new Set(rows.map((r) => r.staffId))) },
+      date: { gte: minDate, lte: maxDate },
+      shiftTemplateId: { not: null },
+    },
+    select: {
+      staffId: true,
+      date: true,
+      shiftTemplateId: true,
+      shiftTemplate: { select: { name: true } },
+    },
+  });
+
+  const byCell = new Map<string, { templateId: string; name: string }>();
+  for (const e of entries) {
+    if (!e.shiftTemplateId || !e.shiftTemplate) continue;
+    byCell.set(`${e.staffId}__${ymdForDbDate(e.date)}`, {
+      templateId: e.shiftTemplateId,
+      name: e.shiftTemplate.name,
+    });
+  }
+
+  for (const row of rows) {
+    const cell = byCell.get(`${row.staffId}__${ymdForDbDate(row.date)}`);
+    if (!cell || cell.templateId === row.shiftTemplateId) {
+      result.set(row.key, null);
+    } else {
+      result.set(row.key, cell.name);
+    }
+  }
+  return result;
 }
 
 function baseSerialized(

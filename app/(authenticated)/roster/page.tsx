@@ -202,6 +202,12 @@ export default async function RosterPage({
           staff: { organizationId: org.id, locationId: location.id },
         },
       }),
+      prisma.staffShiftRequest.count({
+        where: {
+          status: "requested",
+          staff: { organizationId: org.id, locationId: location.id },
+        },
+      }),
     ]),
     prisma.rosterWeek.findUnique({
       where: {
@@ -257,7 +263,8 @@ export default async function RosterPage({
     rangeEndDate: weekEndDate,
   });
 
-  const pendingRequestsCount = pendingCounts[0] + pendingCounts[1];
+  const pendingRequestsCount =
+    pendingCounts[0] + pendingCounts[1] + pendingCounts[2];
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);

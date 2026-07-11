@@ -133,8 +133,16 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
   const weekStartDate = utcDateFromYmd(weekStartYmd);
   const weekEndDate = utcDateFromYmd(weekEnd);
 
-  const [attendance, rosterWeek, staffRows, holidays, templates, pendingVacation, pendingDayOff] =
-    await Promise.all([
+  const [
+    attendance,
+    rosterWeek,
+    staffRows,
+    holidays,
+    templates,
+    pendingVacation,
+    pendingDayOff,
+    pendingShift,
+  ] = await Promise.all([
       getAttendanceWeekData({
         organizationId,
         locationId: location.id,
@@ -193,6 +201,12 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
         },
       }),
       prisma.staffDayOff.count({
+        where: {
+          status: "requested",
+          staff: { organizationId, locationId: location.id },
+        },
+      }),
+      prisma.staffShiftRequest.count({
         where: {
           status: "requested",
           staff: { organizationId, locationId: location.id },
@@ -321,7 +335,7 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     openShiftDayYmd: openShiftSummary.openShiftDayYmd,
     openShiftDayLabel: openShiftSummary.openShiftDayLabel,
     coverageRangeLabel,
-    pendingRequestsCount: pendingVacation + pendingDayOff,
+    pendingRequestsCount: pendingVacation + pendingDayOff + pendingShift,
     rosterStatus: rosterWeek?.status ?? null,
     rosterShareToken:
       rosterWeek?.status === "published" && rosterWeek.shareToken

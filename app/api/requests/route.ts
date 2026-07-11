@@ -7,10 +7,13 @@ import {
   decidedBySelect,
   errorJson,
   getConflictSummaries,
+  getScheduledShiftNames,
   requestConflictKey,
   requestStaffSelect,
   serializeDayOff,
+  serializeShiftRequest,
   serializeVacation,
+  shiftTemplateSelect,
 } from "@/lib/requests";
 
 const VALID_STATUS = new Set<LeaveRequestStatus>(["requested", "approved", "denied"]);
@@ -18,12 +21,12 @@ const VALID_STATUS = new Set<LeaveRequestStatus>(["requested", "approved", "deni
 /**
  * GET /api/requests?status=requested|approved|denied|all
  *
- * Returns vacation + day-off rows for the current org's default location, plus a count of
- * rows that are still `requested` regardless of the filter (so the Requests button badge can
- * stay accurate even when the modal is filtering to "decided" rows).
+ * Returns vacation + day-off + shift-request rows for the current org's default location,
+ * plus a count of rows that are still `requested` regardless of the filter (so the Requests
+ * button badge stays accurate even when the modal is filtering to "decided" rows).
  *
- * Responses include a `conflictCount` per row when status === 'requested' so the modal can
- * surface "approving will clear N shifts" inline without a second request.
+ * Leave `requested` rows include `conflictCount` so the modal can surface "approving will
+ * clear N shifts". Shift requests are soft preferences — no clear-on-approve conflicts.
  */
 export async function GET(request: Request) {
   try {
@@ -53,7 +56,14 @@ export async function GET(request: Request) {
       locationId: location.id,
     };
 
-    const [vacationRows, dayOffRows, pendingVacation, pendingDayOff] = await Promise.all([
+    const [
+      vacationRows,
+      dayOffRows,
+      shiftRows,
+      pendingVacation,
+      pendingDayOff,
+      pendingShift,
+    ] = await Promise.all([
       prisma.staffVacation.findMany({
         where: {
           staff: staffWhere,
@@ -91,34 +101,70 @@ export async function GET(request: Request) {
           decidedBy: { select: decidedBySelect },
         },
       }),
+      prisma.staffShiftRequest.findMany({
+        where: {
+          staff: staffWhere,
+          ...(statusFilter ? { status: statusFilter } : {}),
+        },
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          staffId: true,
+          date: true,
+          shiftTemplateId: true,
+          status: true,
+          reason: true,
+          decidedAt: true,
+          createdAt: true,
+          staff: { select: requestStaffSelect },
+          decidedBy: { select: decidedBySelect },
+          shiftTemplate: { select: shiftTemplateSelect },
+        },
+      }),
       prisma.staffVacation.count({
         where: { staff: staffWhere, status: "requested" },
       }),
       prisma.staffDayOff.count({
         where: { staff: staffWhere, status: "requested" },
       }),
+      prisma.staffShiftRequest.count({
+        where: { staff: staffWhere, status: "requested" },
+      }),
     ]);
 
-    const conflictSummaries = await getConflictSummaries(session.orgId, [
-      ...vacationRows
-        .filter((row) => row.status === "requested")
-        .map((row) => ({
-          key: requestConflictKey("vacation", row.id),
+    const pendingShiftRows = shiftRows.filter((row) => row.status === "requested");
+
+    const [conflictSummaries, scheduledShifts] = await Promise.all([
+      getConflictSummaries(session.orgId, [
+        ...vacationRows
+          .filter((row) => row.status === "requested")
+          .map((row) => ({
+            key: requestConflictKey("vacation", row.id),
+            staffId: row.staffId,
+            startDate: row.startDate,
+            endDate: row.endDate,
+          })),
+        ...dayOffRows
+          .filter((row) => row.status === "requested")
+          .map((row) => ({
+            key: requestConflictKey("dayOff", row.id),
+            staffId: row.staffId,
+            startDate: row.date,
+            endDate: row.date,
+          })),
+      ]),
+      getScheduledShiftNames(
+        session.orgId,
+        pendingShiftRows.map((row) => ({
+          key: row.id,
           staffId: row.staffId,
-          startDate: row.startDate,
-          endDate: row.endDate,
+          date: row.date,
+          shiftTemplateId: row.shiftTemplateId,
         })),
-      ...dayOffRows
-        .filter((row) => row.status === "requested")
-        .map((row) => ({
-          key: requestConflictKey("dayOff", row.id),
-          staffId: row.staffId,
-          startDate: row.date,
-          endDate: row.date,
-        })),
+      ),
     ]);
 
-    const [vacation, dayOff] = await Promise.all([
+    const [vacation, dayOff, shiftRequest] = await Promise.all([
       Promise.all(
         vacationRows.map((row) =>
           serializeVacation(row, conflictSummaries.get(requestConflictKey("vacation", row.id))),
@@ -129,12 +175,21 @@ export async function GET(request: Request) {
           serializeDayOff(row, conflictSummaries.get(requestConflictKey("dayOff", row.id))),
         ),
       ),
+      Promise.all(
+        shiftRows.map((row) =>
+          serializeShiftRequest(
+            row,
+            row.status === "requested" ? (scheduledShifts.get(row.id) ?? null) : undefined,
+          ),
+        ),
+      ),
     ]);
 
     return NextResponse.json({
       vacation,
       dayOff,
-      pendingCount: pendingVacation + pendingDayOff,
+      shiftRequest,
+      pendingCount: pendingVacation + pendingDayOff + pendingShift,
     });
   } catch (e) {
     const { status, body } = errorJson(e);

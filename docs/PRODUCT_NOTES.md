@@ -43,37 +43,41 @@ Use this as the product filter for new features and UX decisions:
 
 ## Requests & leave management (v1 shipped)
 
-Inbox-style "Requests" experience on the roster page (rose-tinted button, badge with pending count). Modal opens grouped sections per type, each row Approve / Deny / Delete.
+Inbox-style "Requests" experience on the roster page (rose-tinted button, badge with pending count). Modal opens Pending / Decided sections, each row Approve / Deny / Delete.
 
-- **In scope (v1, shipped):** vacation, day off.
+- **In scope (shipped):** vacation, day off, **shift request** (soft preference).
 - **Sick leave:** deferred. Sick leave is treated very differently in our primary market (Caribbean) — typically not multi-day or pre-requested, and often handled outside the roster. Will get its own dedicated workflow later instead of being lumped into the requests inbox. The existing `StaffSickLeave` table stays where it is, untouched, until then.
 - **Shift swap:** deferred until v1 has been live for a bit.
 
-Schema (now in `prisma/schema.prisma`, migration `20260513230000_requests_workflow`):
+Schema (now in `prisma/schema.prisma`, migrations `20260513230000_requests_workflow` + `20260711140000_staff_shift_request`):
 
-- New `LeaveRequestStatus` enum (`requested | approved | denied`) shared by vacation and day-off rows. `StaffSickLeave` keeps its existing `SickLeaveStatus` enum until the sick-leave workflow lands.
-- New `StaffVacation` table replacing inline `Staff.vacationStart/End` (those columns were dropped). Each row has a `status`, `reason`, and `decidedBy/decidedAt` audit fields. The migration backfills any existing inline vacation range into a single `approved` row tagged `<staffId>_v0` so nothing currently blocking the roster silently disappears.
+- `LeaveRequestStatus` enum (`requested | approved | denied`) shared by vacation, day-off, and shift-request rows. `StaffSickLeave` keeps its existing `SickLeaveStatus` enum until the sick-leave workflow lands.
+- `StaffVacation` table replacing inline `Staff.vacationStart/End` (those columns were dropped). Each row has a `status`, `reason`, and `decidedBy/decidedAt` audit fields. The migration backfills any existing inline vacation range into a single `approved` row tagged `<staffId>_v0` so nothing currently blocking the roster silently disappears.
 - `StaffDayOff` gained `status` (default `approved` so existing rows keep blocking), `reason`, `decidedBy/decidedAt`, plus `createdAt/updatedAt`. `(staffId, date)` is still unique, so creating a new request for a date that already has a row upserts in place.
+- `StaffShiftRequest` — soft preference for one day + one `ShiftTemplate`. Unique on `(staffId, date, shiftTemplateId)`. **Approve does not assign or clear roster cells**; it only records that management will try to honor the ask. Multiple requests (leave + shift, or different shifts) may coexist; managers decide what to honor.
 
-Roster blocking switched from inline range checks to "is there an `approved` `StaffVacation` or `StaffDayOff` row covering this `(staffId, ymd)`?". Helper lives in `lib/leave-blocks.ts` (`getApprovedBlockMap` for the grid's per-week lookup, `isApprovedBlocked` for single-cell write APIs).
+Roster blocking switched from inline range checks to "is there an `approved` `StaffVacation` or `StaffDayOff` row covering this `(staffId, ymd)`?". Helper lives in `lib/leave-blocks.ts` (`getApprovedBlockMap` for the grid's per-week lookup, `isApprovedBlocked` for single-cell write APIs). Shift-request preferences never block.
 
 ### Approval flow
 
 API endpoints (all under `/api/requests`, scoped to the org's default location):
 
-- `GET /api/requests?status=requested|approved|denied|all` — returns `{ vacation, dayOff, pendingCount }`. Each `requested` row includes `conflictCount` + `conflictDates` so the UI can surface "approving will clear N shifts" inline.
+- `GET /api/requests?status=requested|approved|denied|all` — returns `{ vacation, dayOff, shiftRequest, pendingCount }`. Each leave `requested` row includes `conflictCount` + `conflictDates` so the UI can surface "approving will clear N shifts" inline. Pending shift rows may include `scheduledShiftName` when that day already has a different assignment (informational only).
 - `POST /api/requests/vacation` — `{ staffId, startDate, endDate, reason? }` → creates a `requested` vacation row.
 - `POST /api/requests/day-off` — `{ staffId, date, reason? }` → upserts a `requested` day-off row (a fresh request for an already-decided date resets the row).
+- `POST /api/requests/shift` — `{ staffId, date, shiftTemplateId, reason? }` → upserts a `requested` soft preference.
 - `PATCH /api/requests/<type>/[id]` — `{ action: "approve" | "deny", force?: boolean }`.
   - Deny is unconditional and never touches the roster.
-  - Approve runs a conflict preview when `force` isn't passed: if any roster shifts overlap the leave range, it returns 409 with `{ conflictCount, conflictDates, requiresConfirm: true }`. The UI surfaces a confirm modal; resending with `force: true` clears those shifts (matching the manual cell-clear semantics: rows are deleted, not nulled) and flips the row to `approved` in a single transaction.
-- `DELETE /api/requests/<type>/[id]` — hard delete in any status. Approved rows therefore stop blocking immediately on delete.
+  - Leave approve runs a conflict preview when `force` isn't passed: if any roster shifts overlap the leave range, it returns 409 with `{ conflictCount, conflictDates, requiresConfirm: true }`. The UI surfaces a confirm modal; resending with `force: true` clears those shifts (matching the manual cell-clear semantics: rows are deleted, not nulled) and flips the row to `approved` in a single transaction.
+  - Shift approve flips status only (no roster mutation, no `force` path).
+- `DELETE /api/requests/<type>/[id]` — hard delete in any status. Approved leave rows therefore stop blocking immediately on delete.
 
-UI state: the roster page passes the initial pending count + per-cell `blockMap` in. The Requests modal owns its own list state, calls the API on open / after each action, and drives the badge count via `onPendingCountChange`. On approve, the grid does `router.refresh()` so the new block (and any cleared shifts) appear without a manual reload.
+UI: row labels skim as `Type · details` (e.g. `Shift · Night (18:00–02:00) · 2026-07-18`). Pending shift rows note that approve is preference-only. Parent grid only refreshes leave blocks on leave approve/delete.
 
 ### Outstanding follow-ups (out of v1)
 
-- **Cell dot for pending requests.** Show a small indicator on roster cells when a staff member has a pending vacation/day-off touching that date, so supervisors notice the inbox without opening the modal.
+- **Cell dot for pending requests.** Show a small indicator on roster cells when a staff member has a pending vacation/day-off/shift preference touching that date, so supervisors notice the inbox without opening the modal.
+- **Auto Scheduler honor for approved shift preferences.** Soft preferences are stored; wiring them into Auto Scheduler suggestions is a later pass.
 - **Calendar/preview before submission.** Right now an admin creating a vacation can't see the staff member's existing roster from inside the modal — they only learn about conflicts at approve time. A small inline "what does their week look like" preview would tighten the loop.
 - **Auto-approve on admin create.** Two-click (create → approve in inbox) is fine, but a "Submit and approve" toggle on the create form would shave a step for the common admin-self-serve case.
 - **Per-location admin scoping.** Today a session that authenticates is allowed to act on every request in the org's default location. RBAC will need to slot in here once roles exist.
@@ -82,7 +86,7 @@ UI state: the roster page passes the initial pending count + per-cell `blockMap`
 
 This same model is the foundation for an employee-facing surface where staff submit their own requests instead of an admin entering them. Multi-user is already planned (see *Multi-user* section above), and we already separate `AppUser` (login identity) from `Staff` (roster row). When that lands:
 
-- Staff sign in to a `/me` area to submit vacation / day-off requests.
+- Staff sign in to a `/me` area to submit vacation / day-off / shift requests.
 - Each submission writes a `requested` row exactly the same shape as an admin-created one.
 - The supervisor's Requests modal is the single approval queue regardless of who created the row.
 - A `Staff.appUserId` link (nullable) joins the two — not in the schema today, easy to add when needed.
