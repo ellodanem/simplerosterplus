@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listTesterFeedback } from "@/lib/ops/data";
 import { Card, formatDateTime, Pill } from "../ops-ui";
+import { FeedbackStatusActions } from "./feedback-status-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function FeedbackPage() {
       <p className="mt-1 text-sm text-zinc-600">
         In-app messages from design-partner testers. Newest first. Use Org 360 +{" "}
         <span className="font-medium">Impersonate</span> to reproduce without asking for
-        screenshots.
+        screenshots. Mark items triaged to clear the sidebar badge.
       </p>
 
       <div className="mt-6">
@@ -47,15 +48,22 @@ export default async function FeedbackPage() {
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
                           {r.status}
                         </span>
-                      ) : null}
+                      ) : (
+                        <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                          open
+                        </span>
+                      )}
                       <time className="text-xs text-zinc-400">{formatDateTime(r.createdAt)}</time>
                     </div>
-                    <Link
-                      href={`/ops/organizations/${r.organizationId}`}
-                      className="text-sm font-medium text-emerald-700 hover:underline"
-                    >
-                      {r.orgName} ↗
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <FeedbackStatusActions id={r.id} status={r.status} />
+                      <Link
+                        href={`/ops/organizations/${r.organizationId}`}
+                        className="text-sm font-medium text-emerald-700 hover:underline"
+                      >
+                        {r.orgName} ↗
+                      </Link>
+                    </div>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-800">{r.message}</p>
                   <p className="mt-2 text-xs text-zinc-500">

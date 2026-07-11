@@ -9,7 +9,7 @@ How testers reach us, how we triage, and how we investigate without slowing them
 | Channel | Where | What happens |
 |---------|-------|--------------|
 | **In-app form** (primary) | Tenant app footer → **Send feedback** | Authenticated POST to `/api/feedback`. Stored in `TesterFeedback` with org id, user email, category, message, and page path. |
-| **Email notification** (optional) | Owner inbox via Resend | When `RESEND_API_KEY` and `FEEDBACK_CONTACT_TO` (or `MARKETING_CONTACT_TO`) are set, each submission also emails the team with reply-to set to the tester. |
+| **Email notification** | Operator inbox via Resend | When `RESEND_API_KEY` is set, each submission emails `FEEDBACK_CONTACT_TO` (or `MARKETING_CONTACT_TO`, or active `OperatorUser` emails) with reply-to set to the tester. |
 | **Marketing site** (prospects, not testers) | Landing page contact / early-access form | Separate pipeline → `MarketingInquiry` + `/api/marketing/contact`. Not used for logged-in design partners. |
 
 Testers should use **Send feedback** in the app so every report is tied to their organization automatically.
@@ -20,7 +20,7 @@ Testers should use **Send feedback** in the app so every report is tied to their
 
 | Queue | URL / location | Purpose |
 |-------|----------------|---------|
-| **Operator Feedback page** (canonical triage home) | `/ops/feedback` on the operator console | Newest-first list of all `TesterFeedback` rows. Open count at a glance. Link to Org 360 for each org. |
+| **Operator Feedback page** (canonical triage home) | `/ops/feedback` on the operator console | Newest-first list of all `TesterFeedback` rows. Open count badge in the sidebar; Attention Needed on Overview. Link to Org 360 for each org. **Mark triaged** / **Close** clears the badge. |
 | **GitHub Issues** | https://github.com/ellodanem/simplerosterplus/issues | Track bugs and features that need code changes. Create an issue when feedback requires engineering; paste the feedback id and org name in the issue body. |
 
 **Daily habit:** Check `/ops/feedback` (and the inbox if Resend is wired). For each open item:
@@ -28,7 +28,7 @@ Testers should use **Send feedback** in the app so every report is tied to their
 1. Read the message and note org + page path.
 2. If it needs a fix → open a GitHub issue, link the feedback id.
 3. If it's a how-to question → reply to the tester's email (reply-to on the notification).
-4. Mark mentally "triaged" (status field on `TesterFeedback` is reserved for a future ops action; GitHub issue link is the engineering source of truth today).
+4. Click **Mark triaged** (or **Close**) so the sidebar badge and Attention Needed alert clear.
 
 ---
 
@@ -61,7 +61,7 @@ When a tester reports "my roster looks wrong" or "punches didn't show up", use t
 Add to Vercel / `.env` when ready for email alerts (submissions are always stored in the database):
 
 ```bash
-FEEDBACK_CONTACT_TO="hello@simplerosterplus.com"   # falls back to MARKETING_CONTACT_TO
+FEEDBACK_CONTACT_TO="hello@simplerosterplus.com"   # optional; else MARKETING_CONTACT_TO, else OperatorUser emails
 RESEND_API_KEY="re_xxx"
 FEEDBACK_CONTACT_FROM="Simple Roster Plus <hello@simplerosterplus.com>"
 ```

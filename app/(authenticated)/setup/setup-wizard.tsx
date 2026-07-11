@@ -574,22 +574,14 @@ export function SetupWizard({
             >
               Back
             </button>
-            <div className="flex items-center gap-2">
-              <Link
-                href="/devices"
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
-              >
-                Connect a device (optional)
-              </Link>
-              <button
-                type="button"
-                onClick={finishSetup}
-                disabled={!canGoLive}
-                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-              >
-                Open the app
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={finishSetup}
+              disabled={!canGoLive}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
+            >
+              Open the app
+            </button>
           </div>
         </section>
       ) : null}

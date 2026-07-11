@@ -18,25 +18,40 @@ const NAV_ITEMS: NavItem[] = [
 // information architecture from docs/OPERATOR_CONSOLE.md is visible.
 const SOON_ITEMS = ["Users", "Feature Flags"] as const;
 
-export function OpsNav() {
+export function OpsNav({ openFeedbackCount = 0 }: { openFeedbackCount?: number }) {
   const pathname = usePathname();
 
   return (
     <nav className="flex flex-col gap-1 px-3 py-4 text-sm" aria-label="Operator">
       {NAV_ITEMS.map(({ href, label, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
+        const showBadge = href === "/ops/feedback" && openFeedbackCount > 0;
         return (
           <Link
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md px-3 py-2 font-medium transition-colors ${
+            aria-label={
+              showBadge
+                ? `${label}, ${openFeedbackCount} open`
+                : undefined
+            }
+            className={`flex items-center justify-between gap-2 rounded-md px-3 py-2 font-medium transition-colors ${
               active
                 ? "bg-emerald-600 text-white"
                 : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
             }`}
           >
-            {label}
+            <span>{label}</span>
+            {showBadge ? (
+              <span
+                className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-[10px] font-semibold tabular-nums ${
+                  active ? "bg-white/20 text-white" : "bg-rose-500 text-white"
+                }`}
+              >
+                {openFeedbackCount > 99 ? "99+" : openFeedbackCount}
+              </span>
+            ) : null}
           </Link>
         );
       })}

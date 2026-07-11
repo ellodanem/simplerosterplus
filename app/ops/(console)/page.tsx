@@ -23,15 +23,32 @@ export default async function OperatorOverviewPage() {
           label="Active orgs"
           value={o.activeOrgs}
           hint={o.suspendedOrgs > 0 ? `${o.suspendedOrgs} suspended` : `${o.totalOrgs} total`}
+          tint="emerald"
         />
-        <StatCard label="MRR" value={formatUsd(o.mrrUsd)} hint="from active subscriptions" />
-        <StatCard label="Trials ending (7d)" value={o.trialsEndingSoon} hint="needs follow-up" />
+        <StatCard
+          label="MRR"
+          value={formatUsd(o.mrrUsd)}
+          hint="from active subscriptions"
+          tint="sky"
+        />
+        <StatCard
+          label="Trials ending (7d)"
+          value={o.trialsEndingSoon}
+          hint="needs follow-up"
+          tint="amber"
+        />
         <StatCard
           label="Devices online"
           value={`${o.devicesOnline} / ${o.devicesTotal}`}
           hint={`${onlinePct}% online`}
+          tint="violet"
         />
-        <StatCard label="Punches today" value={o.punchesToday.toLocaleString()} hint="all orgs (UTC day)" />
+        <StatCard
+          label="Punches today"
+          value={o.punchesToday.toLocaleString()}
+          hint="all orgs (UTC day)"
+          tint="teal"
+        />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -48,27 +65,49 @@ export default async function OperatorOverviewPage() {
 
         <Card title="Attention needed">
           <ul className="divide-y divide-zinc-100">
-            {o.attention.length === 0 ? (
+            {o.attention.length === 0 && o.openFeedbackCount === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-zinc-500">
                 Nothing needs attention. 🎉
               </li>
             ) : (
-              o.attention.map((a) => (
-                <li key={`${a.organizationId}-${a.kind}`} className="px-4 py-3">
-                  <Link
-                    href={`/ops/organizations/${a.organizationId}`}
-                    className="flex items-center justify-between gap-2 hover:underline"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-zinc-900">
-                        {a.name}
+              <>
+                {o.openFeedbackCount > 0 ? (
+                  <li className="px-4 py-3">
+                    <Link
+                      href="/ops/feedback"
+                      className="flex items-center justify-between gap-2 hover:underline"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-zinc-900">
+                          Open feedback
+                        </span>
+                        <span className="block text-xs text-zinc-500">
+                          {o.openFeedbackCount === 1
+                            ? "1 submission waiting for triage"
+                            : `${o.openFeedbackCount} submissions waiting for triage`}
+                        </span>
                       </span>
-                      <span className="block text-xs text-zinc-500">{a.detail}</span>
-                    </span>
-                    <Pill tone={a.tone}>{a.kind.replace("_", " ")}</Pill>
-                  </Link>
-                </li>
-              ))
+                      <Pill tone="warn">feedback</Pill>
+                    </Link>
+                  </li>
+                ) : null}
+                {o.attention.map((a) => (
+                  <li key={`${a.organizationId}-${a.kind}`} className="px-4 py-3">
+                    <Link
+                      href={`/ops/organizations/${a.organizationId}`}
+                      className="flex items-center justify-between gap-2 hover:underline"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-zinc-900">
+                          {a.name}
+                        </span>
+                        <span className="block text-xs text-zinc-500">{a.detail}</span>
+                      </span>
+                      <Pill tone={a.tone}>{a.kind.replace("_", " ")}</Pill>
+                    </Link>
+                  </li>
+                ))}
+              </>
             )}
           </ul>
         </Card>

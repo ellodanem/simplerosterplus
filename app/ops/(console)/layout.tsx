@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireOperator } from "@/lib/ops/context";
+import { countOpenTesterFeedback } from "@/lib/ops/data";
 import { BrandMark } from "@/app/components/brand-logo";
 import { OpsNav } from "./ops-nav";
 import { OpsLogoutButton } from "./ops-logout-button";
@@ -13,6 +14,7 @@ export default async function OperatorConsoleLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   // Layer-2 gate (allow-list) in addition to the middleware JWT check.
   const operator = await requireOperator();
+  const openFeedbackCount = await countOpenTesterFeedback();
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
@@ -27,7 +29,7 @@ export default async function OperatorConsoleLayout({
           </span>
         </Link>
         <div className="flex-1 overflow-y-auto">
-          <OpsNav />
+          <OpsNav openFeedbackCount={openFeedbackCount} />
         </div>
         <div className="border-t border-zinc-800 p-3">
           <div className="flex items-center justify-between gap-2">

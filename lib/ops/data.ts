@@ -73,6 +73,7 @@ export type PlatformOverview = {
   devicesOnline: number;
   devicesTotal: number;
   punchesToday: number;
+  openFeedbackCount: number;
   planMix: { plan: string; count: number }[];
   signupSeries: DayPoint[];
   attention: AttentionItem[];
@@ -91,6 +92,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     devicesTotal,
     devicesOnline,
     punchesToday,
+    openFeedbackCount,
     planRows,
     activeSubs,
     signupSeries,
@@ -106,6 +108,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       where: { deletedAt: null, enabled: true, lastSeenAt: { gte: onlineSince } },
     }),
     prisma.attendanceLog.count({ where: { punchAt: { gte: todayStart } } }),
+    countOpenTesterFeedback(),
     prisma.organization.findMany({
       select: { plan: true, stripeSubscriptionId: true },
     }),
@@ -184,6 +187,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     devicesOnline,
     devicesTotal,
     punchesToday,
+    openFeedbackCount,
     planMix,
     signupSeries,
     attention,
@@ -638,6 +642,12 @@ export type TesterFeedbackRow = {
   createdAt: Date;
 };
 
+export type TesterFeedbackStatus = "open" | "triaged" | "closed";
+
+export async function countOpenTesterFeedback(): Promise<number> {
+  return prisma.testerFeedback.count({ where: { status: "open" } });
+}
+
 export async function listTesterFeedback(opts?: {
   limit?: number;
   status?: string;
@@ -647,6 +657,33 @@ export async function listTesterFeedback(opts?: {
     where: opts?.status ? { status: opts.status } : undefined,
     orderBy: { createdAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      organizationId: true,
+      orgName: true,
+      userEmail: true,
+      category: true,
+      message: true,
+      pageUrl: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function updateTesterFeedbackStatus(
+  id: string,
+  status: TesterFeedbackStatus,
+): Promise<TesterFeedbackRow | null> {
+  const existing = await prisma.testerFeedback.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existing) return null;
+
+  return prisma.testerFeedback.update({
+    where: { id },
+    data: { status },
     select: {
       id: true,
       organizationId: true,

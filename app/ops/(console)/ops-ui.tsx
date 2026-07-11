@@ -23,17 +23,32 @@ export function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
   );
 }
 
+export type StatTint = "emerald" | "sky" | "amber" | "violet" | "teal";
+
+const STAT_TINT: Record<StatTint, string> = {
+  emerald: "border-emerald-100 bg-emerald-50/80",
+  sky: "border-sky-100 bg-sky-50/80",
+  amber: "border-amber-100 bg-amber-50/80",
+  violet: "border-violet-100 bg-violet-50/70",
+  teal: "border-teal-100 bg-teal-50/80",
+};
+
 export function StatCard({
   label,
   value,
   hint,
+  tint,
 }: {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
+  /** Soft background tint — overview KPIs use this to stay distinct at a glance. */
+  tint?: StatTint;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
+    <div
+      className={`rounded-xl border p-4 ${tint ? STAT_TINT[tint] : "border-zinc-200 bg-white"}`}
+    >
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{value}</p>
       {hint ? <p className="mt-1 text-xs text-zinc-500">{hint}</p> : null}
