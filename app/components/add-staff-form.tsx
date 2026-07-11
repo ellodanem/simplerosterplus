@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { StaffEditValues } from "@/app/components/staff-edit-form";
 
 export function AddStaffForm({
@@ -47,6 +47,17 @@ export function AddStaffForm({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const singleLocation = locations.length === 1;
+
+  useEffect(() => {
+    if (locations.length === 0) {
+      setLocationId("");
+      return;
+    }
+    if (!locations.some((l) => l.id === locationId)) {
+      setLocationId(locations[0]!.id);
+    }
+  }, [locations, locationId]);
 
   function resetForm() {
     setFirstName("");
@@ -150,36 +161,38 @@ export function AddStaffForm({
         setError(data.error || "Could not add staff");
         return;
       }
-      const createdStaff =
-        data.staff && data.staff.id
-          ? ({
-              id: data.staff.id,
-              firstName: data.staff.firstName ?? firstName,
-              lastName: data.staff.lastName ?? lastName,
-              email: data.staff.email ?? email,
-              role: data.staff.staffRole?.name ?? data.staff.role ?? "",
-              roleId: data.staff.roleId ?? roleId,
-              departmentId: data.staff.departmentId ?? (departmentId || null),
-              departmentName: data.staff.department?.name ?? null,
-              locationId: data.staff.location?.id ?? locationId,
-              locationName: data.staff.location?.name ?? "",
-              deviceUserId: data.staff.deviceUserId ?? deviceUserId,
-              contactNumber: data.staff.contactNumber ?? contactNumber,
-              whatsappOptIn: Boolean(data.staff.whatsappOptIn),
-              dateOfBirth: data.staff.dateOfBirth?.slice(0, 10) ?? dateOfBirth,
-              startDate: data.staff.startDate?.slice(0, 10) ?? startDate,
-              punchExempt: Boolean(data.staff.punchExempt),
-              excludeFromRoster: Boolean(data.staff.excludeFromRoster),
-              archivedAt: data.staff.archivedAt ?? null,
-              isTestUser: Boolean(data.staff.isTestUser),
-              sortOrder:
-                typeof data.staff.sortOrder === "number" && Number.isFinite(data.staff.sortOrder)
-                  ? data.staff.sortOrder
-                  : 0,
-              canDelete: Boolean(data.staff.canDelete),
-            } satisfies StaffEditValues)
-          : null;
-      if (createdStaff && onSuccess) {
+      if (!data.staff?.id) {
+        setError("Could not add staff — incomplete response. Try again.");
+        return;
+      }
+      const createdStaff = {
+        id: data.staff.id,
+        firstName: data.staff.firstName ?? firstName,
+        lastName: data.staff.lastName ?? lastName,
+        email: data.staff.email ?? email,
+        role: data.staff.staffRole?.name ?? data.staff.role ?? "",
+        roleId: data.staff.roleId ?? roleId,
+        departmentId: data.staff.departmentId ?? (departmentId || null),
+        departmentName: data.staff.department?.name ?? null,
+        locationId: data.staff.location?.id ?? locationId,
+        locationName: data.staff.location?.name ?? "",
+        deviceUserId: data.staff.deviceUserId ?? deviceUserId,
+        contactNumber: data.staff.contactNumber ?? contactNumber,
+        whatsappOptIn: Boolean(data.staff.whatsappOptIn),
+        dateOfBirth: data.staff.dateOfBirth?.slice(0, 10) ?? dateOfBirth,
+        startDate: data.staff.startDate?.slice(0, 10) ?? startDate,
+        punchExempt: Boolean(data.staff.punchExempt),
+        excludeFromRoster: Boolean(data.staff.excludeFromRoster),
+        archivedAt: data.staff.archivedAt ?? null,
+        isTestUser: Boolean(data.staff.isTestUser),
+        sortOrder:
+          typeof data.staff.sortOrder === "number" && Number.isFinite(data.staff.sortOrder)
+            ? data.staff.sortOrder
+            : 0,
+        canDelete: Boolean(data.staff.canDelete),
+      } satisfies StaffEditValues;
+
+      if (onSuccess) {
         onSuccess(createdStaff);
       } else {
         router.refresh();
@@ -191,7 +204,7 @@ export function AddStaffForm({
 
       if (addAnother) {
         const addedName =
-          createdStaff?.firstName && createdStaff?.lastName
+          createdStaff.firstName && createdStaff.lastName
             ? `${createdStaff.firstName} ${createdStaff.lastName}`
             : `${firstName} ${lastName}`.trim() || "staff member";
         setMessage(`Added ${addedName}. Ready for another.`);
@@ -234,18 +247,22 @@ export function AddStaffForm({
         {requiredOnly ? null : (
           <Field id="ne" label="Email" type="email" value={email} onChange={setEmail} />
         )}
-        <SelectField
-          id="nloc"
-          label="Location"
-          required
-          value={locationId}
-          onChange={setLocationId}
-          options={
-            locations.length > 0
-              ? locations.map((l) => ({ value: l.id, label: l.name }))
-              : [{ value: "", label: "No locations — complete setup first" }]
-          }
-        />
+        {singleLocation ? (
+          <input type="hidden" name="locationId" value={locationId} />
+        ) : (
+          <SelectField
+            id="nloc"
+            label="Location"
+            required
+            value={locationId}
+            onChange={setLocationId}
+            options={
+              locations.length > 0
+                ? locations.map((l) => ({ value: l.id, label: l.name }))
+                : [{ value: "", label: "No locations — complete setup first" }]
+            }
+          />
+        )}
         <div>
           <label className="text-xs font-medium text-zinc-600" htmlFor="nrole">
             Role<span className="ml-0.5 text-red-600">*</span>

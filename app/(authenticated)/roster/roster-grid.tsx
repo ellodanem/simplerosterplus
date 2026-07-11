@@ -154,6 +154,7 @@ export function RosterGrid({
   weekStartYmd,
   weekStartWeekday,
   orgName,
+  locationId,
   locationName,
   weekPublished,
   weekEverPublished,
@@ -191,6 +192,7 @@ export function RosterGrid({
   weekStartYmd: string;
   weekStartWeekday: number;
   orgName: string;
+  locationId: string;
   locationName: string;
   weekPublished: boolean;
   /** True when this week was shared at least once; past-day locks apply only then. */
@@ -254,6 +256,11 @@ export function RosterGrid({
   const [pendingRequests, setPendingRequests] = useState(initialPendingCount);
   const [copying, setCopying] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  // Keep local rows aligned with server props after refresh / week remount.
+  useEffect(() => {
+    setStaffRows(staff);
+  }, [staff]);
 
   useEffect(() => {
     if (initialOpenRequests) setShowRequests(true);
@@ -1648,22 +1655,31 @@ export function RosterGrid({
           <AddStaffForm
             requiredOnly
             variant="modal"
-            locations={addStaffLocations}
+            // Roster is scoped to the default location — only offer that location.
+            locations={
+              addStaffLocations.some((l) => l.id === locationId)
+                ? addStaffLocations.filter((l) => l.id === locationId)
+                : [{ id: locationId, name: locationName }]
+            }
             roles={staffRoles}
             onRolesChange={setStaffRoles}
             onCancel={() => setShowAddStaff(false)}
             onSuccess={(added) => {
               setShowAddStaff(false);
               setNotice("Staff member added.");
-              setStaffRows((curr) => [
-                ...curr,
-                {
-                  id: added.id,
-                  firstName: added.firstName,
-                  lastName: added.lastName,
-                  role: added.role || null,
-                },
-              ]);
+              setStaffRows((curr) => {
+                if (curr.some((s) => s.id === added.id)) return curr;
+                return [
+                  ...curr,
+                  {
+                    id: added.id,
+                    firstName: added.firstName,
+                    lastName: added.lastName,
+                    role: added.role || null,
+                  },
+                ];
+              });
+              router.refresh();
             }}
           />
         ) : null}
