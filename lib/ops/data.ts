@@ -23,22 +23,11 @@ function startOfUtcDay(d = new Date()): Date {
 
 export type DayPoint = { day: string; count: number };
 
-async function dailySeries(
-  table: "Organization" | "AttendanceLog",
-  column: "createdAt" | "punchAt",
-  days: number,
-  organizationId?: string,
-): Promise<DayPoint[]> {
+async function dailyPunchSeries(days: number, organizationId?: string): Promise<DayPoint[]> {
   const since = new Date(Date.now() - days * DAY_MS);
-  // Build the query explicitly per table/column to keep identifiers static (no interpolation).
+  // Build the query explicitly per branch to keep identifiers static (no interpolation).
   let rows: Array<{ day: Date; count: bigint }>;
-  if (table === "Organization") {
-    rows = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
-      SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::bigint AS count
-      FROM "Organization"
-      WHERE "createdAt" >= ${since}
-      GROUP BY 1 ORDER BY 1`;
-  } else if (organizationId) {
+  if (organizationId) {
     rows = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
       SELECT date_trunc('day', "punchAt") AS day, COUNT(*)::bigint AS count
       FROM "AttendanceLog"
@@ -64,6 +53,18 @@ export type AttentionItem = {
   tone: "danger" | "warn";
 };
 
+/** Recent org signup with activation signal for the overview list (not a sparkline). */
+export type RecentSignupRow = {
+  id: string;
+  name: string;
+  plan: string | null;
+  subscriptionStatus: string | null;
+  suspendedAt: Date | null;
+  createdAt: Date;
+  /** Published a roster week or recorded at least one punch. */
+  activated: boolean;
+};
+
 export type PlatformOverview = {
   activeOrgs: number;
   totalOrgs: number;
@@ -75,7 +76,10 @@ export type PlatformOverview = {
   punchesToday: number;
   openFeedbackCount: number;
   planMix: { plan: string; count: number }[];
-  signupSeries: DayPoint[];
+  /** Orgs created in the last 90 days (excludes demo / onboarding sandbox), newest first. */
+  recentSignups: RecentSignupRow[];
+  signups90d: number;
+  activated90d: number;
   attention: AttentionItem[];
 };
 
@@ -84,6 +88,8 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   const onlineSince = new Date(now - ONLINE_THRESHOLD_MS);
   const in7Days = new Date(now + 7 * DAY_MS);
   const todayStart = startOfUtcDay();
+
+  const signupsSince = new Date(now - 90 * DAY_MS);
 
   const [
     totalOrgs,
@@ -95,7 +101,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     openFeedbackCount,
     planRows,
     activeSubs,
-    signupSeries,
+    recentOrgRows,
     attentionOrgs,
   ] = await Promise.all([
     prisma.organization.count(),
@@ -116,7 +122,22 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       where: { subscriptionStatus: "active" },
       select: { plan: true, mrrCents: true, stripeSubscriptionId: true },
     }),
-    dailySeries("Organization", "createdAt", 90),
+    prisma.organization.findMany({
+      where: {
+        createdAt: { gte: signupsSince },
+        isDemo: false,
+        isOnboardingSandbox: false,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        subscriptionStatus: true,
+        suspendedAt: true,
+        createdAt: true,
+      },
+    }),
     prisma.organization.findMany({
       where: {
         OR: [
@@ -135,6 +156,32 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       take: 12,
     }),
   ]);
+
+  const recentIds = recentOrgRows.map((o) => o.id);
+  const activatedIds = new Set<string>();
+  if (recentIds.length > 0) {
+    const [publishedGroups, punchGroups] = await Promise.all([
+      prisma.rosterWeek.groupBy({
+        by: ["organizationId"],
+        where: { organizationId: { in: recentIds }, status: "published" },
+        _count: { _all: true },
+      }),
+      prisma.attendanceLog.groupBy({
+        by: ["organizationId"],
+        where: { organizationId: { in: recentIds } },
+        _count: { _all: true },
+      }),
+    ]);
+    for (const g of publishedGroups) activatedIds.add(g.organizationId);
+    for (const g of punchGroups) activatedIds.add(g.organizationId);
+  }
+
+  const recentSignups: RecentSignupRow[] = recentOrgRows.map((o) => ({
+    ...o,
+    activated: activatedIds.has(o.id),
+  }));
+  const signups90d = recentSignups.length;
+  const activated90d = recentSignups.filter((o) => o.activated).length;
 
   const mrrUsd = activeSubs.reduce((sum, o) => sum + orgMonthlyUsd(o), 0);
   const activeOrgs = totalOrgs - suspendedOrgs;
@@ -189,7 +236,9 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     punchesToday,
     openFeedbackCount,
     planMix,
-    signupSeries,
+    recentSignups,
+    signups90d,
+    activated90d,
     attention,
   };
 }
@@ -329,7 +378,7 @@ export async function getOrganizationDetail(id: string) {
         take: 20,
         include: { operator: { select: { email: true } } },
       }),
-      dailySeries("AttendanceLog", "punchAt", 30, id),
+      dailyPunchSeries(30, id),
     ]);
 
   return {
