@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AddStaffForm } from "@/app/components/add-staff-form";
 import { Modal } from "@/app/components/modal";
 import { OvertimeSettingsModal } from "@/app/components/overtime-settings-modal";
@@ -71,14 +71,20 @@ type HolidayCalendarConfig = {
 
 type BlockReason = "holiday" | "vacation" | "dayOff";
 
+type PopoverTriggerRect = {
+  /** Viewport Y of the trigger top edge. */
+  top: number;
+  /** Viewport Y of the trigger bottom edge. */
+  bottom: number;
+  /** Viewport X of the trigger left edge. */
+  left: number;
+};
 type CellAnchor = {
   type: "cell";
   staffId: string;
   ymd: string;
-  top: number;
-  left: number;
-};
-type RowAnchor = { type: "row"; staffId: string; top: number; left: number };
+} & PopoverTriggerRect;
+type RowAnchor = { type: "row"; staffId: string } & PopoverTriggerRect;
 type Anchor = CellAnchor | RowAnchor;
 
 const FALLBACK_COLOR = "#475569";
@@ -534,8 +540,9 @@ export function RosterGrid({
       type: "cell",
       staffId: s.id,
       ymd,
-      top: rect.bottom + window.scrollY + 4,
-      left: rect.left + window.scrollX,
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
     });
   }
 
@@ -545,8 +552,9 @@ export function RosterGrid({
     setAnchor({
       type: "row",
       staffId: s.id,
-      top: rect.bottom + window.scrollY + 4,
-      left: rect.left + window.scrollX,
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
     });
   }
 
@@ -2012,6 +2020,9 @@ function ShiftPopover({
   onManagePresets: () => void;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -2020,9 +2031,26 @@ function ShiftPopover({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // clamp horizontally within viewport
-  const maxLeft = typeof window !== "undefined" ? window.scrollX + window.innerWidth - 280 : 0;
-  const left = Math.min(anchor.left, maxLeft);
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+
+    const gap = 4;
+    const margin = 8;
+    const height = el.offsetHeight;
+    const width = el.offsetWidth;
+    const spaceBelow = window.innerHeight - anchor.bottom - gap;
+    const spaceAbove = anchor.top - gap;
+    const placeAbove = height > spaceBelow && spaceAbove > spaceBelow;
+
+    let top = placeAbove ? anchor.top - gap - height : anchor.bottom + gap;
+    top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
+
+    let left = Math.min(anchor.left, window.innerWidth - width - margin);
+    left = Math.max(margin, left);
+
+    setPos({ top, left });
+  }, [anchor]);
 
   return (
     <>
@@ -2033,8 +2061,14 @@ function ShiftPopover({
         className="fixed inset-0 z-30 cursor-default bg-transparent"
       />
       <div
-        style={{ top: anchor.top, left, width: 260 }}
-        className="absolute z-40 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg"
+        ref={panelRef}
+        style={{
+          top: pos?.top ?? anchor.bottom + 4,
+          left: pos?.left ?? anchor.left,
+          width: 260,
+          visibility: pos ? "visible" : "hidden",
+        }}
+        className="fixed z-40 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg"
         role="dialog"
         aria-label="Choose shift"
       >
