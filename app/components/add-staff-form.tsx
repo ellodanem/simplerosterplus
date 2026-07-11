@@ -10,6 +10,8 @@ export function AddStaffForm({
   locations = [],
   roles = [],
   departments = [],
+  /** When set (roster quick-add), staff start on this week and won't appear on earlier weeks. */
+  rosterWeekStartYmd,
   onRolesChange,
   onSuccess,
   onCancel,
@@ -21,6 +23,7 @@ export function AddStaffForm({
   locations?: Array<{ id: string; name: string }>;
   roles?: Array<{ id: string; name: string }>;
   departments?: Array<{ id: string; name: string }>;
+  rosterWeekStartYmd?: string;
   onRolesChange?: (roles: Array<{ id: string; name: string }>) => void;
   /** Called after a successful add. If provided, the form will not call router.refresh itself. */
   onSuccess?: (staff: StaffEditValues) => void;
@@ -59,6 +62,12 @@ export function AddStaffForm({
     }
   }, [locations, locationId]);
 
+  useEffect(() => {
+    if (rosterWeekStartYmd) {
+      setStartDate(rosterWeekStartYmd);
+    }
+  }, [rosterWeekStartYmd]);
+
   function resetForm() {
     setFirstName("");
     setLastName("");
@@ -70,7 +79,7 @@ export function AddStaffForm({
     setContactNumber("");
     setWhatsappOptIn(false);
     setDateOfBirth("");
-    setStartDate("");
+    setStartDate(rosterWeekStartYmd ?? "");
     setExcludeFromRoster(false);
     setIsTestUser(false);
     setShowQuickAddRole(false);
@@ -123,6 +132,8 @@ export function AddStaffForm({
       return;
     }
 
+    const effectiveStartDate = rosterWeekStartYmd ?? (startDate || null);
+
     setPending(true);
     try {
       const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
@@ -141,7 +152,8 @@ export function AddStaffForm({
           contactNumber: contactNumber.trim() || null,
           whatsappOptIn: requiredOnly ? false : whatsappOptIn,
           dateOfBirth: dateOfBirth || null,
-          startDate: startDate || null,
+          startDate: effectiveStartDate,
+          rosterWeekStartYmd: rosterWeekStartYmd ?? null,
           excludeFromRoster: requiredOnly ? false : excludeFromRoster,
           isTestUser: requiredOnly ? false : isTestUser,
         }),
@@ -233,6 +245,12 @@ export function AddStaffForm({
     >
       {variant === "page" ? (
         <h2 className="text-sm font-semibold text-zinc-800">Add staff</h2>
+      ) : null}
+      {rosterWeekStartYmd ? (
+        <p className={`text-xs text-zinc-500 ${variant === "page" ? "mt-2" : "mb-3"}`}>
+          Starts on this roster week ({rosterWeekStartYmd}) and won&apos;t appear on earlier
+          weeks.
+        </p>
       ) : null}
       <div className={`grid gap-3 sm:grid-cols-2 ${variant === "page" ? "mt-3" : ""}`}>
         <Field

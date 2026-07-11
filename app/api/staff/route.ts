@@ -7,6 +7,9 @@ import { getDefaultLocation } from "@/lib/location";
 import { allowStaffDeleteInDev } from "@/lib/staff-archive";
 import { parseOptionalString, parseOptionalYmd } from "@/lib/staff-input";
 import { checkStaffLimit } from "@/lib/plan-limits";
+import { ymdForDbDate } from "@/lib/roster-week";
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const STAFF_SELECT = {
   id: true,
@@ -92,6 +95,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "startDate must be YYYY-MM-DD" }, { status: 400 });
   }
 
+  const rosterWeekStartYmd =
+    typeof body.rosterWeekStartYmd === "string" && YMD_RE.test(body.rosterWeekStartYmd.trim())
+      ? body.rosterWeekStartYmd.trim()
+      : null;
+
+  let effectiveStartDate = startDate ?? null;
+  if (rosterWeekStartYmd) {
+    if (!effectiveStartDate) {
+      effectiveStartDate = parseOptionalYmd(rosterWeekStartYmd) ?? null;
+    } else if (ymdForDbDate(effectiveStartDate) < rosterWeekStartYmd) {
+      return NextResponse.json(
+        { error: "Start date cannot be before the roster week they are added on." },
+        { status: 400 },
+      );
+    }
+  }
+
   const isTestUser = body.isTestUser === true;
   const excludeFromRoster =
     typeof body.excludeFromRoster === "boolean" ? body.excludeFromRoster : false;
@@ -167,7 +187,7 @@ export async function POST(request: Request) {
         whatsappOptIn,
         whatsappOptInAt: whatsappOptIn ? new Date() : null,
         dateOfBirth: dateOfBirth ?? null,
-        startDate: startDate ?? null,
+        startDate: effectiveStartDate,
         isActive: true,
         isTestUser,
         excludeFromRoster,

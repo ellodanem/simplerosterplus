@@ -17,9 +17,21 @@ function isPlannableForRoster(s: RosterMembershipStaff): boolean {
   return !isStaffArchived(s);
 }
 
+/** Staff without a start date are treated as long-tenured (visible on all roster weeks). */
+export function staffStartedOnOrBeforeWeekEnd(
+  startDate: Date | null,
+  weekEndYmd: string,
+): boolean {
+  if (!startDate) return true;
+  return ymdForDbDate(startDate) <= weekEndYmd;
+}
+
 /**
  * Who may appear as rows on the roster grid for a given week.
  * Order: exclude from roster → start-date gate → archived vs past-with-entries.
+ *
+ * Start date is the earliest week a person may appear: weeks that end before
+ * their start date hide them, even when they have older roster entries.
  */
 export function filterRosterStaffForWeek<T extends RosterMembershipStaff>(
   staff: T[],
@@ -33,11 +45,7 @@ export function filterRosterStaffForWeek<T extends RosterMembershipStaff>(
 
   return staff.filter((s) => {
     if (s.excludeFromRoster) return false;
-
-    if (s.startDate) {
-      const startYmd = ymdForDbDate(s.startDate);
-      if (startYmd > args.weekEndYmd) return false;
-    }
+    if (!staffStartedOnOrBeforeWeekEnd(s.startDate, args.weekEndYmd)) return false;
 
     if (past) {
       if (isPlannableForRoster(s)) return true;

@@ -368,6 +368,7 @@ export function StaffEditForm({
           type="date"
           value={v.startDate}
           onChange={(x) => update("startDate", x)}
+          help="First day on the roster. Weeks that end before this date hide this person, even if they have older shifts."
         />
         <div className="sm:col-span-2 space-y-3">
           <label className="flex items-start gap-2 text-sm text-zinc-700">

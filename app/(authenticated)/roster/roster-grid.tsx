@@ -1655,6 +1655,7 @@ export function RosterGrid({
           <AddStaffForm
             requiredOnly
             variant="modal"
+            rosterWeekStartYmd={weekStartYmd}
             // Roster is scoped to the default location — only offer that location.
             locations={
               addStaffLocations.some((l) => l.id === locationId)
