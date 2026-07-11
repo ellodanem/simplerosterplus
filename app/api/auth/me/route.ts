@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, isReadOnlySession } from "@/lib/session";
+import { getSession, isOnboardingSimulateSession, isReadOnlySession } from "@/lib/session";
 
 export async function GET() {
   const session = await getSession();
@@ -12,6 +12,7 @@ export async function GET() {
       email: session.email,
       organizationId: session.orgId,
       readOnly: isReadOnlySession(session),
+      onboardingSimulate: isOnboardingSimulateSession(session),
       orgName: session.orgName ?? null,
     },
   });

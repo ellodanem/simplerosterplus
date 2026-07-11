@@ -11,7 +11,7 @@ import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
 import { subscriptionNeedsPaymentAttention } from "@/lib/billing-access";
 import { getPlanUsage } from "@/lib/plan-limits";
 import { prisma } from "@/lib/prisma";
-import { getSession, isReadOnlySession } from "@/lib/session";
+import { getSession, isOnboardingSimulateSession, isReadOnlySession } from "@/lib/session";
 
 export default async function AuthenticatedLayout({
   children,
@@ -24,6 +24,8 @@ export default async function AuthenticatedLayout({
   }
 
   const readOnly = isReadOnlySession(session);
+  const onboardingSimulate = isOnboardingSimulateSession(session);
+  const operatorSession = readOnly || onboardingSimulate;
 
   const org = await prisma.organization.findUnique({
     where: { id: session.orgId },
@@ -50,21 +52,22 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="flex min-h-full flex-col">
-      {readOnly ? (
+      {operatorSession ? (
         <ImpersonationBanner
           orgName={session.orgName ?? "Organization"}
           asEmail={session.email}
+          mode={onboardingSimulate ? "onboarding" : "readonly"}
         />
       ) : null}
       {org?.isDemo && org.demoExpiresAt ? (
         <DemoSandboxBanner demoExpiresAt={org.demoExpiresAt} />
       ) : null}
-      {!readOnly && paymentAttention ? (
+      {!operatorSession && paymentAttention ? (
         <div className="mx-auto w-full max-w-7xl px-4 pt-4">
           <BillingStatusBanner needsPaymentAttention />
         </div>
       ) : null}
-      {!readOnly && planUsage && planUsage.warnings.length > 0 ? (
+      {!operatorSession && planUsage && planUsage.warnings.length > 0 ? (
         <div className="mx-auto w-full max-w-7xl px-4 pt-4">
           <PlanLimitBanner warnings={planUsage.warnings} />
         </div>
@@ -85,7 +88,7 @@ export default async function AuthenticatedLayout({
             <span className="truncate max-w-[200px]" title={session.email}>
               {session.email}
             </span>
-            <LogoutButton readOnly={readOnly} />
+            <LogoutButton readOnly={operatorSession} />
           </div>
         </div>
       </header>

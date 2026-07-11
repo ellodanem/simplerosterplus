@@ -12,6 +12,7 @@ import {
   OPERATOR_JWT_AUDIENCE,
 } from "@/lib/ops/auth-cookie";
 import { clerkConfigured, tenantSignInAbsoluteUrl, tenantSignInPath } from "@/lib/clerk/config";
+import { isOnboardingSetupWritePath } from "@/lib/ops/setup-write-paths";
 
 function secretKey(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -151,7 +152,7 @@ async function gateOperator(
 
 async function verifyTenantJwt(
   request: NextRequest,
-): Promise<{ valid: boolean; readOnly?: boolean }> {
+): Promise<{ valid: boolean; readOnly?: boolean; onboardingSimulate?: boolean }> {
   const key = secretKey();
   if (key.length === 0) return { valid: false };
 
@@ -160,7 +161,11 @@ async function verifyTenantJwt(
 
   try {
     const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
-    return { valid: true, readOnly: payload.readOnly === true };
+    return {
+      valid: true,
+      readOnly: payload.readOnly === true,
+      onboardingSimulate: payload.onboardingSimulate === true,
+    };
   } catch {
     return { valid: false };
   }
@@ -212,7 +217,17 @@ async function handleRequest(
   ) {
     const method = request.method;
     if (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE") {
-      if (jwtSession.valid && jwtSession.readOnly) {
+      if (jwtSession.valid && jwtSession.onboardingSimulate) {
+        if (!isOnboardingSetupWritePath(pathname)) {
+          return NextResponse.json(
+            {
+              error:
+                "Onboarding simulation — only setup wizard changes are allowed. End the session to return to ops.",
+            },
+            { status: 403 },
+          );
+        }
+      } else if (jwtSession.valid && jwtSession.readOnly) {
         return NextResponse.json(
           { error: "Read-only operator session — changes are not allowed." },
           { status: 403 },

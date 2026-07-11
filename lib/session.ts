@@ -11,7 +11,12 @@ export type SessionPayload = {
   email: string;
   /** When true the session is view-only (operator impersonation). Mutations are rejected. */
   readOnly?: boolean;
-  /** OperatorUser.id that started impersonation; present only on read-only sessions. */
+  /**
+   * Operator onboarding simulation: setup-wizard writes are allowed; all other
+   * mutations stay blocked in middleware.
+   */
+  onboardingSimulate?: boolean;
+  /** OperatorUser.id that started impersonation / simulation. */
   impersonatedBy?: string;
   /** Organization display name — shown in the impersonation banner. */
   orgName?: string;
@@ -20,6 +25,7 @@ export type SessionPayload = {
 export type SignSessionOptions = {
   maxAgeSec?: number;
   readOnly?: boolean;
+  onboardingSimulate?: boolean;
   impersonatedBy?: string;
   orgName?: string;
 };
@@ -36,6 +42,19 @@ export function isReadOnlySession(session: SessionPayload): boolean {
   return session.readOnly === true;
 }
 
+export function isOnboardingSimulateSession(session: SessionPayload): boolean {
+  return session.onboardingSimulate === true;
+}
+
+/** Operator-minted tenant session (read-only view-as or onboarding simulation). */
+export function isOperatorTenantSession(session: SessionPayload): boolean {
+  return (
+    isReadOnlySession(session) ||
+    isOnboardingSimulateSession(session) ||
+    Boolean(session.impersonatedBy)
+  );
+}
+
 export async function signSession(
   payload: SessionPayload,
   opts?: SignSessionOptions,
@@ -45,6 +64,7 @@ export async function signSession(
     email: payload.email,
   };
   if (opts?.readOnly) claims.readOnly = true;
+  if (opts?.onboardingSimulate) claims.onboardingSimulate = true;
   if (opts?.impersonatedBy) claims.impersonatedBy = opts.impersonatedBy;
   if (opts?.orgName) claims.orgName = opts.orgName;
 
@@ -67,6 +87,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 
     const session: SessionPayload = { sub, orgId, email };
     if (payload.readOnly === true) session.readOnly = true;
+    if (payload.onboardingSimulate === true) session.onboardingSimulate = true;
     if (typeof payload.impersonatedBy === "string") session.impersonatedBy = payload.impersonatedBy;
     if (typeof payload.orgName === "string") session.orgName = payload.orgName;
     return session;
@@ -90,7 +111,10 @@ export async function getSession(): Promise<SessionPayload | null> {
   return null;
 }
 
-/** Reject mutating handlers when the caller is in a read-only impersonation session. */
+/**
+ * Reject mutating handlers when the caller is in a read-only impersonation session.
+ * Onboarding-simulation sessions are writable only for setup paths (enforced in middleware).
+ */
 export async function requireWritableSession(): Promise<SessionPayload | NextResponse> {
   const session = await getSession();
   if (!session) {

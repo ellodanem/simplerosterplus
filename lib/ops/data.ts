@@ -198,6 +198,7 @@ export type OrgListRow = {
   plan: string | null;
   subscriptionStatus: string | null;
   isDemo: boolean;
+  isOnboardingSandbox: boolean;
   suspendedAt: Date | null;
   trialEndsAt: Date | null;
   createdAt: Date;
@@ -225,6 +226,7 @@ export async function listOrganizationsForOps(search?: string): Promise<OrgListR
       stripeSubscriptionId: true,
       subscriptionStatus: true,
       isDemo: true,
+      isOnboardingSandbox: true,
       suspendedAt: true,
       trialEndsAt: true,
       createdAt: true,
@@ -291,6 +293,7 @@ export async function getOrganizationDetail(id: string) {
       trialEndsAt: true,
       isDemo: true,
       demoExpiresAt: true,
+      isOnboardingSandbox: true,
       deviceTrialStartedAt: true,
       deviceTrialExpiresAt: true,
       deviceTrialExtensionUsed: true,

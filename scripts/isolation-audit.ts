@@ -5,7 +5,8 @@
 import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword, verifyPassword } from "../lib/password";
-import { signSession, verifySessionToken, isReadOnlySession } from "../lib/session";
+import { signSession, verifySessionToken, isReadOnlySession, isOnboardingSimulateSession } from "../lib/session";
+import { isOnboardingSetupWritePath } from "../lib/ops/setup-write-paths";
 
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
@@ -184,6 +185,30 @@ async function testImpersonationReadOnly() {
   assert(session !== null && isReadOnlySession(session), "readOnly flag set");
 }
 
+async function testOnboardingSimulateJwt() {
+  console.log("\nOnboarding simulate JWT:");
+
+  const token = await signSession(
+    {
+      sub: "sandbox-user",
+      orgId: "sandbox-org",
+      email: "onboarding-sandbox@ops.local",
+    },
+    {
+      onboardingSimulate: true,
+      impersonatedBy: "ops-user",
+      orgName: "Onboarding Sandbox",
+    },
+  );
+  const session = await verifySessionToken(token);
+  assert(session !== null, "simulate token verifies");
+  assert(session !== null && isOnboardingSimulateSession(session), "onboardingSimulate flag set");
+  assert(session !== null && !isReadOnlySession(session), "simulate is not readOnly");
+  assert(isOnboardingSetupWritePath("/api/setup/business"), "setup business allowed");
+  assert(isOnboardingSetupWritePath("/api/staff"), "staff create allowed");
+  assert(!isOnboardingSetupWritePath("/api/roster/weeks/x/entries"), "roster entries blocked");
+}
+
 async function main() {
   if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 16) {
     console.error("AUTH_SECRET missing — cannot run full audit.");
@@ -203,6 +228,7 @@ async function main() {
   await testCrossOrgMutations(orgA, orgB);
   await testLoginDisambiguation();
   await testImpersonationReadOnly();
+  await testOnboardingSimulateJwt();
 
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

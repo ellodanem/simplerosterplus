@@ -10,6 +10,7 @@ export type AuthContext = {
   clerkUserId: string | null;
   orgRole: AppUserRole | null;
   readOnly: boolean;
+  onboardingSimulate: boolean;
   impersonatedBy: string | null;
   orgName: string | null;
 };
@@ -22,6 +23,7 @@ function fromSession(session: SessionPayload): AuthContext {
     clerkUserId: null,
     orgRole: null,
     readOnly: session.readOnly === true,
+    onboardingSimulate: session.onboardingSimulate === true,
     impersonatedBy: session.impersonatedBy ?? null,
     orgName: session.orgName ?? null,
   };
@@ -32,7 +34,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const session = await getSession();
   if (!session) return null;
 
-  if (session.readOnly || !clerkConfigured()) {
+  if (session.readOnly || session.onboardingSimulate || !clerkConfigured()) {
     return fromSession(session);
   }
 
@@ -48,6 +50,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     clerkUserId: appUser?.clerkUserId ?? null,
     orgRole: appUser?.role ?? null,
     readOnly: false,
+    onboardingSimulate: false,
     impersonatedBy: null,
     orgName: null,
   };

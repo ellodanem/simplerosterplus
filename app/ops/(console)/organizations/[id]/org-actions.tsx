@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SimulateOnboardingButton } from "../../simulate-onboarding-button";
 
 const ROLE_RANK: Record<string, number> = {
   readonly: 0,
@@ -28,6 +29,7 @@ export function OrgActions({
   orgId,
   suspended,
   isDemo,
+  isOnboardingSandbox,
   role,
   stripeConfigured,
   stripeLinked,
@@ -35,6 +37,7 @@ export function OrgActions({
   orgId: string;
   suspended: boolean;
   isDemo: boolean;
+  isOnboardingSandbox: boolean;
   role: string;
   stripeConfigured: boolean;
   stripeLinked: boolean;
@@ -92,6 +95,8 @@ export function OrgActions({
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {isOnboardingSandbox ? <SimulateOnboardingButton role={role} compact /> : null}
+
         {canSupport ? (
           <button
             type="button"

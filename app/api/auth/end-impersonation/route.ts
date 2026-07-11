@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth-cookie";
 import { recordOperatorAudit } from "@/lib/ops/audit";
-import { getSession, isReadOnlySession } from "@/lib/session";
+import { getSession, isOperatorTenantSession, isOnboardingSimulateSession } from "@/lib/session";
 
-// End a read-only operator impersonation session and return to the operator console.
+// End an operator impersonation or onboarding-simulation session and return to ops.
 export async function POST() {
   const session = await getSession();
-  if (!session || !isReadOnlySession(session)) {
-    return NextResponse.json({ error: "Not in an impersonation session" }, { status: 400 });
+  if (!session || !isOperatorTenantSession(session)) {
+    return NextResponse.json({ error: "Not in an operator tenant session" }, { status: 400 });
   }
 
   if (session.impersonatedBy) {
     await recordOperatorAudit({
       operatorUserId: session.impersonatedBy,
-      action: "impersonate.end",
+      action: isOnboardingSimulateSession(session)
+        ? "onboarding.simulate.end"
+        : "impersonate.end",
       targetType: "organization",
       targetId: session.orgId,
       organizationId: session.orgId,

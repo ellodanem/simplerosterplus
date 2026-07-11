@@ -4,6 +4,7 @@ import { listOrganizationsForOps } from "@/lib/ops/data";
 import { formatUsd, planLabel, subscriptionStatusLabel, subscriptionStatusTone } from "@/lib/ops/billing";
 import { Card, Pill, formatDate } from "../ops-ui";
 import { CreateOrgForm } from "./create-org-form";
+import { SimulateOnboardingButton } from "../simulate-onboarding-button";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,10 @@ export default async function OrganizationsPage({
           <p className="mt-1 text-sm text-zinc-600">Every tenant on the platform.</p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <CreateOrgForm role={operator.role} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SimulateOnboardingButton role={operator.role} />
+            <CreateOrgForm role={operator.role} />
+          </div>
           <form method="get" className="flex items-center gap-2">
           <input
             type="search"
@@ -78,6 +82,7 @@ export default async function OrganizationsPage({
                       <div className="text-xs text-zinc-500">
                         {o.locations} location{o.locations === 1 ? "" : "s"}
                         {o.isDemo ? " · demo" : ""}
+                        {o.isOnboardingSandbox ? " · onboarding sandbox" : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-600">{planLabel(o.plan)}</td>

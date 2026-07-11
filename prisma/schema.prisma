@@ -46,6 +46,8 @@ model Organization {
   isDemo               Boolean  @default(false)
   /// When a demo sandbox should be auto-reclaimed.
   demoExpiresAt        DateTime?
+  /// Internal ops org used to replay `/setup` without creating a real customer.
+  isOnboardingSandbox  Boolean  @default(false)
   /// When the free-tier device sync trial started (first terminal contact). See PRICING.md.
   deviceTrialStartedAt DateTime?
   /// When live device ingest ends for free orgs without a paid plan.
