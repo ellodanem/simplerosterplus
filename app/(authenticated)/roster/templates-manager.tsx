@@ -180,18 +180,21 @@ export function TemplatesManager({
                 </button>
               );
             })}
+            {variant === "setup" ? (
+              <button
+                type="button"
+                onClick={() => setShowCustomForm((open) => !open)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  showCustomForm
+                    ? "bg-zinc-100 text-zinc-800 ring-1 ring-zinc-300"
+                    : "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-zinc-100"
+                }`}
+              >
+                {showCustomForm ? "Hide custom shift" : "+ Custom shift"}
+              </button>
+            ) : null}
           </div>
         </div>
-      ) : null}
-
-      {variant === "setup" ? (
-        <button
-          type="button"
-          onClick={() => setShowCustomForm((open) => !open)}
-          className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
-        >
-          {showCustomForm ? "Hide custom shift form" : "Add a custom shift"}
-        </button>
       ) : null}
 
       {showCustomForm ? (
