@@ -55,6 +55,8 @@ export function SetupWizard({
 
   const [showOvertime, setShowOvertime] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [sampleStaffSaving, setSampleStaffSaving] = useState(false);
+  const [sampleStaffError, setSampleStaffError] = useState<string | null>(null);
 
   const progress = useMemo(() => {
     const order: StepId[] = ["business", "shifts", "roles", "staff", "attendance", "go-live"];
@@ -69,6 +71,40 @@ export function SetupWizard({
     if (!res.ok || !("state" in body)) return;
     setState(body.state);
     setCompleteness(body.completeness);
+    setStaffCount(body.state.staffCount);
+  }
+
+  async function addSampleStaff() {
+    setSampleStaffError(null);
+    setSampleStaffSaving(true);
+    try {
+      const res = await fetch("/api/setup/sample-staff", { method: "POST" });
+      const body = (await res.json().catch(() => ({}))) as {
+        created?: number;
+        skipped?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        setSampleStaffError(body.error ?? "Could not add sample staff.");
+        return;
+      }
+      if (body.skipped) {
+        setSampleStaffError(body.message ?? "Staff already exist.");
+        await refreshState();
+        return;
+      }
+      const created = body.created ?? 0;
+      setStaffCount(created);
+      setToast(
+        created === 1
+          ? "Added 1 sample person. Replace them anytime on Staff."
+          : `Added ${created} sample people. Replace them anytime on Staff.`,
+      );
+      await refreshState();
+    } finally {
+      setSampleStaffSaving(false);
+    }
   }
 
   async function saveBusiness() {
@@ -370,6 +406,26 @@ export function SetupWizard({
               )
             </span>
           </div>
+
+          {staffCount === 0 && roles.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-dashed border-zinc-300 bg-white px-3 py-3">
+              <p className="text-sm text-zinc-700">
+                Want a quick look first? Add sample people so you can try the roster — replace them
+                anytime.
+              </p>
+              <button
+                type="button"
+                onClick={addSampleStaff}
+                disabled={sampleStaffSaving}
+                className="mt-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-60"
+              >
+                {sampleStaffSaving ? "Adding…" : "Add 5 sample staff"}
+              </button>
+              {sampleStaffError ? (
+                <p className="mt-2 text-sm text-red-600">{sampleStaffError}</p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-4">
             <AddStaffForm
