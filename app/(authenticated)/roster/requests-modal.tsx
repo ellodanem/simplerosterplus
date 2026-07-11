@@ -50,7 +50,9 @@ type ListResponse = {
 type Filter = "requested" | "all";
 export type RequestChange =
   | { kind: "approved"; request: LeaveRequest; clearedDates: string[] }
-  | { kind: "deletedApproved"; request: LeaveRequest };
+  | { kind: "deletedApproved"; request: LeaveRequest }
+  | { kind: "shiftPreferenceSet"; request: LeaveRequest }
+  | { kind: "shiftPreferenceClear"; request: LeaveRequest };
 
 function isLeaveRequest(req: LeaveRequest): boolean {
   return req.type === "vacation" || req.type === "dayOff";
@@ -188,6 +190,12 @@ export function RequestsModal({
           request: body.request,
           clearedDates: body.clearedDates ?? body.conflictDates ?? [],
         });
+      } else if (body.request?.type === "shiftRequest") {
+        if (action === "approve") {
+          onRequestChanged({ kind: "shiftPreferenceSet", request: body.request });
+        } else {
+          onRequestChanged({ kind: "shiftPreferenceClear", request: body.request });
+        }
       }
     } catch (e) {
       setError((e as Error).message);
@@ -213,6 +221,11 @@ export function RequestsModal({
       await load(filter, { silent: true });
       if (req.status === "approved" && body.request && isLeaveRequest(body.request)) {
         onRequestChanged({ kind: "deletedApproved", request: body.request });
+      } else if (
+        body.request?.type === "shiftRequest" &&
+        (req.status === "requested" || req.status === "approved")
+      ) {
+        onRequestChanged({ kind: "shiftPreferenceClear", request: body.request });
       }
     } catch (e) {
       setError((e as Error).message);
@@ -314,9 +327,12 @@ export function RequestsModal({
             <CreateRequestForm
               staff={sortedStaff}
               shiftTemplates={shiftTemplates}
-              onCreated={() => {
+              onCreated={(created) => {
                 setShowCreate(false);
                 load(filter, { silent: true });
+                if (created?.type === "shiftRequest" && created.status === "requested") {
+                  onRequestChanged({ kind: "shiftPreferenceSet", request: created });
+                }
               }}
               onError={setError}
             />
@@ -749,7 +765,7 @@ function CreateRequestForm({
 }: {
   staff: RequestStaff[];
   shiftTemplates: RequestShiftTemplate[];
-  onCreated: () => void;
+  onCreated: (created?: LeaveRequest) => void;
   onError: (msg: string) => void;
 }) {
   const [type, setType] = useState<"vacation" | "dayOff" | "shiftRequest">("vacation");
@@ -813,13 +829,16 @@ function CreateRequestForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        request?: LeaveRequest;
+      };
       if (!res.ok) throw new Error(body.error || "Could not create request");
       setReason("");
       setDate("");
       setStartDate("");
       setEndDate("");
-      onCreated();
+      onCreated(body.request);
     } catch (err) {
       onError((err as Error).message);
     } finally {

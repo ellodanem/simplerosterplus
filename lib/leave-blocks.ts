@@ -90,3 +90,59 @@ export async function isApprovedBlocked(
   if (off) return "dayOff";
   return null;
 }
+
+export type ShiftPreferenceCue = {
+  status: "requested" | "approved";
+  shiftTemplateId: string;
+  shiftName: string;
+};
+
+/**
+ * Soft shift preferences for the roster grid (`${staffId}__${ymd}` → cue). Includes pending
+ * (`requested`) and approved preferences; deny is omitted. When several templates are asked
+ * for the same day, an approved row wins over pending, then earlier name wins.
+ */
+export async function getShiftPreferenceMap(args: {
+  staffIds: string[];
+  rangeStartDate: Date;
+  rangeEndDate: Date;
+}): Promise<Record<string, ShiftPreferenceCue>> {
+  const { staffIds, rangeStartDate, rangeEndDate } = args;
+  if (staffIds.length === 0) return {};
+
+  const rows = await prisma.staffShiftRequest.findMany({
+    where: {
+      staffId: { in: staffIds },
+      status: { in: ["requested", "approved"] },
+      date: { gte: rangeStartDate, lte: rangeEndDate },
+    },
+    select: {
+      staffId: true,
+      date: true,
+      status: true,
+      shiftTemplateId: true,
+      shiftTemplate: { select: { name: true } },
+    },
+    orderBy: [{ date: "asc" }, { shiftTemplate: { name: "asc" } }],
+  });
+
+  const result: Record<string, ShiftPreferenceCue> = {};
+  for (const row of rows) {
+    if (row.status !== "requested" && row.status !== "approved") continue;
+    const key = `${row.staffId}__${ymdForDbDate(row.date)}`;
+    const cue: ShiftPreferenceCue = {
+      status: row.status,
+      shiftTemplateId: row.shiftTemplateId,
+      shiftName: row.shiftTemplate.name,
+    };
+    const existing = result[key];
+    if (!existing) {
+      result[key] = cue;
+      continue;
+    }
+    if (existing.status === "requested" && cue.status === "approved") {
+      result[key] = cue;
+    }
+  }
+  return result;
+}

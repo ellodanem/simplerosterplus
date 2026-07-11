@@ -76,8 +76,9 @@ UI: row labels skim as `Type · details` (e.g. `Shift · Night (18:00–02:00) �
 
 ### Outstanding follow-ups (out of v1)
 
-- **Cell dot for pending requests.** Show a small indicator on roster cells when a staff member has a pending vacation/day-off/shift preference touching that date, so supervisors notice the inbox without opening the modal.
-- **Auto Scheduler honor for approved shift preferences.** Soft preferences are stored; wiring them into Auto Scheduler suggestions is a later pass.
+- **Cell cue for pending/approved shift preferences.** ✅ Shipped — roster cells show a bottom chip (`Ask …` / `Wants …` / `Pref …`) from `getShiftPreferenceMap`; leave-blocked cells stay unchanged.
+- **Auto Scheduler honor for approved shift preferences.** Soft preferences are stored and shown on the grid; wiring them into Auto Scheduler suggestions is a later pass.
+- **Cell dot for pending leave requests.** Show a small indicator on roster cells when a staff member has a pending vacation/day-off touching that date.
 - **Calendar/preview before submission.** Right now an admin creating a vacation can't see the staff member's existing roster from inside the modal — they only learn about conflicts at approve time. A small inline "what does their week look like" preview would tighten the loop.
 - **Auto-approve on admin create.** Two-click (create → approve in inbox) is fine, but a "Submit and approve" toggle on the create form would shave a step for the common admin-self-serve case.
 - **Per-location admin scoping.** Today a session that authenticates is allowed to act on every request in the org's default location. RBAC will need to slot in here once roles exist.

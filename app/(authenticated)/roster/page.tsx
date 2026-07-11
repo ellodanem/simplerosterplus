@@ -5,7 +5,7 @@ import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
 import { rosterSharePath, rosterShareUrl } from "@/lib/roster-share";
 import { getSession } from "@/lib/session";
 import { getDefaultLocation } from "@/lib/location";
-import { getApprovedBlockMap } from "@/lib/leave-blocks";
+import { getApprovedBlockMap, getShiftPreferenceMap } from "@/lib/leave-blocks";
 import {
   filterRosterStaffForWeek,
   staffIdsWithRosterEntries,
@@ -257,11 +257,20 @@ export default async function RosterPage({
 
   const birthdayByStaffId = buildBirthdayByStaffId(visibleStaff, days);
 
-  const blockMap = await getApprovedBlockMap({
-    staffIds: visibleStaff.map((s) => s.id),
-    rangeStartDate: weekStartDate,
-    rangeEndDate: weekEndDate,
-  });
+  const staffIds = visibleStaff.map((s) => s.id);
+
+  const [blockMap, preferenceMap] = await Promise.all([
+    getApprovedBlockMap({
+      staffIds,
+      rangeStartDate: weekStartDate,
+      rangeEndDate: weekEndDate,
+    }),
+    getShiftPreferenceMap({
+      staffIds,
+      rangeStartDate: weekStartDate,
+      rangeEndDate: weekEndDate,
+    }),
+  ]);
 
   const pendingRequestsCount =
     pendingCounts[0] + pendingCounts[1] + pendingCounts[2];
@@ -299,6 +308,7 @@ export default async function RosterPage({
         initialPreviousWeekEntries={initialPreviousWeekEntries}
         holidays={holidayMap}
         blockMap={blockMap}
+        preferenceMap={preferenceMap}
         initialPendingCount={pendingRequestsCount}
         initialOpenRequests={openRequests}
         initialOpenAutoScheduler={openAutoScheduler}

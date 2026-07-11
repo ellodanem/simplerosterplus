@@ -13,6 +13,7 @@ import {
   rosterUnlockedDays,
   type RosterLockOptions,
 } from "@/lib/roster-week-lock";
+import type { ShiftPreferenceCue } from "@/lib/leave-blocks";
 import { dayHeaderLabel, dayHeaderLabelCompact, shiftYmd } from "@/lib/roster-week";
 import { dateTextColorFromYmd } from "@/lib/date-color";
 import { formatBreakMinutes, paidShiftMinutes } from "@/lib/shift-duration";
@@ -175,6 +176,7 @@ export function RosterGrid({
   initialPreviousWeekEntries,
   holidays,
   blockMap: initialBlockMap,
+  preferenceMap: initialPreferenceMap,
   initialPendingCount,
   initialOpenRequests = false,
   initialOpenAutoScheduler = false,
@@ -215,6 +217,7 @@ export function RosterGrid({
   initialPreviousWeekEntries: Record<string, string | null>;
   holidays: Record<string, Holiday>;
   blockMap: Record<string, "vacation" | "dayOff">;
+  preferenceMap: Record<string, ShiftPreferenceCue>;
   initialPendingCount: number;
   initialOpenRequests?: boolean;
   initialOpenAutoScheduler?: boolean;
@@ -274,6 +277,7 @@ export function RosterGrid({
   }, [initialOpenAutoScheduler, initialAutoSchedulerMode, initialAutoSchedulerDay]);
 
   const [blockMap, setBlockMap] = useState(initialBlockMap);
+  const [preferenceMap, setPreferenceMap] = useState(initialPreferenceMap);
   const [overtimeSettings, setOvertimeSettings] = useState(initialOvertimeSettings);
   const [minimumOffDaysSettings, setMinimumOffDaysSettings] = useState(
     initialMinimumOffDaysSettings,
@@ -1502,6 +1506,7 @@ export function RosterGrid({
                           holidayName={holidays[d]?.name ?? null}
                           isBirthday={birthdayYmd === d}
                           birthdayTitle={birthdayYmd === d ? birthdayTitle : null}
+                          preference={blocked ? null : preferenceMap[key] ?? null}
                           pending={isPending}
                           readOnly={dayLocked}
                           lastWeekTitle={lastWeekHoverText(s.id, d)}
@@ -1629,12 +1634,49 @@ export function RosterGrid({
         }))}
         onPendingCountChange={setPendingRequests}
         onRequestChanged={(change) => {
+          if (change.kind === "shiftPreferenceSet") {
+            const req = change.request;
+            if (req.type !== "shiftRequest" || !req.date || !req.shiftTemplateId || !req.shiftName) {
+              return;
+            }
+            if (req.status !== "requested" && req.status !== "approved") return;
+            const status = req.status;
+            const key = cellKey(req.staff.id, req.date);
+            const cue: ShiftPreferenceCue = {
+              status,
+              shiftTemplateId: req.shiftTemplateId,
+              shiftName: req.shiftName,
+            };
+            setPreferenceMap((curr) => ({
+              ...curr,
+              [key]: cue,
+            }));
+            return;
+          }
+          if (change.kind === "shiftPreferenceClear") {
+            const req = change.request;
+            if (req.type !== "shiftRequest" || !req.date) return;
+            const key = cellKey(req.staff.id, req.date);
+            setPreferenceMap((curr) => {
+              const existing = curr[key];
+              if (
+                existing &&
+                req.shiftTemplateId &&
+                existing.shiftTemplateId !== req.shiftTemplateId
+              ) {
+                return curr;
+              }
+              const next = { ...curr };
+              delete next[key];
+              return next;
+            });
+            return;
+          }
           if (change.request.type === "shiftRequest") return;
-          const leaveReq = change.request;
           if (change.kind === "approved") {
-            applyApprovedRequestChange(leaveReq, change.clearedDates);
+            applyApprovedRequestChange(change.request, change.clearedDates);
           } else {
-            removeApprovedRequestChange(leaveReq);
+            removeApprovedRequestChange(change.request);
           }
         }}
       />
@@ -1729,12 +1771,67 @@ function BirthdayBadge({
   );
 }
 
+function preferenceTitle(preference: ShiftPreferenceCue, matched: boolean): string {
+  if (preference.status === "requested") {
+    return `Pending shift request: ${preference.shiftName}`;
+  }
+  if (matched) {
+    return `Approved preference: ${preference.shiftName} (honored)`;
+  }
+  return `Approved preference: wants ${preference.shiftName}`;
+}
+
+function ShiftPreferenceBadge({
+  preference,
+  assignedTemplateId,
+  onColored,
+}: {
+  preference: ShiftPreferenceCue | null;
+  assignedTemplateId: string | null;
+  onColored: boolean;
+}) {
+  if (!preference) return null;
+  const matched =
+    !!assignedTemplateId && assignedTemplateId === preference.shiftTemplateId;
+  const title = preferenceTitle(preference, matched);
+  const label =
+    preference.status === "requested"
+      ? `Ask ${preference.shiftName}`
+      : matched
+        ? `Pref ${preference.shiftName}`
+        : `Wants ${preference.shiftName}`;
+
+  const tone =
+    preference.status === "requested"
+      ? onColored
+        ? "bg-rose-700 text-white"
+        : "bg-rose-100 text-rose-900 ring-1 ring-rose-200"
+      : matched
+        ? onColored
+          ? "bg-emerald-800/90 text-white"
+          : "bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200"
+        : onColored
+          ? "bg-violet-800/90 text-white"
+          : "bg-violet-100 text-violet-900 ring-1 ring-violet-200";
+
+  return (
+    <span
+      className={`absolute bottom-0.5 left-0.5 right-0.5 truncate rounded px-1 py-px text-center text-[9px] font-semibold leading-tight ${tone}`}
+      title={title}
+      aria-label={title}
+    >
+      {label}
+    </span>
+  );
+}
+
 function CellButton({
   tpl,
   blocked,
   holidayName,
   isBirthday,
   birthdayTitle,
+  preference,
   pending,
   readOnly,
   lastWeekTitle,
@@ -1745,6 +1842,7 @@ function CellButton({
   holidayName: string | null;
   isBirthday: boolean;
   birthdayTitle: string | null;
+  preference: ShiftPreferenceCue | null;
   pending: boolean;
   readOnly: boolean;
   lastWeekTitle: string;
@@ -1784,9 +1882,15 @@ function CellButton({
     if (readOnly) {
       return (
         <div
-          className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 text-center text-sm text-zinc-400"
-          aria-label="Off"
-          title={lastWeekTitle}
+          className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-1 pb-3 text-center text-sm text-zinc-400"
+          aria-label={
+            preference
+              ? `Off · ${preferenceTitle(preference, false)}`
+              : "Off"
+          }
+          title={[lastWeekTitle, preference ? preferenceTitle(preference, false) : null]
+            .filter(Boolean)
+            .join(" · ")}
         >
           <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
           {holidayName ? (
@@ -1795,6 +1899,11 @@ function CellButton({
             </span>
           ) : null}
           Off
+          <ShiftPreferenceBadge
+            preference={preference}
+            assignedTemplateId={null}
+            onColored={false}
+          />
         </div>
       );
     }
@@ -1802,9 +1911,15 @@ function CellButton({
       <button
         type="button"
         onClick={onClick}
-        className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
-        aria-label="Assign shift"
-        title={lastWeekTitle}
+        className="relative flex h-14 w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-1 pb-3 text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-50 hover:text-zinc-600"
+        aria-label={
+          preference
+            ? `Assign shift · ${preferenceTitle(preference, false)}`
+            : "Assign shift"
+        }
+        title={[lastWeekTitle, preference ? preferenceTitle(preference, false) : null]
+          .filter(Boolean)
+          .join(" · ")}
       >
         <BirthdayBadge isBirthday={isBirthday} birthdayTitle={birthdayTitle} />
         {holidayName ? (
@@ -1813,10 +1928,17 @@ function CellButton({
           </span>
         ) : null}
         {pending ? <span className="text-xs text-zinc-500">…</span> : "+"}
+        <ShiftPreferenceBadge
+          preference={preference}
+          assignedTemplateId={null}
+          onColored={false}
+        />
       </button>
     );
   }
 
+  const matched = preference?.shiftTemplateId === tpl.id;
+  const prefTitle = preference ? preferenceTitle(preference, !!matched) : null;
   const bg = tpl.color || FALLBACK_COLOR;
   const inner = (
     <>
@@ -1836,16 +1958,21 @@ function CellButton({
       {pending ? (
         <span className="absolute right-1 top-1 text-[10px] opacity-80">…</span>
       ) : null}
+      <ShiftPreferenceBadge
+        preference={preference}
+        assignedTemplateId={tpl.id}
+        onColored
+      />
     </>
   );
 
   if (readOnly) {
     return (
       <div
-        className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm"
+        className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 pb-3 text-left text-white shadow-sm"
         style={{ background: bg }}
-        aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
-        title={lastWeekTitle}
+        aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}${prefTitle ? ` · ${prefTitle}` : ""}`}
+        title={[lastWeekTitle, prefTitle].filter(Boolean).join(" · ")}
       >
         {inner}
       </div>
@@ -1856,10 +1983,10 @@ function CellButton({
     <button
       type="button"
       onClick={onClick}
-      className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 text-left text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-1"
+      className="relative flex h-14 w-full flex-col items-start justify-center rounded-lg px-2 pb-3 text-left text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-1"
       style={{ background: bg }}
-      aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}`}
-      title={lastWeekTitle}
+      aria-label={`${tpl.name} ${tpl.startTime}–${tpl.endTime}${prefTitle ? ` · ${prefTitle}` : ""}`}
+      title={[lastWeekTitle, prefTitle].filter(Boolean).join(" · ")}
     >
       {inner}
     </button>
