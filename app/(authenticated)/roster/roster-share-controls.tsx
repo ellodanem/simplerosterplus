@@ -117,6 +117,8 @@ export function RosterShareControls({
   const [showDraftConfirm, setShowDraftConfirm] = useState(false);
   const [whatsappNotice, setWhatsappNotice] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [urlCopied, setUrlCopied] = useState(false);
 
   const displayUrl = useMemo(() => {
     if (url) return url;
@@ -287,10 +289,22 @@ export function RosterShareControls({
     setBusy(true);
     setError(null);
     setWhatsappNotice(null);
+    setUrlCopied(false);
+    setPreviewUrl(null);
     try {
-      // First iteration: preview + download only (Meta template sample). No Twilio send yet.
+      // Temp Meta/Twilio sample flow: capture PNG → public Blob URL → copy link.
       const imageBase64 = await generateRosterImage();
+      const res = await fetch(`/api/roster/weeks/${weekId}/roster-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; url?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Could not upload roster image URL.");
+      }
       setPreviewImage(imageBase64);
+      setPreviewUrl(data.url);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Could not capture roster image.";
       setWhatsappNotice(message);
@@ -299,12 +313,21 @@ export function RosterShareControls({
     }
   }
 
-  function downloadPreviewImage() {
-    if (!previewImage) return;
-    const a = document.createElement("a");
-    a.href = previewImage;
-    a.download = `roster-${weekStartYmd}.png`;
-    a.click();
+  async function copyPreviewUrl() {
+    if (!previewUrl) return;
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      setUrlCopied(true);
+      window.setTimeout(() => setUrlCopied(false), 2000);
+    } catch {
+      setWhatsappNotice("Could not copy URL — select and copy it manually.");
+    }
+  }
+
+  function closePreview() {
+    setPreviewImage(null);
+    setPreviewUrl(null);
+    setUrlCopied(false);
   }
 
   async function publishWeek(acknowledgeGaps = false): Promise<boolean> {
@@ -580,7 +603,7 @@ export function RosterShareControls({
                   >
                     WhatsApp (Direct)
                     <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                      Preview
+                      Sample URL
                     </span>
                   </button>
                   <button
@@ -627,15 +650,20 @@ export function RosterShareControls({
       {previewImage ? (
         <Modal
           open={Boolean(previewImage)}
-          title="WhatsApp roster image"
-          onClose={() => setPreviewImage(null)}
+          title="WhatsApp sample image URL"
+          onClose={closePreview}
           size="xl"
         >
           <p className="text-sm text-zinc-600">
-            This is the image staff will receive. Download it and use it as the sample media for
-            Meta template approval.
+            Temp helper for Meta/Twilio: copy this public URL into the template Media sample for{" "}
+            <span className="font-mono text-xs">{"{{1}}"}</span>.
           </p>
-          <div className="mt-3 max-h-[60vh] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+          {previewUrl ? (
+            <p className="mt-2 break-all rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-700">
+              {previewUrl}
+            </p>
+          ) : null}
+          <div className="mt-3 max-h-[50vh] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewImage}
@@ -646,17 +674,18 @@ export function RosterShareControls({
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setPreviewImage(null)}
+              onClick={closePreview}
               className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
             >
               Close
             </button>
             <button
               type="button"
-              onClick={downloadPreviewImage}
-              className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800"
+              onClick={() => void copyPreviewUrl()}
+              disabled={!previewUrl}
+              className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
             >
-              Download PNG
+              {urlCopied ? "URL copied!" : "Copy URL"}
             </button>
           </div>
         </Modal>
