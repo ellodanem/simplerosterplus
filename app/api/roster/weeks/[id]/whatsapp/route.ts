@@ -11,10 +11,11 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * POST /api/roster/weeks/[id]/whatsapp
- * Body: { imageBase64: string }
+ * Body: { imageBase64: string, mode?: "publish" | "direct" }
  *
  * Uploads the roster PNG once, then sends the approved media template
  * ({{1}} = public image URL) to opted-in staff.
+ * mode "direct" (Share → WhatsApp Direct) uses a fresh send timestamp so retests work.
  */
 export async function POST(request: Request, { params }: Ctx) {
   try {
@@ -44,6 +45,8 @@ async function postRosterWeekWhatsapp(request: Request, params: Promise<{ id: st
   if (!imageBase64) {
     return NextResponse.json({ error: "imageBase64 is required" }, { status: 400 });
   }
+
+  const mode = body.mode === "direct" ? "direct" : "publish";
 
   const week = await prisma.rosterWeek.findFirst({
     where: { id: weekId, organizationId: session.orgId, status: "published" },
@@ -136,8 +139,10 @@ async function postRosterWeekWhatsapp(request: Request, params: Promise<{ id: st
   const whatsapp = await sendRosterWhatsappOnPublish({
     organizationId: session.orgId,
     rosterWeekId: week.id,
-    rosterWeekPublishAt: week.updatedAt,
+    // Direct sends get a fresh timestamp so each Share → WhatsApp (Direct) can retest.
+    rosterWeekPublishAt: mode === "direct" ? new Date() : week.updatedAt,
     mediaUrl,
+    kind: mode === "direct" ? "direct" : "publish",
   });
 
   return NextResponse.json({ whatsapp });

@@ -16,6 +16,11 @@ import { weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 export const ROSTER_NOTIFY_CHANNEL_WHATSAPP = "whatsapp";
 export const ROSTER_NOTIFY_KIND_PUBLISH = "publish";
+export const ROSTER_NOTIFY_KIND_DIRECT = "direct";
+
+export type RosterWhatsappNotifyKind =
+  | typeof ROSTER_NOTIFY_KIND_PUBLISH
+  | typeof ROSTER_NOTIFY_KIND_DIRECT;
 
 export type RosterWhatsappNotifySummary = {
   configured: boolean;
@@ -61,7 +66,9 @@ export async function sendRosterWhatsappOnPublish(input: {
   rosterWeekId: string;
   rosterWeekPublishAt: Date;
   mediaUrl: string;
+  kind?: RosterWhatsappNotifyKind;
 }): Promise<RosterWhatsappNotifySummary> {
+  const kind = input.kind ?? ROSTER_NOTIFY_KIND_PUBLISH;
   const summary: RosterWhatsappNotifySummary = {
     configured: twilioWhatsappConfigured(),
     enabled: false,
@@ -183,6 +190,7 @@ export async function sendRosterWhatsappOnPublish(input: {
         rosterWeekId: week.id,
         staffId: staff.id,
         rosterWeekPublishAt: input.rosterWeekPublishAt,
+        kind,
         status: "skipped",
         errorMessage: "no_phone",
       });
@@ -197,6 +205,7 @@ export async function sendRosterWhatsappOnPublish(input: {
         rosterWeekId: week.id,
         staffId: staff.id,
         rosterWeekPublishAt: input.rosterWeekPublishAt,
+        kind,
         status: "skipped",
         errorMessage: "invalid_phone",
       });
@@ -209,7 +218,7 @@ export async function sendRosterWhatsappOnPublish(input: {
           rosterWeekId: week.id,
           staffId: staff.id,
           channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
-          kind: ROSTER_NOTIFY_KIND_PUBLISH,
+          kind,
           rosterWeekPublishAt: input.rosterWeekPublishAt,
         },
       },
@@ -240,6 +249,7 @@ export async function sendRosterWhatsappOnPublish(input: {
         rosterWeekId: week.id,
         staffId: staff.id,
         rosterWeekPublishAt: input.rosterWeekPublishAt,
+        kind,
         status: "sent",
         externalSid: result.sid,
       });
@@ -250,6 +260,7 @@ export async function sendRosterWhatsappOnPublish(input: {
         rosterWeekId: week.id,
         staffId: staff.id,
         rosterWeekPublishAt: input.rosterWeekPublishAt,
+        kind,
         status: "failed",
         errorMessage: result.error,
       });
@@ -268,6 +279,7 @@ async function logNotification(input: {
   rosterWeekId: string;
   staffId: string;
   rosterWeekPublishAt: Date;
+  kind: RosterWhatsappNotifyKind;
   status: string;
   externalSid?: string;
   errorMessage?: string;
@@ -279,7 +291,7 @@ async function logNotification(input: {
           rosterWeekId: input.rosterWeekId,
           staffId: input.staffId,
           channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
-          kind: ROSTER_NOTIFY_KIND_PUBLISH,
+          kind: input.kind,
           rosterWeekPublishAt: input.rosterWeekPublishAt,
         },
       },
@@ -288,7 +300,7 @@ async function logNotification(input: {
         rosterWeekId: input.rosterWeekId,
         staffId: input.staffId,
         channel: ROSTER_NOTIFY_CHANNEL_WHATSAPP,
-        kind: ROSTER_NOTIFY_KIND_PUBLISH,
+        kind: input.kind,
         rosterWeekPublishAt: input.rosterWeekPublishAt,
         status: input.status,
         externalSid: input.externalSid ?? null,

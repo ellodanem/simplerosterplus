@@ -157,7 +157,7 @@ export function RosterShareControls({
     return canvas.toDataURL("image/png");
   }
 
-  async function sendWhatsappImageBlast(): Promise<void> {
+  async function sendWhatsappImageBlast(mode: "publish" | "direct" = "publish"): Promise<void> {
     try {
       const imageBase64 = await generateRosterImage();
       if (!imageBase64) {
@@ -167,7 +167,7 @@ export function RosterShareControls({
       const res = await fetch(`/api/roster/weeks/${weekId}/whatsapp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64 }),
+        body: JSON.stringify({ imageBase64, mode }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
@@ -182,6 +182,18 @@ export function RosterShareControls({
       }
     } catch {
       setWhatsappNotice("Could not send WhatsApp roster image.");
+    }
+  }
+
+  async function handleWhatsappDirect() {
+    setMenuOpen(false);
+    setBusy(true);
+    setError(null);
+    setWhatsappNotice(null);
+    try {
+      await sendWhatsappImageBlast("direct");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -222,7 +234,7 @@ export function RosterShareControls({
         if (publishedUrl) setUrl(publishedUrl);
       }
       if (isLive) {
-        await sendWhatsappImageBlast();
+        await sendWhatsappImageBlast("publish");
       }
       router.refresh();
       return isLive;
@@ -389,14 +401,14 @@ export function RosterShareControls({
                 aria-expanded={menuOpen}
                 className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
               >
-                {busy ? "Working…" : copied ? "Link copied!" : "Share"}
+                {busy ? "Sending…" : copied ? "Link copied!" : "Share"}
                 <ShareMenuChevron />
               </button>
 
               {menuOpen ? (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg"
+                  className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg"
                 >
                   <button
                     type="button"
@@ -453,10 +465,19 @@ export function RosterShareControls({
                     type="button"
                     role="menuitem"
                     disabled={busy}
+                    onClick={() => void handleWhatsappDirect()}
+                    className={menuItemEnabled}
+                  >
+                    WhatsApp (Direct)
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
                     onClick={() => handleShareAction("whatsapp")}
                     className={menuItemEnabled}
                   >
-                    WhatsApp
+                    WhatsApp (Link)
                   </button>
                   <div className="my-1 border-t border-zinc-100" aria-hidden="true" />
                   <button
