@@ -1,6 +1,5 @@
 "use client";
 
-import html2canvas from "html2canvas";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/app/components/modal";
@@ -147,24 +146,71 @@ export function RosterShareControls({
     return absoluteShareUrl(shareBaseUrl, sharePathValue);
   }
 
-  async function generateRosterImage(): Promise<string | null> {
-    if (!imageRef.current) return null;
-    const canvas = await html2canvas(imageRef.current, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      logging: false,
-      useCORS: true,
-    });
-    return canvas.toDataURL("image/png");
+  async function generateRosterImage(): Promise<string> {
+    const el = imageRef.current;
+    if (!el) {
+      throw new Error("Roster image target is not ready. Refresh and try again.");
+    }
+
+    // html2canvas often fails on off-screen / fixed -9999px nodes. Park on-screen briefly.
+    const wrapper = el.parentElement;
+    const prevWrapperClass = wrapper?.getAttribute("class") ?? null;
+    if (wrapper) {
+      wrapper.setAttribute(
+        "class",
+        "pointer-events-none fixed left-0 top-0 z-[-1] opacity-[0.01]",
+      );
+    }
+
+    try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
+      const { default: html2canvas } = await import("html2canvas");
+      const width = Math.max(el.scrollWidth, el.offsetWidth, 1);
+      const height = Math.max(el.scrollHeight, el.offsetHeight, 1);
+
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: width,
+        windowHeight: height,
+        width,
+        height,
+        onclone: (_doc, cloned) => {
+          // Sticky columns confuse the clone layout; flatten for a clean PNG.
+          cloned.querySelectorAll(".sticky").forEach((node) => {
+            if (node instanceof HTMLElement) {
+              node.style.position = "static";
+              node.style.left = "auto";
+              node.style.zIndex = "auto";
+            }
+          });
+        },
+      });
+
+      if (!canvas.width || !canvas.height) {
+        throw new Error("Captured image was empty.");
+      }
+
+      return canvas.toDataURL("image/png");
+    } finally {
+      if (wrapper) {
+        if (prevWrapperClass == null) wrapper.removeAttribute("class");
+        else wrapper.setAttribute("class", prevWrapperClass);
+      }
+    }
   }
 
   async function sendWhatsappImageBlast(mode: "publish" | "direct" = "publish"): Promise<void> {
     try {
       const imageBase64 = await generateRosterImage();
-      if (!imageBase64) {
-        setWhatsappNotice("Could not capture roster image for WhatsApp.");
-        return;
-      }
       const res = await fetch(`/api/roster/weeks/${weekId}/whatsapp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,8 +227,9 @@ export function RosterShareControls({
       if (data.whatsapp) {
         setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
       }
-    } catch {
-      setWhatsappNotice("Could not send WhatsApp roster image.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not capture roster image for WhatsApp.";
+      setWhatsappNotice(message);
     }
   }
 
@@ -194,13 +241,10 @@ export function RosterShareControls({
     try {
       // First iteration: preview + download only (Meta template sample). No Twilio send yet.
       const imageBase64 = await generateRosterImage();
-      if (!imageBase64) {
-        setWhatsappNotice("Could not capture roster image.");
-        return;
-      }
       setPreviewImage(imageBase64);
-    } catch {
-      setWhatsappNotice("Could not capture roster image.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not capture roster image.";
+      setWhatsappNotice(message);
     } finally {
       setBusy(false);
     }
