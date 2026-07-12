@@ -1,101 +1,113 @@
 # WhatsApp roster publish template (Twilio / Meta)
 
-**Status:** Image blast (Shift Close pattern) — Jul 2026.
+**Status:** Link-first (Jul 2026). Staff get a share URL; they can download a PNG from the share page.
 
 **Sender:** Simple Roster Plus — `+1 (561) 730-3361` (`whatsapp:+15617303361`)
 
-**Related:** `lib/messaging/roster-whatsapp-notify.ts`, `lib/messaging/roster-blob.ts`, `app/api/roster/weeks/[id]/whatsapp/route.ts`
+**Related:** `lib/messaging/roster-whatsapp-notify.ts`, `app/share/roster/[token]/`
 
 ---
 
 ## Product shape
 
-On **Publish**, the manager browser:
+```text
+Publish
+  → Twilio text Utility template to opted-in staff
+  → Message includes share link
+  → Staff open link → view roster → optional “Download image”
+```
 
-1. Publishes the week (share link goes live)
-2. Captures a **PNG of the full roster grid** (`html2canvas`)
-3. Uploads it to **Vercel Blob** (public HTTPS URL)
-4. Sends the same image to every **opted-in** staff member via Twilio
-
-This matches Shift Close’s `weeklyroster` media template — **not** a personalized text schedule.
+- **No image attached to WhatsApp** (avoids Media template + Blob-on-every-send).
+- PNG is generated **only when** someone taps **Download image** on the share page.
+- Manual **Share → WhatsApp (Link)** still opens `wa.me` with the link (unlimited).
 
 ---
 
-## Twilio / Meta template (create this)
+## Create this template in Twilio
 
 | Field | Value |
 |-------|--------|
-| **Friendly name** | `srp_roster_publish` (or reuse approved `weeklyroster` if it matches) |
-| **Content type** | **Media** (not Text) |
+| **Friendly name** | `srp_roster_link` |
+| **Content type** | **Text** (not Media) |
 | **WhatsApp category** | **Utility** |
-| **Language** | English (US) |
-| **Body** | Static only — **no** `{{1}}` in the body text |
-| **Media variable** | `{{1}}` = public HTTPS URL of the PNG |
+| **Language** | English (EN / en_US) |
+| **Sender / WABA** | Simple Roster Plus (`+15617303361`) |
 
-### Body (static)
+### Body (copy exactly — one paragraph)
 
 ```
-Your weekly roster is ready
+Hi {{1}}, your roster for {{2}} is ready. View it and download an image here: {{3}}
 ```
 
-(Or: `Your Simple Roster Plus schedule is ready.`)
+### Why this wording
 
-### Sample for Meta approval
+- Variables are **not** alone on their own lines
+- Message does **not** start or end with a bare variable
+- Enough static text around `{{1}}` / `{{2}}` / `{{3}}` for Meta Utility review
 
-Provide any public sample PNG URL as media `{{1}}` (e.g. a placeholder roster image on HTTPS).
+### Sample values (required for Meta)
 
-### App contract
+| Variable | Sample |
+|----------|--------|
+| `{{1}}` | `Maria` |
+| `{{2}}` | `6th July – 12th July` |
+| `{{3}}` | `https://simplerosterplus.vercel.app/share/roster/example-token` |
+
+Use a real published share URL from your app for `{{3}}` if Meta is picky (Copy share link after Publish).
+
+### App contract (what SRP sends)
 
 ```ts
-contentVariables: { "1": mediaUrl }  // public Blob URL
+contentVariables: {
+  "1": firstName,   // staff first name
+  "2": weekLabel,   // "6th July – 12th July"
+  "3": shareUrl,    // https://…/share/roster/{token}
+}
 ```
 
-Do **not** send name/week/schedule text variables — that causes Twilio **21658** against a media template.
+### After approval
+
+1. Copy Content SID (`HX…`)
+2. Vercel: `TWILIO_WHATSAPP_ROSTER_CONTENT_SID=<new HX>`
+3. Redeploy
+4. Org: Settings → WhatsApp alerts on
+5. Staff: phone + WhatsApp opt-in
+6. **Publish** (or **Share → WhatsApp (Direct)** to resend)
 
 ---
 
-## Environment (Vercel)
+## Environment
 
 | Variable | Purpose |
 |----------|---------|
-| `TWILIO_ACCOUNT_SID` | Twilio account |
-| `TWILIO_AUTH_TOKEN` | Auth token |
-| `TWILIO_WHATSAPP_FROM` | `+15617303361` (or `whatsapp:+15617303361`) |
-| `TWILIO_WHATSAPP_ROSTER_CONTENT_SID` | Approved **Media** template `HX…` |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write (auto-injected if Blob store linked) |
+| `TWILIO_ACCOUNT_SID` | Account |
+| `TWILIO_AUTH_TOKEN` | Auth |
+| `TWILIO_WHATSAPP_FROM` | `+15617303361` |
+| `TWILIO_WHATSAPP_ROSTER_CONTENT_SID` | Approved **text** template `HX…` |
+| `APP_URL` / `NEXT_PUBLIC_APP_URL` | Canonical HTTPS base for share links in messages |
 
-Redeploy after changing env vars.
-
----
-
-## Pipeline
-
-```text
-Publish click
-  → POST /api/roster/weeks/[id]/status  (publish only)
-  → html2canvas(hidden RosterShareTable)
-  → POST /api/roster/weeks/[id]/whatsapp { imageBase64 }
-       → Vercel Blob public PNG
-       → for each opted-in staff: media template {{1}}=url
-```
+`BLOB_READ_WRITE_TOKEN` is **optional** for this flow (only needed if you still use temp Blob sample tools).
 
 ---
 
-## Why Text templates failed
+## Do not use
 
-A Text Utility template with four body variables (`{{1}}`–`{{4}}`) and an isolated `{{3}}` line was **rejected by Meta**. The proven path (Shift Close) is **Media + static body + media `{{1}}`**.
+| Old approach | Why |
+|--------------|-----|
+| Media `weeklyroster` with `{{1}}` = PNG | Image blast — retired for automated notify |
+| Text with isolated `{{3}}` on its own line | Meta rejected |
+| Four vars for personal schedule lines | Overkill; link + download is enough |
 
 ---
 
 ## Checklist
 
-- [ ] Media template approved for WhatsApp **business initiated**
-- [ ] `TWILIO_WHATSAPP_ROSTER_CONTENT_SID` = that `HX…` SID
-- [ ] `BLOB_READ_WRITE_TOKEN` set (or Blob store linked to the Vercel project)
-- [ ] Org: Settings → WhatsApp alerts on
-- [ ] Staff: contact number + WhatsApp opt-in
-- [ ] Publish week → amber banner shows sent/failed summary
-- [ ] Twilio logs show outbound with media (not 21658)
+- [ ] Text Utility `srp_roster_link` **Approved** + business initiated
+- [ ] Env SID updated + redeploy
+- [ ] WhatsApp alerts enabled in Settings
+- [ ] Staff opted in with valid numbers
+- [ ] Publish → amber banner shows link sends
+- [ ] Open share link → **Download image** works on phone/desktop
 
 ---
 
@@ -103,5 +115,6 @@ A Text Utility template with four body variables (`{{1}}`–`{{4}}`) and an isol
 
 | Date | Note |
 |------|------|
-| 2026-07-09 | First text-template draft (rejected / 21658) |
-| 2026-07-10 | Switched to Shift Close image blast (Media + Blob) |
+| 2026-07-09 | Text draft with 4 vars — rejected / 21658 |
+| 2026-07-10 | Media image blast attempt |
+| 2026-07-12 | Link-first + share-page Download image |

@@ -3,9 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/app/components/modal";
-import { RosterShareTable } from "@/app/components/roster-share-table";
 import { buildRosterManualWhatsAppText } from "@/lib/roster-personal-message";
-import type { RosterShareViewData } from "@/lib/roster-share-data";
 
 type ShareAction = "copyLink" | "openSharePage" | "print" | "whatsapp";
 
@@ -28,13 +26,16 @@ function formatWhatsappPublishSummary(summary: WhatsappPublishSummary): string |
     return "WhatsApp alerts are off — enable them in Settings → WhatsApp alerts.";
   }
   if (summary.reasons.includes("not_configured")) {
-    return "Server WhatsApp is not configured (Twilio credentials, template, or Blob storage missing).";
+    return "Server WhatsApp is not configured (Twilio credentials or roster template missing).";
+  }
+  if (summary.reasons.includes("no_public_url")) {
+    return "Could not build a public share link for WhatsApp (check APP_URL).";
   }
   if (summary.reasons.includes("cap")) {
     return "Monthly WhatsApp limit reached. Manual share still works.";
   }
   if (summary.sent > 0) {
-    return `WhatsApp roster image sent to ${summary.sent} staff member${summary.sent === 1 ? "" : "s"}.`;
+    return `WhatsApp link sent to ${summary.sent} staff member${summary.sent === 1 ? "" : "s"}.`;
   }
   if (summary.failed > 0) {
     return `WhatsApp failed for ${summary.failed} staff — check Twilio logs (template or number may be invalid).`;
@@ -89,7 +90,6 @@ export function RosterShareControls({
   orgName,
   weekStartYmd,
   weekEndYmd,
-  captureData,
 }: {
   weekId: string;
   initialLive: boolean;
@@ -100,11 +100,9 @@ export function RosterShareControls({
   orgName: string;
   weekStartYmd: string;
   weekEndYmd: string;
-  captureData: RosterShareViewData;
 }) {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(initialLive);
   const [path, setPath] = useState(sharePath);
   const [url, setUrl] = useState(shareUrl);
@@ -116,9 +114,6 @@ export function RosterShareControls({
   const [publishGapInfo, setPublishGapInfo] = useState<PublishGapInfo | null>(null);
   const [showDraftConfirm, setShowDraftConfirm] = useState(false);
   const [whatsappNotice, setWhatsappNotice] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [urlCopied, setUrlCopied] = useState(false);
 
   const displayUrl = useMemo(() => {
     if (url) return url;
@@ -148,186 +143,33 @@ export function RosterShareControls({
     return absoluteShareUrl(shareBaseUrl, sharePathValue);
   }
 
-  async function generateRosterImage(): Promise<string> {
-    const el = imageRef.current;
-    if (!el) {
-      throw new Error("Roster image target is not ready. Refresh and try again.");
-    }
-
-    // html2canvas often fails on off-screen / fixed -9999px nodes. Park on-screen briefly.
-    const wrapper = el.parentElement;
-    const prevWrapperClass = wrapper?.getAttribute("class") ?? null;
-    if (wrapper) {
-      wrapper.setAttribute(
-        "class",
-        "pointer-events-none fixed left-0 top-0 z-[-1] opacity-[0.01]",
-      );
-    }
-
+  async function resendWhatsappLinks() {
+    setMenuOpen(false);
+    setBusy(true);
+    setError(null);
+    setWhatsappNotice(null);
     try {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-
-      const { default: html2canvas } = await import("html2canvas");
-      const width = Math.max(el.scrollWidth, el.offsetWidth, 1);
-      const height = Math.max(el.scrollHeight, el.offsetHeight, 1);
-
-      const canvas = await html2canvas(el, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: width,
-        windowHeight: height,
-        width,
-        height,
-        // Prefer browser paint path; still sanitize clone for lab()/oklch() from Tailwind v4.
-        foreignObjectRendering: true,
-        onclone: (doc, cloned) => {
-          const originals = [el, ...Array.from(el.querySelectorAll<HTMLElement>("*"))];
-          const clones = [cloned, ...Array.from(cloned.querySelectorAll<HTMLElement>("*"))];
-          const n = Math.min(originals.length, clones.length);
-          for (let i = 0; i < n; i++) {
-            const orig = originals[i]!;
-            const clone = clones[i]!;
-            const cs = window.getComputedStyle(orig);
-            // Browsers resolve lab()/oklch() to rgb() — copy those onto the clone.
-            clone.style.cssText = "";
-            clone.style.boxSizing = cs.boxSizing;
-            clone.style.backgroundColor = cs.backgroundColor;
-            clone.style.color = cs.color;
-            clone.style.borderTop = `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`;
-            clone.style.borderRight = `${cs.borderRightWidth} ${cs.borderRightStyle} ${cs.borderRightColor}`;
-            clone.style.borderBottom = `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`;
-            clone.style.borderLeft = `${cs.borderLeftWidth} ${cs.borderLeftStyle} ${cs.borderLeftColor}`;
-            clone.style.borderRadius = cs.borderRadius;
-            clone.style.font = cs.font;
-            clone.style.fontSize = cs.fontSize;
-            clone.style.fontWeight = cs.fontWeight;
-            clone.style.fontFamily = cs.fontFamily;
-            clone.style.lineHeight = cs.lineHeight;
-            clone.style.textAlign = cs.textAlign;
-            clone.style.textTransform = cs.textTransform;
-            clone.style.whiteSpace = cs.whiteSpace;
-            clone.style.padding = cs.padding;
-            clone.style.margin = cs.margin;
-            clone.style.display = cs.display;
-            clone.style.flexDirection = cs.flexDirection;
-            clone.style.flexWrap = cs.flexWrap;
-            clone.style.alignItems = cs.alignItems;
-            clone.style.justifyContent = cs.justifyContent;
-            clone.style.gap = cs.gap;
-            clone.style.width = cs.width;
-            clone.style.minWidth = cs.minWidth;
-            clone.style.height = cs.height;
-            clone.style.minHeight = cs.minHeight;
-            clone.style.overflow = "visible";
-            clone.style.verticalAlign = cs.verticalAlign;
-            clone.style.tableLayout = cs.tableLayout;
-            clone.style.borderCollapse = cs.borderCollapse;
-            clone.style.boxShadow = "none";
-            clone.style.textShadow = "none";
-            clone.style.backgroundImage = "none";
-            clone.style.filter = "none";
-            if (cs.position === "sticky" || cs.position === "fixed") {
-              clone.style.position = "static";
-            } else {
-              clone.style.position = cs.position;
-            }
-            clone.removeAttribute("class");
-          }
-
-          // Prevent html2canvas from parsing Tailwind stylesheets (lab()/oklch()).
-          doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((node) => node.remove());
-        },
-      });
-
-      if (!canvas.width || !canvas.height) {
-        throw new Error("Captured image was empty.");
-      }
-
-      return canvas.toDataURL("image/png");
-    } finally {
-      if (wrapper) {
-        if (prevWrapperClass == null) wrapper.removeAttribute("class");
-        else wrapper.setAttribute("class", prevWrapperClass);
-      }
-    }
-  }
-
-  async function sendWhatsappImageBlast(mode: "publish" | "direct" = "publish"): Promise<void> {
-    try {
-      const imageBase64 = await generateRosterImage();
       const res = await fetch(`/api/roster/weeks/${weekId}/whatsapp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mode }),
+        body: JSON.stringify({ mode: "direct" }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
         whatsapp?: WhatsappPublishSummary;
       };
       if (!res.ok) {
-        setWhatsappNotice(data.error ?? "Could not send WhatsApp roster image.");
+        setWhatsappNotice(data.error ?? "Could not send WhatsApp alerts.");
         return;
       }
       if (data.whatsapp) {
         setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
       }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not capture roster image for WhatsApp.";
-      setWhatsappNotice(message);
-    }
-  }
-
-  async function handleWhatsappDirect() {
-    setMenuOpen(false);
-    setBusy(true);
-    setError(null);
-    setWhatsappNotice(null);
-    setUrlCopied(false);
-    setPreviewUrl(null);
-    try {
-      // Temp Meta/Twilio sample flow: capture PNG → public Blob URL → copy link.
-      const imageBase64 = await generateRosterImage();
-      const res = await fetch(`/api/roster/weeks/${weekId}/roster-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64 }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; url?: string };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error ?? "Could not upload roster image URL.");
-      }
-      setPreviewImage(imageBase64);
-      setPreviewUrl(data.url);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not capture roster image.";
-      setWhatsappNotice(message);
+    } catch {
+      setWhatsappNotice("Could not send WhatsApp alerts.");
     } finally {
       setBusy(false);
     }
-  }
-
-  async function copyPreviewUrl() {
-    if (!previewUrl) return;
-    try {
-      await navigator.clipboard.writeText(previewUrl);
-      setUrlCopied(true);
-      window.setTimeout(() => setUrlCopied(false), 2000);
-    } catch {
-      setWhatsappNotice("Could not copy URL — select and copy it manually.");
-    }
-  }
-
-  function closePreview() {
-    setPreviewImage(null);
-    setPreviewUrl(null);
-    setUrlCopied(false);
   }
 
   async function publishWeek(acknowledgeGaps = false): Promise<boolean> {
@@ -347,6 +189,7 @@ export function RosterShareControls({
         openShiftDayLabel?: string | null;
         status?: string;
         sharePath?: string | null;
+        whatsapp?: WhatsappPublishSummary;
       };
       if (res.status === 409 && data.code === "OPEN_SHIFTS") {
         setPublishGapInfo({
@@ -366,8 +209,8 @@ export function RosterShareControls({
         setPath(data.sharePath);
         if (publishedUrl) setUrl(publishedUrl);
       }
-      if (isLive) {
-        await sendWhatsappImageBlast("publish");
+      if (data.whatsapp) {
+        setWhatsappNotice(formatWhatsappPublishSummary(data.whatsapp));
       }
       router.refresh();
       return isLive;
@@ -475,22 +318,6 @@ export function RosterShareControls({
 
   return (
     <>
-      {/* Off-screen capture target for WhatsApp media template (Shift Close pattern). */}
-      <div
-        className="pointer-events-none fixed -left-[9999px] -top-[9999px] z-[-1]"
-        aria-hidden="true"
-      >
-        <div ref={imageRef} className="w-[1100px] bg-white p-6">
-          <div className="mb-4">
-            <p className="text-lg font-semibold text-zinc-900">{captureData.orgName}</p>
-            <p className="text-sm text-zinc-600">
-              {captureData.locationName} · {captureData.weekStartYmd} – {captureData.weekEndYmd}
-            </p>
-          </div>
-          <RosterShareTable data={captureData} />
-        </div>
-      </div>
-
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {live ? (
@@ -598,13 +425,10 @@ export function RosterShareControls({
                     type="button"
                     role="menuitem"
                     disabled={busy}
-                    onClick={() => void handleWhatsappDirect()}
+                    onClick={() => void resendWhatsappLinks()}
                     className={menuItemEnabled}
                   >
                     WhatsApp (Direct)
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                      Sample URL
-                    </span>
                   </button>
                   <button
                     type="button"
@@ -647,50 +471,6 @@ export function RosterShareControls({
         </div>
       ) : null}
 
-      {previewImage ? (
-        <Modal
-          open={Boolean(previewImage)}
-          title="WhatsApp sample image URL"
-          onClose={closePreview}
-          size="xl"
-        >
-          <p className="text-sm text-zinc-600">
-            Temp helper for Meta/Twilio: copy this public URL into the template Media sample for{" "}
-            <span className="font-mono text-xs">{"{{1}}"}</span>.
-          </p>
-          {previewUrl ? (
-            <p className="mt-2 break-all rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-700">
-              {previewUrl}
-            </p>
-          ) : null}
-          <div className="mt-3 max-h-[50vh] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewImage}
-              alt={`Roster week ${weekStartYmd} to ${weekEndYmd}`}
-              className="mx-auto h-auto w-full max-w-full"
-            />
-          </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={closePreview}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={() => void copyPreviewUrl()}
-              disabled={!previewUrl}
-              className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
-            >
-              {urlCopied ? "URL copied!" : "Copy URL"}
-            </button>
-          </div>
-        </Modal>
-      ) : null}
-
       {showPublishModal && publishGapInfo ? (
         <Modal
           open={showPublishModal}
@@ -699,8 +479,8 @@ export function RosterShareControls({
           size="md"
         >
           <p className="text-sm text-zinc-700">
-            Publishing makes this week official and sends a WhatsApp roster image to opted-in
-            staff. This week still has{" "}
+            Publishing makes this week official and sends a WhatsApp link to opted-in staff. This
+            week still has{" "}
             <strong>
               {publishGapInfo.openShiftCount} open slot
               {publishGapInfo.openShiftCount === 1 ? "" : "s"}

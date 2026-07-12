@@ -12,6 +12,8 @@ import {
   staffIdsWithRosterEntries,
 } from "@/lib/roster-display-staff";
 import { formatYmdInZone } from "@/lib/datetime-policy";
+import { resolvePublicAppUrlForOrg } from "@/lib/public-url";
+import { buildRosterShareUrl, formatWeekRangeLabel } from "@/lib/roster-personal-message";
 import { weekEndYmd, ymdForDbDate } from "@/lib/roster-week";
 
 export const ROSTER_NOTIFY_CHANNEL_WHATSAPP = "whatsapp";
@@ -31,7 +33,7 @@ export type RosterWhatsappNotifySummary = {
   failed: number;
   capReached: boolean;
   reasons: string[];
-  mediaUrl?: string;
+  shareUrl?: string;
 };
 
 async function incrementWhatsappSentCount(organizationId: string, delta: number): Promise<void> {
@@ -58,15 +60,17 @@ async function incrementWhatsappSentCount(organizationId: string, delta: number)
 }
 
 /**
- * After a roster week is published, send the same roster PNG (media template {{1}})
- * to each opted-in staff member — Shift Close image-blast pattern.
+ * After publish (or Share → WhatsApp Direct), send a text Utility template with the share link.
+ * Staff open the link to view the roster and can download a PNG from that page.
+ *
+ * Template vars: {{1}} first name, {{2}} week range, {{3}} share URL
  */
 export async function sendRosterWhatsappOnPublish(input: {
   organizationId: string;
   rosterWeekId: string;
   rosterWeekPublishAt: Date;
-  mediaUrl: string;
   kind?: RosterWhatsappNotifyKind;
+  request?: Request;
 }): Promise<RosterWhatsappNotifySummary> {
   const kind = input.kind ?? ROSTER_NOTIFY_KIND_PUBLISH;
   const summary: RosterWhatsappNotifySummary = {
@@ -78,7 +82,6 @@ export async function sendRosterWhatsappOnPublish(input: {
     failed: 0,
     capReached: false,
     reasons: [],
-    mediaUrl: input.mediaUrl,
   };
 
   const org = await prisma.organization.findUnique({
@@ -122,11 +125,6 @@ export async function sendRosterWhatsappOnPublish(input: {
     return summary;
   }
 
-  if (!input.mediaUrl.startsWith("https://")) {
-    summary.reasons.push("invalid_media");
-    return summary;
-  }
-
   const week = await prisma.rosterWeek.findFirst({
     where: { id: input.rosterWeekId, organizationId: input.organizationId, status: "published" },
     select: {
@@ -141,10 +139,24 @@ export async function sendRosterWhatsappOnPublish(input: {
       },
     },
   });
-  if (!week?.shareToken) return summary;
+  if (!week?.shareToken) {
+    summary.reasons.push("no_share_token");
+    return summary;
+  }
+
+  const { url: baseUrl } = await resolvePublicAppUrlForOrg(input.organizationId, {
+    request: input.request,
+  });
+  const shareUrl = baseUrl ? buildRosterShareUrl(baseUrl, week.shareToken) : "";
+  if (!shareUrl.startsWith("https://")) {
+    summary.reasons.push("no_public_url");
+    return summary;
+  }
+  summary.shareUrl = shareUrl;
 
   const anchorYmd = ymdForDbDate(week.weekStart);
   const weekEnd = weekEndYmd(anchorYmd);
+  const weekLabel = formatWeekRangeLabel(anchorYmd, weekEnd);
   const timeZone = week.location.timeZone ?? week.organization.timeZone;
   const todayYmd = formatYmdInZone(new Date(), timeZone);
 
@@ -158,6 +170,7 @@ export async function sendRosterWhatsappOnPublish(input: {
     },
     select: {
       id: true,
+      firstName: true,
       contactNumber: true,
       startDate: true,
       archivedAt: true,
@@ -231,12 +244,13 @@ export async function sendRosterWhatsappOnPublish(input: {
 
     summary.attempted += 1;
 
-    // Media template: static body + media {{1}} = public PNG URL (Shift Close pattern).
     const result = await sendWhatsappTemplate({
       to,
       contentSid: twilioConfig.rosterContentSid,
       contentVariables: {
-        "1": input.mediaUrl,
+        "1": staff.firstName || "there",
+        "2": weekLabel,
+        "3": shareUrl,
       },
     });
 

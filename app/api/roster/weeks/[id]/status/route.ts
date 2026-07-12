@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getRosterWeekCoverageGaps, newRosterShareToken, rosterSharePath } from "@/lib/roster-share";
+import { sendRosterWhatsappOnPublish } from "@/lib/messaging/roster-whatsapp-notify";
 import { getSession } from "@/lib/session";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -85,11 +86,18 @@ async function postRosterWeekStatus(request: Request, params: Promise<{ id: stri
     select: { id: true, status: true, shareToken: true, updatedAt: true },
   });
 
-  // WhatsApp image blast runs from the client after publish (PNG capture → Blob → media template).
+  const whatsapp = await sendRosterWhatsappOnPublish({
+    organizationId: session.orgId,
+    rosterWeekId: updated.id,
+    rosterWeekPublishAt: updated.updatedAt,
+    request,
+  });
+
   return NextResponse.json({
     status: updated.status,
     shareToken: updated.shareToken,
     sharePath: updated.shareToken ? rosterSharePath(updated.shareToken) : null,
     openShiftCount: gaps?.openShiftCount ?? 0,
+    whatsapp,
   });
 }

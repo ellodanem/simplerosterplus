@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
-import { uploadRosterWhatsappPng } from "@/lib/messaging/roster-blob";
 import { sendRosterWhatsappOnPublish } from "@/lib/messaging/roster-whatsapp-notify";
 import { getWhatsappAccess } from "@/lib/messaging/whatsapp-access";
 import { twilioWhatsappConfigured } from "@/lib/messaging/twilio-whatsapp";
@@ -11,11 +10,10 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * POST /api/roster/weeks/[id]/whatsapp
- * Body: { imageBase64: string, mode?: "publish" | "direct" }
+ * Body: { mode?: "publish" | "direct" }
  *
- * Uploads the roster PNG once, then sends the approved media template
- * ({{1}} = public image URL) to opted-in staff.
- * mode "direct" (Share → WhatsApp Direct) uses a fresh send timestamp so retests work.
+ * Resends link-based WhatsApp alerts to opted-in staff (no image blast).
+ * mode "direct" uses a fresh timestamp so each Share → WhatsApp (Direct) can retest.
  */
 export async function POST(request: Request, { params }: Ctx) {
   try {
@@ -34,16 +32,11 @@ async function postRosterWeekWhatsapp(request: Request, params: Promise<{ id: st
 
   const { id: weekId } = await params;
 
-  let body: Record<string, unknown>;
+  let body: Record<string, unknown> = {};
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const imageBase64 = typeof body.imageBase64 === "string" ? body.imageBase64 : "";
-  if (!imageBase64) {
-    return NextResponse.json({ error: "imageBase64 is required" }, { status: 400 });
+    body = {};
   }
 
   const mode = body.mode === "direct" ? "direct" : "publish";
@@ -77,72 +70,54 @@ async function postRosterWeekWhatsapp(request: Request, params: Promise<{ id: st
 
   const access = getWhatsappAccess(org);
   if (!access.entitled) {
-    return NextResponse.json(
-      {
-        whatsapp: {
-          configured: twilioWhatsappConfigured(),
-          enabled: false,
-          attempted: 0,
-          sent: 0,
-          skipped: 0,
-          failed: 0,
-          capReached: false,
-          reasons: ["not_entitled"],
-        },
+    return NextResponse.json({
+      whatsapp: {
+        configured: twilioWhatsappConfigured(),
+        enabled: false,
+        attempted: 0,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        capReached: false,
+        reasons: ["not_entitled"],
       },
-      { status: 200 },
-    );
+    });
   }
   if (!org.messagingWhatsappEnabled) {
-    return NextResponse.json(
-      {
-        whatsapp: {
-          configured: twilioWhatsappConfigured(),
-          enabled: false,
-          attempted: 0,
-          sent: 0,
-          skipped: 0,
-          failed: 0,
-          capReached: false,
-          reasons: ["disabled"],
-        },
+    return NextResponse.json({
+      whatsapp: {
+        configured: twilioWhatsappConfigured(),
+        enabled: false,
+        attempted: 0,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        capReached: false,
+        reasons: ["disabled"],
       },
-      { status: 200 },
-    );
+    });
   }
   if (!twilioWhatsappConfigured() || !process.env.TWILIO_WHATSAPP_ROSTER_CONTENT_SID?.trim()) {
-    return NextResponse.json(
-      {
-        whatsapp: {
-          configured: false,
-          enabled: true,
-          attempted: 0,
-          sent: 0,
-          skipped: 0,
-          failed: 0,
-          capReached: false,
-          reasons: ["not_configured"],
-        },
+    return NextResponse.json({
+      whatsapp: {
+        configured: false,
+        enabled: true,
+        attempted: 0,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        capReached: false,
+        reasons: ["not_configured"],
       },
-      { status: 200 },
-    );
-  }
-
-  let mediaUrl: string;
-  try {
-    mediaUrl = await uploadRosterWhatsappPng(imageBase64);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not upload roster image";
-    return NextResponse.json({ error: message }, { status: 502 });
+    });
   }
 
   const whatsapp = await sendRosterWhatsappOnPublish({
     organizationId: session.orgId,
     rosterWeekId: week.id,
-    // Direct sends get a fresh timestamp so each Share → WhatsApp (Direct) can retest.
     rosterWeekPublishAt: mode === "direct" ? new Date() : week.updatedAt,
-    mediaUrl,
     kind: mode === "direct" ? "direct" : "publish",
+    request,
   });
 
   return NextResponse.json({ whatsapp });

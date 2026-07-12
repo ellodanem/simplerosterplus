@@ -65,19 +65,60 @@ export function buildPersonalScheduleBody(input: {
   return lines.join("\n");
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+function dayOrdinal(day: number): string {
+  const mod100 = day % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${day}th`;
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
+}
+
+/** e.g. "6th July" from YYYY-MM-DD (calendar date, not timezone-shifted). */
+export function formatFriendlyDayLabel(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  const month = MONTH_NAMES[m - 1];
+  if (!month) return ymd;
+  return `${dayOrdinal(d)} ${month}`;
+}
+
 export function buildRosterManualWhatsAppText(input: {
   orgName: string;
   weekStartYmd: string;
   weekEndYmd: string;
   shareUrl: string;
 }): string {
-  return `${input.orgName} — roster for ${input.weekStartYmd} to ${input.weekEndYmd} is live.\n${input.shareUrl}`;
+  const range = formatWeekRangeLabel(input.weekStartYmd, input.weekEndYmd);
+  return `${input.orgName} — roster for ${range} is live.\n${input.shareUrl}`;
 }
 
 export function buildRosterShareUrl(baseUrl: string, shareToken: string): string {
   return rosterShareUrl(baseUrl, shareToken);
 }
 
+/** e.g. "6th July – 12th July" */
 export function formatWeekRangeLabel(weekStartYmd: string, weekEndYmd: string): string {
-  return `${weekStartYmd} – ${weekEndYmd}`;
+  return `${formatFriendlyDayLabel(weekStartYmd)} – ${formatFriendlyDayLabel(weekEndYmd)}`;
 }
