@@ -117,6 +117,7 @@ export function RosterShareControls({
   const [publishGapInfo, setPublishGapInfo] = useState<PublishGapInfo | null>(null);
   const [showDraftConfirm, setShowDraftConfirm] = useState(false);
   const [whatsappNotice, setWhatsappNotice] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const displayUrl = useMemo(() => {
     if (url) return url;
@@ -191,10 +192,26 @@ export function RosterShareControls({
     setError(null);
     setWhatsappNotice(null);
     try {
-      await sendWhatsappImageBlast("direct");
+      // First iteration: preview + download only (Meta template sample). No Twilio send yet.
+      const imageBase64 = await generateRosterImage();
+      if (!imageBase64) {
+        setWhatsappNotice("Could not capture roster image.");
+        return;
+      }
+      setPreviewImage(imageBase64);
+    } catch {
+      setWhatsappNotice("Could not capture roster image.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function downloadPreviewImage() {
+    if (!previewImage) return;
+    const a = document.createElement("a");
+    a.href = previewImage;
+    a.download = `roster-${weekStartYmd}.png`;
+    a.click();
   }
 
   async function publishWeek(acknowledgeGaps = false): Promise<boolean> {
@@ -469,6 +486,9 @@ export function RosterShareControls({
                     className={menuItemEnabled}
                   >
                     WhatsApp (Direct)
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                      Preview
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -509,6 +529,44 @@ export function RosterShareControls({
         <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {whatsappNotice}
         </div>
+      ) : null}
+
+      {previewImage ? (
+        <Modal
+          open={Boolean(previewImage)}
+          title="WhatsApp roster image"
+          onClose={() => setPreviewImage(null)}
+          size="xl"
+        >
+          <p className="text-sm text-zinc-600">
+            This is the image staff will receive. Download it and use it as the sample media for
+            Meta template approval.
+          </p>
+          <div className="mt-3 max-h-[60vh] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImage}
+              alt={`Roster week ${weekStartYmd} to ${weekEndYmd}`}
+              className="mx-auto h-auto w-full max-w-full"
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={downloadPreviewImage}
+              className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800"
+            >
+              Download PNG
+            </button>
+          </div>
+        </Modal>
       ) : null}
 
       {showPublishModal && publishGapInfo ? (
