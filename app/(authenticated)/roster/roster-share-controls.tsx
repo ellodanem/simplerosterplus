@@ -183,15 +183,64 @@ export function RosterShareControls({
         windowHeight: height,
         width,
         height,
-        onclone: (_doc, cloned) => {
-          // Sticky columns confuse the clone layout; flatten for a clean PNG.
-          cloned.querySelectorAll(".sticky").forEach((node) => {
-            if (node instanceof HTMLElement) {
-              node.style.position = "static";
-              node.style.left = "auto";
-              node.style.zIndex = "auto";
+        // Prefer browser paint path; still sanitize clone for lab()/oklch() from Tailwind v4.
+        foreignObjectRendering: true,
+        onclone: (doc, cloned) => {
+          const originals = [el, ...Array.from(el.querySelectorAll<HTMLElement>("*"))];
+          const clones = [cloned, ...Array.from(cloned.querySelectorAll<HTMLElement>("*"))];
+          const n = Math.min(originals.length, clones.length);
+          for (let i = 0; i < n; i++) {
+            const orig = originals[i]!;
+            const clone = clones[i]!;
+            const cs = window.getComputedStyle(orig);
+            // Browsers resolve lab()/oklch() to rgb() — copy those onto the clone.
+            clone.style.cssText = "";
+            clone.style.boxSizing = cs.boxSizing;
+            clone.style.backgroundColor = cs.backgroundColor;
+            clone.style.color = cs.color;
+            clone.style.borderTop = `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`;
+            clone.style.borderRight = `${cs.borderRightWidth} ${cs.borderRightStyle} ${cs.borderRightColor}`;
+            clone.style.borderBottom = `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`;
+            clone.style.borderLeft = `${cs.borderLeftWidth} ${cs.borderLeftStyle} ${cs.borderLeftColor}`;
+            clone.style.borderRadius = cs.borderRadius;
+            clone.style.font = cs.font;
+            clone.style.fontSize = cs.fontSize;
+            clone.style.fontWeight = cs.fontWeight;
+            clone.style.fontFamily = cs.fontFamily;
+            clone.style.lineHeight = cs.lineHeight;
+            clone.style.textAlign = cs.textAlign;
+            clone.style.textTransform = cs.textTransform;
+            clone.style.whiteSpace = cs.whiteSpace;
+            clone.style.padding = cs.padding;
+            clone.style.margin = cs.margin;
+            clone.style.display = cs.display;
+            clone.style.flexDirection = cs.flexDirection;
+            clone.style.flexWrap = cs.flexWrap;
+            clone.style.alignItems = cs.alignItems;
+            clone.style.justifyContent = cs.justifyContent;
+            clone.style.gap = cs.gap;
+            clone.style.width = cs.width;
+            clone.style.minWidth = cs.minWidth;
+            clone.style.height = cs.height;
+            clone.style.minHeight = cs.minHeight;
+            clone.style.overflow = "visible";
+            clone.style.verticalAlign = cs.verticalAlign;
+            clone.style.tableLayout = cs.tableLayout;
+            clone.style.borderCollapse = cs.borderCollapse;
+            clone.style.boxShadow = "none";
+            clone.style.textShadow = "none";
+            clone.style.backgroundImage = "none";
+            clone.style.filter = "none";
+            if (cs.position === "sticky" || cs.position === "fixed") {
+              clone.style.position = "static";
+            } else {
+              clone.style.position = cs.position;
             }
-          });
+            clone.removeAttribute("class");
+          }
+
+          // Prevent html2canvas from parsing Tailwind stylesheets (lab()/oklch()).
+          doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((node) => node.remove());
         },
       });
 
