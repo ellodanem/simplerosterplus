@@ -1,6 +1,6 @@
 # WhatsApp roster publish template (Twilio / Meta)
 
-**Status:** Link-first (Jul 2026). Staff get a share URL; they can download a PNG from the share page.
+**Status:** Link-first via **Call to action** URL button (Jul 2026). Plain text with a full URL in the body was rejected for business-initiated.
 
 **Sender:** Simple Roster Plus — `+1 (561) 730-3361` (`whatsapp:+15617303361`)
 
@@ -12,9 +12,9 @@
 
 ```text
 Publish
-  → Twilio text Utility template to opted-in staff
-  → Message includes share link
-  → Staff open link → view roster → optional “Download image”
+  → Twilio Call-to-action Utility template to opted-in staff
+  → Body: name + week · Button: opens share page
+  → Staff tap button → view roster → optional “Download image”
 ```
 
 - **No image attached to WhatsApp** (avoids Media template + Blob-on-every-send).
@@ -25,43 +25,51 @@ Publish
 
 ## Create this template in Twilio
 
+Duplicate the rejected text template (or create new), then:
+
 | Field | Value |
 |-------|--------|
-| **Friendly name** | `srp_roster_link` |
-| **Content type** | **Text** (not Media) |
+| **Friendly name** | `srp_roster_link` (or `srp_roster_cta`) |
+| **Content type** | **Call to action** (not plain Text, not Media) |
 | **WhatsApp category** | **Utility** |
 | **Language** | English (EN / en_US) |
 | **Sender / WABA** | Simple Roster Plus (`+15617303361`) |
 
-### Body (copy exactly — one paragraph)
+### Body (no URL — one paragraph)
 
 ```
-Hi {{1}}, your roster for {{2}} is ready. View it and download an image here: {{3}}
+Hi {{1}}, your roster for {{2}} is ready. Tap View roster below to open it and download an image.
 ```
 
-### Why this wording
+### Button
 
-- Variables are **not** alone on their own lines
-- Message does **not** start or end with a bare variable
-- Enough static text around `{{1}}` / `{{2}}` / `{{3}}` for Meta Utility review
+| Field | Value |
+|-------|--------|
+| **Type** | URL (website) |
+| **Button text** | `View roster` |
+| **URL** | `https://simplerosterplus.vercel.app/share/roster/{{3}}` |
+
+Meta requires a **fixed domain + path prefix**; only the trailing segment may be a variable. Do **not** put the full URL in `{{3}}` — send the share **token** only.
+
+If production ever moves to a custom domain, update this button URL in a **new** template (the base is baked into Meta approval).
 
 ### Sample values (required for Meta)
 
-| Variable | Sample |
-|----------|--------|
-| `{{1}}` | `Maria` |
-| `{{2}}` | `6th July – 12th July` |
-| `{{3}}` | `https://simplerosterplus.vercel.app/share/roster/example-token` |
+| Variable | Sample | Notes |
+|----------|--------|--------|
+| `{{1}}` | `Maria` | First name |
+| `{{2}}` | `6th July – 12th July` | Friendly week range |
+| `{{3}}` | A real share token (path only) | e.g. from `/share/roster/<token>` — not `https://…` |
 
-Use a real published share URL from your app for `{{3}}` if Meta is picky (Copy share link after Publish).
+The combined button URL must open a real published share page when you submit.
 
 ### App contract (what SRP sends)
 
 ```ts
 contentVariables: {
-  "1": firstName,   // staff first name
-  "2": weekLabel,   // "6th July – 12th July"
-  "3": shareUrl,    // https://…/share/roster/{token}
+  "1": firstName,      // staff first name
+  "2": weekLabel,      // "6th July – 12th July"
+  "3": shareToken,     // path suffix only → …/share/roster/{{3}}
 }
 ```
 
@@ -83,10 +91,10 @@ contentVariables: {
 | `TWILIO_ACCOUNT_SID` | Account |
 | `TWILIO_AUTH_TOKEN` | Auth |
 | `TWILIO_WHATSAPP_FROM` | `+15617303361` |
-| `TWILIO_WHATSAPP_ROSTER_CONTENT_SID` | Approved **text** template `HX…` |
-| `APP_URL` / `NEXT_PUBLIC_APP_URL` | Canonical HTTPS base for share links in messages |
+| `TWILIO_WHATSAPP_ROSTER_CONTENT_SID` | Approved **Call to action** template `HX…` |
+| `APP_URL` / `NEXT_PUBLIC_APP_URL` | Used to validate HTTPS share links exist; button domain is fixed in the Twilio template |
 
-`BLOB_READ_WRITE_TOKEN` is **optional** for this flow (only needed if you still use temp Blob sample tools).
+`BLOB_READ_WRITE_TOKEN` is **optional** for this flow.
 
 ---
 
@@ -94,20 +102,22 @@ contentVariables: {
 
 | Old approach | Why |
 |--------------|-----|
-| Media `weeklyroster` with `{{1}}` = PNG | Image blast — retired for automated notify |
-| Text with isolated `{{3}}` on its own line | Meta rejected |
-| Four vars for personal schedule lines | Overkill; link + download is enough |
+| Plain Text with `{{3}}` = full HTTPS URL | Rejected for business-initiated (Jul 2026) |
+| Media `weeklyroster` with PNG | Image blast — retired |
+| Text with isolated vars on their own lines | Meta rejected |
+| Full URL as the button variable | Meta requires path suffix after static base |
 
 ---
 
 ## Checklist
 
-- [ ] Text Utility `srp_roster_link` **Approved** + business initiated
+- [ ] Call-to-action Utility **Approved** + **WhatsApp business initiated** green
+- [ ] Button URL base matches production (`simplerosterplus.vercel.app`)
 - [ ] Env SID updated + redeploy
 - [ ] WhatsApp alerts enabled in Settings
 - [ ] Staff opted in with valid numbers
 - [ ] Publish → amber banner shows link sends
-- [ ] Open share link → **Download image** works on phone/desktop
+- [ ] Tap **View roster** → share page → **Download image** works
 
 ---
 
@@ -117,4 +127,5 @@ contentVariables: {
 |------|------|
 | 2026-07-09 | Text draft with 4 vars — rejected / 21658 |
 | 2026-07-10 | Media image blast attempt |
-| 2026-07-12 | Link-first + share-page Download image |
+| 2026-07-12 | Link-first text body + full URL var — rejected business initiated |
+| 2026-07-12 | Switch to Call-to-action URL button; `{{3}}` = share token |

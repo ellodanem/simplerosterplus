@@ -60,10 +60,11 @@ async function incrementWhatsappSentCount(organizationId: string, delta: number)
 }
 
 /**
- * After publish (or Share → WhatsApp Direct), send a text Utility template with the share link.
+ * After publish (or Share → WhatsApp Direct), send a Call-to-action Utility template.
+ * Body: name + week. Button URL: fixed app origin + /share/roster/{{3}} (token only).
  * Staff open the link to view the roster and can download a PNG from that page.
  *
- * Template vars: {{1}} first name, {{2}} week range, {{3}} share URL
+ * Template vars: {{1}} first name, {{2}} week range, {{3}} share token (button path suffix)
  */
 export async function sendRosterWhatsappOnPublish(input: {
   organizationId: string;
@@ -250,7 +251,8 @@ export async function sendRosterWhatsappOnPublish(input: {
       contentVariables: {
         "1": staff.firstName || "there",
         "2": weekLabel,
-        "3": shareUrl,
+        // CTA button URL is https://…/share/roster/{{3}} — Meta requires a path suffix, not a full URL.
+        "3": week.shareToken,
       },
     });
 
