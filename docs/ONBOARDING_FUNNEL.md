@@ -119,6 +119,9 @@ ONBOARDING_ABANDON_ROSTER_HOURS=48
 ONBOARDING_ABANDON_PUBLISH_HOURS=48
 ONBOARDING_ABANDON_INACTIVE_HOURS=72
 ONBOARDING_MAX_FOLLOW_UPS=3
+ONBOARDING_FOLLOW_UP_FROM="Simple Roster Plus <hello@simplerosterplus.com>"
+ONBOARDING_MANUAL_SEND_WINDOW_HOURS=6
+ONBOARDING_OPERATOR_SENDS_PER_HOUR=30
 ```
 
 ---
@@ -140,7 +143,7 @@ npm run lint
 |-------|--------|
 | **2** | Schema, record/merge, instrumentation, abandonment helpers, seed personas, Vitest |
 | **3** | Ops Dashboard Onboarding Funnel UI + lead detail + basic Ops actions |
-| **4** | Manual follow-up email |
+| **4** | Manual preview, send, schedule, durable history, rate limits, audit |
 | **5** | Cron automation readiness (still gated by flag) |
 
 ## Ops routes (Phase 3)
@@ -152,3 +155,22 @@ npm run lint
 | `PATCH /api/ops/onboarding/[id]` | Ops actions (`support`+) |
 
 Authorization: pages use `requireOperator()`; mutations use `guardOperatorApi("support")`.
+
+## Manual follow-up (Phase 4)
+
+From `/ops/onboarding/[id]`, a support-or-higher operator can preview the
+stage-recommended template, choose another recovery template, send immediately, or
+store a future scheduled send.
+
+- Every attempt is persisted in `OnboardingFollowUp` before provider delivery.
+- A client request key is included in the unique database `idempotencyKey`; retrying
+  the same request cannot send twice.
+- Immediate sends move `sending` → `sent` or `failed` and retain the Resend message id.
+- Scheduled sends are database-backed; Phase 5 processes them. No in-memory timer is
+  used.
+- Sending is blocked for activated/completed, do-not-contact, needs-support,
+  demo/test, suspended, recently resumed, max-follow-up, and unusable-email cases.
+- Default rate limits are one successful/in-flight message per lead every six hours
+  and 30 per operator per hour.
+- Send, schedule, suppression, and related actions write `OperatorAuditLog`.
+- Templates are transactional setup assistance only; no promotional copy is included.

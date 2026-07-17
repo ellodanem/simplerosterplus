@@ -8,10 +8,16 @@ export type ResendEmailInput = {
   from?: string;
 };
 
-/** Send via Resend when RESEND_API_KEY is set. Returns false when skipped or failed. */
-export async function sendResendEmail(input: ResendEmailInput): Promise<boolean> {
+export type ResendEmailResult =
+  | { ok: true; providerMessageId: string | null }
+  | { ok: false; reason: "not_configured" | "provider_error"; detail?: string };
+
+/** Send via Resend and return the provider id needed for durable delivery records. */
+export async function sendResendEmailDetailed(
+  input: ResendEmailInput,
+): Promise<ResendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) return false;
+  if (!apiKey) return { ok: false, reason: "not_configured" };
 
   const from =
     input.from?.trim() ||
@@ -38,8 +44,22 @@ export async function sendResendEmail(input: ResendEmailInput): Promise<boolean>
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     console.error("[email:resend] send failed", res.status, detail);
-    return false;
+    return {
+      ok: false,
+      reason: "provider_error",
+      detail: detail.slice(0, 500) || `Resend returned HTTP ${res.status}`,
+    };
   }
 
-  return true;
+  const body = (await res.json().catch(() => null)) as { id?: unknown } | null;
+  return {
+    ok: true,
+    providerMessageId: typeof body?.id === "string" ? body.id : null,
+  };
+}
+
+/** Backward-compatible boolean helper used by existing notification callers. */
+export async function sendResendEmail(input: ResendEmailInput): Promise<boolean> {
+  const result = await sendResendEmailDetailed(input);
+  return result.ok;
 }
