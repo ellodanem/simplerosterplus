@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Scheduling Software for Small Teams | Simple Roster Plus</title>
+  <meta name="description" content="Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.">
+  <link rel="canonical" href="https://www.simplerosterplus.com/employee-scheduling-software">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Simple Roster Plus">
+  <meta property="og:title" content="Employee Scheduling Software for Small Teams | Simple Roster Plus">
+  <meta property="og:description" content="Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.">
+  <meta property="og:url" content="https://www.simplerosterplus.com/employee-scheduling-software">
+  <meta property="og:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
+  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with color-coded employee shifts.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Employee Scheduling Software for Small Teams | Simple Roster Plus">
+  <meta name="twitter:description" content="Build weekly rosters, assign reusable shifts, account for approved time off and publish one clear schedule.">
+  <meta name="twitter:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
+  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with color-coded employee shifts.">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../brand/srp-icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://www.simplerosterplus.com/employee-scheduling-software#webpage",
+        "name": "Employee Scheduling Software for Small Teams | Simple Roster Plus",
+        "url": "https://www.simplerosterplus.com/employee-scheduling-software",
+        "description": "Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.",
+        "isPartOf": {
+          "@id": "https://www.simplerosterplus.com/#website"
+        },
+        "about": {
+          "@id": "https://www.simplerosterplus.com/#software"
+        },
+        "breadcrumb": {
+          "@id": "https://www.simplerosterplus.com/employee-scheduling-software#breadcrumb"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://www.simplerosterplus.com/employee-scheduling-software#breadcrumb",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.simplerosterplus.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Employee Scheduling Software",
+            "item": "https://www.simplerosterplus.com/employee-scheduling-software"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #f6f8f7;
+      --surface: #ffffff;
+      --surface-2: #f1f5f4;
+      --text: #0f172a;
+      --text-muted: #5b6b73;
+      --brand: #047857;
+      --brand-dark: #065f46;
+      --brand-bright: #059669;
+      --brand-soft: #ecfdf5;
+      --brand-tint: #f0fdf4;
+      --amber: #d97706;
+      --amber-soft: #fffbeb;
+      --rose: #e11d48;
+      --rose-soft: #fff1f2;
+      --sky: #0369a1;
+      --sky-soft: #f0f9ff;
+      --border: #e4ebe8;
+      --border-soft: #eef2f1;
+      --ring: rgba(4, 120, 87, 0.35);
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 8px 26px rgba(15, 23, 42, 0.07);
+      --shadow-md: 0 18px 45px rgba(15, 23, 42, 0.1);
+      --shadow-lg: 0 30px 75px rgba(4, 120, 87, 0.16);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --radius-lg: 26px;
+      --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --max: 1140px;
+      --section-y: clamp(3.75rem, 7vw, 6.5rem);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; height: auto; }
+    a { color: var(--brand); text-underline-offset: 3px; }
+    a:hover { color: var(--brand-dark); }
+    h1, h2, h3 { letter-spacing: -0.025em; }
+    .wrap { width: min(100% - 2.5rem, var(--max)); margin-inline: auto; }
+
+    .skip-link { position: absolute; left: -9999px; top: auto; }
+    .skip-link:focus {
+      left: 1rem;
+      top: 1rem;
+      z-index: 1000;
+      padding: 0.55rem 1rem;
+      border: 2px solid var(--brand);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.78rem 1.45rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font: 700 0.94rem/1 var(--font);
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
+    }
+    .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(180deg, var(--brand-bright), var(--brand));
+      box-shadow: 0 7px 20px rgba(4, 120, 87, 0.26);
+    }
+    .btn-primary:hover { color: #fff; box-shadow: 0 11px 28px rgba(4, 120, 87, 0.34); }
+    .btn-secondary {
+      color: var(--brand-dark);
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-secondary:hover { color: var(--brand-dark); border-color: var(--ring); background: var(--brand-soft); }
+    .btn-ghost { color: var(--text); background: transparent; }
+    .btn-ghost:hover { color: var(--brand); background: var(--brand-soft); }
+    .btn-lg { min-height: 50px; padding: 0.95rem 1.8rem; font-size: 1rem; }
+    .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      border-bottom: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    header.is-scrolled { border-bottom-color: var(--border); box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05); }
+    .header-inner {
+      width: min(100% - 2.5rem, var(--max));
+      margin-inline: auto;
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .logo { display: inline-flex; align-items: center; line-height: 0; }
+    .logo img { width: 190px; height: auto; }
+    .header-nav { display: flex; align-items: center; gap: 0.2rem; }
+    .header-nav > a:not(.btn) {
+      padding: 0.6rem 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .header-nav > a:not(.btn):hover { color: var(--brand); }
+    .header-actions { display: flex; align-items: center; gap: 0.35rem; }
+
+    section { padding: var(--section-y) 0; }
+    .eyebrow {
+      display: inline-block;
+      margin: 0 0 0.8rem;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid rgba(4, 120, 87, 0.16);
+      border-radius: 999px;
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-size: 0.71rem;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+    .section-head { max-width: 43rem; margin: 0 auto 2.75rem; text-align: center; }
+    .section-title {
+      margin: 0 0 0.8rem;
+      font-size: clamp(1.75rem, 4vw, 2.55rem);
+      font-weight: 800;
+      line-height: 1.14;
+    }
+    .section-lead { margin: 0; color: var(--text-muted); font-size: 1.06rem; }
+
+    #hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(3rem, 6vw, 5.25rem) 0 clamp(4rem, 7vw, 6.25rem);
+      background:
+        radial-gradient(52rem 30rem at 90% 20%, rgba(16, 185, 129, 0.13), transparent 68%),
+        linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+    }
+    #hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.32;
+      background-image:
+        linear-gradient(rgba(4, 120, 87, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(4, 120, 87, 0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 78%);
+    }
+    .hero-grid {
+      position: relative;
+      display: grid;
+      align-items: center;
+      gap: clamp(2.5rem, 6vw, 4.5rem);
+    }
+    .breadcrumb { margin: 0 0 1.15rem; color: var(--text-muted); font-size: 0.82rem; }
+    .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--brand); }
+    .hero-copy h1 {
+      max-width: 13ch;
+      margin: 0 0 1.1rem;
+      font-size: clamp(2.35rem, 5.3vw, 4rem);
+      font-weight: 800;
+      line-height: 1.04;
+    }
+    .hero-copy .accent { color: var(--brand); }
+    .hero-lead { max-width: 38rem; margin: 0 0 1.55rem; color: var(--text-muted); font-size: clamp(1.05rem, 2vw, 1.18rem); }
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.1rem;
+      margin: 1.4rem 0 0;
+      padding: 0;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      list-style: none;
+    }
+    .hero-meta li { display: flex; align-items: center; gap: 0.4rem; }
+    .hero-meta svg { width: 16px; height: 16px; color: var(--brand); }
+    .hero-visual { position: relative; }
+    .hero-frame {
+      padding: 0.65rem;
+      border: 1px solid rgba(4, 120, 87, 0.17);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow-lg);
+    }
+    .hero-frame img { width: 100%; border-radius: calc(var(--radius-lg) - 8px); }
+    .float-chip {
+      position: absolute;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .float-chip--top { top: -1rem; right: 1rem; }
+    .float-chip--bottom { bottom: -1rem; left: 1rem; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-bright); }
+    .dot-amber { background: var(--amber); }
+
+    .proof-strip { padding: 1.15rem 0; border-block: 1px solid var(--border); background: var(--surface); }
+    .proof-list {
+      display: grid;
+      gap: 0.8rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      text-align: center;
+    }
+    .proof-list strong { display: block; color: var(--text); font-size: 0.94rem; }
+
+    .problem-grid, .review-grid, .share-grid, .pricing-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .card {
+      padding: 1.35rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+    .card-icon {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 1rem;
+      place-items: center;
+      border-radius: 12px;
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+    .card-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+    .card h3 { margin: 0 0 0.45rem; font-size: 1.04rem; }
+    .card p { margin: 0; color: var(--text-muted); font-size: 0.94rem; }
+
+    .feature-section { background: var(--surface); }
+    .feature-grid {
+      display: grid;
+      align-items: center;
+      gap: clamp(2rem, 5vw, 4.5rem);
+    }
+    .feature-copy h2 { margin: 0 0 0.85rem; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.14; }
+    .feature-copy > p { margin: 0 0 1.3rem; color: var(--text-muted); font-size: 1.04rem; }
+    .check-list { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+    .check-list li { display: flex; gap: 0.65rem; align-items: flex-start; color: #334155; }
+    .check {
+      display: grid;
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      margin-top: 0.1rem;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--brand-dark);
+      background: #d1fae5;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+    .inline-link { display: inline-flex; margin-top: 1.3rem; font-weight: 700; text-decoration-thickness: 1px; }
+
+    .ui-panel {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-md);
+    }
+    .ui-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: #fbfdfc;
+    }
+    .ui-panel-head strong { font-size: 0.9rem; }
+    .ui-panel-head span { color: var(--text-muted); font-size: 0.78rem; }
+    .shift-stack { display: grid; gap: 0.65rem; padding: 1rem; }
+    .shift-row {
+      display: grid;
+      grid-template-columns: 12px 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.8rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      background: #fff;
+    }
+    .shift-color { width: 12px; height: 38px; border-radius: 5px; background: #3b82f6; }
+    .shift-color--amber { background: #f59e0b; }
+    .shift-color--violet { background: #8b5cf6; }
+    .shift-row strong { display: block; font-size: 0.88rem; }
+    .shift-row small { color: var(--text-muted); }
+    .shift-time { color: #334155; font-size: 0.78rem; font-weight: 700; }
+
+    .soft-section { background: var(--surface-2); }
+    .timeoff-panel {
+      display: grid;
+      gap: 1.25rem;
+      padding: clamp(1.35rem, 4vw, 2.5rem);
+      border: 1px solid #bae6fd;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #fff 0%, var(--sky-soft) 100%);
+      box-shadow: var(--shadow);
+    }
+    .timeoff-panel h2 { margin: 0 0 0.65rem; font-size: clamp(1.65rem, 3.8vw, 2.35rem); line-height: 1.15; }
+    .timeoff-panel p { margin: 0; color: var(--text-muted); }
+    .status-list { display: grid; gap: 0.65rem; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid rgba(3, 105, 161, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      font-size: 0.86rem;
+    }
+    .status-pill { padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; }
+    .status-pill--leave { color: #075985; background: #e0f2fe; }
+    .status-pill--closed { color: #52525b; background: #e4e4e7; }
+
+    .review-card { position: relative; padding-top: 3.35rem; }
+    .step-no {
+      position: absolute;
+      top: 1.2rem;
+      left: 1.3rem;
+      color: var(--brand);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .review-card--warn { border-color: #fde68a; background: var(--amber-soft); }
+    .review-card--live { border-color: #a7f3d0; background: var(--brand-tint); }
+
+    .share-card { text-align: center; }
+    .share-card .card-icon { margin-inline: auto; }
+
+    .attendance-band {
+      position: relative;
+      overflow: hidden;
+      color: #e8fff7;
+      background: linear-gradient(120deg, #064e3b, #047857 60%, #059669);
+    }
+    .attendance-band::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(35rem 16rem at 80% 0%, rgba(255, 255, 255, 0.15), transparent 70%),
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: auto, 44px 44px, 44px 44px;
+      pointer-events: none;
+    }
+    .attendance-inner { position: relative; z-index: 1; display: grid; align-items: center; gap: 2rem; }
+    .attendance-copy h2 { margin: 0 0 0.8rem; color: #fff; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.14; }
+    .attendance-copy p { max-width: 37rem; margin: 0; color: #d1fae5; }
+    .attendance-statuses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+    .attendance-status {
+      padding: 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .attendance-status span { display: block; margin-top: 0.15rem; color: #a7f3d0; font-size: 0.72rem; font-weight: 500; }
+
+    .pricing-card {
+      display: flex;
+      flex-direction: column;
+      padding: 1.4rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .pricing-card.featured { border-color: #6ee7b7; box-shadow: var(--shadow-md); }
+    .plan-label { margin: 0; color: var(--brand); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .plan-price { margin: 0.25rem 0 0.6rem; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.04em; }
+    .plan-price span { color: var(--text-muted); font-size: 0.82rem; font-weight: 500; letter-spacing: 0; }
+    .pricing-card > p:last-of-type { margin: 0 0 1rem; color: var(--text-muted); font-size: 0.88rem; }
+    .pricing-card .btn { margin-top: auto; }
+    .fit-note { max-width: 47rem; margin: 1.25rem auto 0; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+
+    .faq-list { display: grid; max-width: 780px; margin: 0 auto; gap: 0.7rem; }
+    .faq-list details { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-sm); }
+    .faq-list summary {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1.05rem;
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+    }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list summary::after { content: "+"; color: var(--brand); font-size: 1.25rem; font-weight: 500; }
+    .faq-list details[open] summary::after { content: "–"; }
+    .faq-answer { margin: 0; padding: 0 1.05rem 1rem; color: var(--text-muted); font-size: 0.94rem; }
+
+    #cta-close {
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      text-align: center;
+      background: linear-gradient(120deg, #065f46, #047857 50%, #059669);
+    }
+    #cta-close::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(38rem 16rem at 50% -10%, rgba(255,255,255,0.2), transparent 65%);
+      pointer-events: none;
+    }
+    #cta-close .wrap { position: relative; z-index: 1; }
+    #cta-close h2 { max-width: 17ch; margin: 0 auto 0.75rem; color: #fff; font-size: clamp(1.8rem, 4.2vw, 2.7rem); line-height: 1.13; }
+    #cta-close p { max-width: 38rem; margin: 0 auto 1.55rem; color: #d1fae5; }
+    #cta-close .cta-row { justify-content: center; }
+    #cta-close .btn-primary { color: var(--brand-dark); background: #fff; }
+    #cta-close .btn-primary:hover { color: var(--brand-dark); background: var(--brand-soft); }
+    #cta-close .btn-secondary { color: #fff; border-color: rgba(255,255,255,0.55); background: transparent; }
+    #cta-close .btn-secondary:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.1); }
+
+    footer { padding: 2.75rem 1.25rem 1.75rem; color: #b7c4bf; background: #0c1512; font-size: 0.9rem; }
+    .footer-inner { max-width: var(--max); margin-inline: auto; text-align: center; }
+    .footer-inner .logo img { width: 190px; margin-inline: auto; }
+    .footer-mission { max-width: 37rem; margin: 0.9rem auto 0; color: #d5ded9; }
+    .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.35rem; margin-top: 1.35rem; }
+    .footer-links a { color: #8fa39c; text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+    .footer-copy { margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid #24312c; color: #6b7a74; font-size: 0.84rem; }
+
+    @media (min-width: 620px) {
+      .proof-list { grid-template-columns: repeat(3, 1fr); }
+      .problem-grid, .review-grid, .share-grid, .pricing-grid { grid-template-columns: repeat(3, 1fr); }
+      .timeoff-panel { grid-template-columns: 1.1fr 0.9fr; align-items: center; }
+    }
+    @media (min-width: 880px) {
+      .hero-grid { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); }
+      .feature-grid { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
+      .feature-grid.reverse { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
+      .feature-grid.reverse .feature-copy { order: 2; }
+      .attendance-inner { grid-template-columns: 1.15fr 0.85fr; }
+    }
+    @media (max-width: 820px) {
+      .header-nav > a:not(.btn) { display: none; }
+    }
+    @media (max-width: 560px) {
+      .wrap, .header-inner { width: min(100% - 2rem, var(--max)); }
+      .logo img { width: 154px; }
+      .header-actions .btn-ghost { display: none; }
+      .btn { padding-inline: 1.15rem; }
+      .hero-copy h1 { font-size: clamp(2.15rem, 10.5vw, 3rem); }
+      .hero-meta { display: grid; }
+      .float-chip { position: static; width: fit-content; margin-top: 0.7rem; }
+      .float-chip--bottom { margin-left: auto; }
+      .attendance-statuses { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header id="site-header">
+    <div class="header-inner">
+      <a class="logo" href="/" aria-label="Simple Roster Plus home">
+        <img
+          src="../brand/srp-logo-lockup.png"
+          srcset="../brand/srp-logo-lockup-640.png 640w, ../brand/srp-logo-lockup-1280.png 1280w, ../brand/srp-logo-lockup.png 1361w"
+          sizes="(max-width: 640px) 154px, 190px"
+          width="190"
+          height="36"
+          alt="Simple Roster Plus"
+        >
+      </a>
+      <nav class="header-nav" aria-label="Page">
+        <a href="#workflow">How it works</a>
+        <a href="#share">Share</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-ghost" href="https://app.simplerosterplus.com/login" rel="noopener noreferrer">Log in</a>
+        <a class="btn btn-primary" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="hero" aria-labelledby="hero-heading">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="breadcrumb"><a href="/">Home</a> / Employee scheduling software</p>
+          <span class="eyebrow">Weekly scheduling for small teams</span>
+          <h1 id="hero-heading">Employee Scheduling Software That Keeps <span class="accent">Every Shift Clear</span></h1>
+          <p class="hero-lead">Create a weekly staff roster, reuse familiar shifts, account for approved time off, and publish one clear schedule for your team.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+            <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
+          </div>
+          <ul class="hero-meta">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              Free for up to 10 staff
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              Reusable shift presets
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              Publish and share
+            </li>
+          </ul>
+        </div>
+        <div class="hero-visual">
+          <span class="float-chip float-chip--top"><span class="dot"></span>Weekly roster ready</span>
+          <div class="hero-frame">
+            <picture>
+              <source type="image/webp" srcset="../images/app-roster-week.webp">
+              <img
+                src="../images/app-roster-week.png"
+                width="1400"
+                height="900"
+                alt="Simple Roster Plus weekly roster showing employee rows, color-coded shifts, coverage counts and shift presets."
+                decoding="async"
+                fetchpriority="high"
+              >
+            </picture>
+          </div>
+          <span class="float-chip float-chip--bottom"><span class="dot dot-amber"></span>Time off stays visible</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="proof-strip" aria-label="Scheduling workflow">
+      <ul class="wrap proof-list">
+        <li><strong>Plan the week</strong>One roster for each location</li>
+        <li><strong>Reuse familiar shifts</strong>Times, breaks and colors saved</li>
+        <li><strong>Publish one clear version</strong>Read-only link for your team</li>
+      </ul>
+    </div>
+
+    <section id="problem" aria-labelledby="problem-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">The weekly scheduling problem</span>
+          <h2 id="problem-heading" class="section-title">The Schedule Should Not Start from Zero Every Week</h2>
+          <p class="section-lead">Spreadsheets, paper, and group-chat screenshots make a familiar job feel harder than it needs to be. Simple Roster Plus keeps the weekly roster in one practical workflow.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M8 3v4M16 3v4"/></svg>
+            </div>
+            <h3>Stop rebuilding the basics</h3>
+            <p>Save the shift patterns your team already uses instead of retyping the same hours.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4"/></svg>
+            </div>
+            <h3>Keep time off in view</h3>
+            <p>See approved vacation and days off while building the roster—not after it is shared.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 12h8M12 8v8M4 6h16v12H4z"/></svg>
+            </div>
+            <h3>Share one current roster</h3>
+            <p>Publish a read-only link instead of sending another schedule screenshot that can go stale.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow" class="feature-section" aria-labelledby="build-heading">
+      <div class="wrap feature-grid">
+        <div class="feature-copy">
+          <span class="eyebrow">Build the weekly roster</span>
+          <h2 id="build-heading">Build the Weekly Schedule in One Clear View</h2>
+          <p>Choose the week, scan the staff list, and assign a familiar shift to each editable day. The roster stays focused on the work a manager needs to finish.</p>
+          <ul class="check-list">
+            <li><span class="check" aria-hidden="true">✓</span><span>Assign shifts to employees day by day.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Apply one shift across an employee's editable week.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>See daily shift counts and scheduled-hour indicators.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Keep roster weeks tied to the right location.</span></li>
+          </ul>
+          <a class="inline-link" href="/">See our employee roster software →</a>
+        </div>
+        <div class="hero-frame">
+          <picture>
+            <source type="image/webp" srcset="../images/app-roster-week.webp">
+            <img
+              src="../images/app-roster-week.png"
+              width="1400"
+              height="900"
+              alt="Weekly employee schedule in Simple Roster Plus with staff assignments and color-coded shifts."
+              loading="lazy"
+            >
+          </picture>
+        </div>
+      </div>
+    </section>
+
+    <section id="reuse" aria-labelledby="reuse-heading">
+      <div class="wrap feature-grid reverse">
+        <div class="feature-copy">
+          <span class="eyebrow">Reuse what works</span>
+          <h2 id="reuse-heading">Reuse Shift Presets and Copy Last Week</h2>
+          <p>Most shift teams use a familiar set of hours. Save them once, then spend your time adjusting the week—not rebuilding it.</p>
+          <ul class="check-list">
+            <li><span class="check" aria-hidden="true">✓</span><span>Name each shift and set start and end times.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Record unpaid break time and choose a clear color.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Copy eligible shifts from the previous week.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Adjust the copied roster before publishing.</span></li>
+          </ul>
+        </div>
+        <div class="ui-panel" aria-label="Example reusable shift presets">
+          <div class="ui-panel-head">
+            <strong>Shift presets</strong>
+            <span>Saved for your team</span>
+          </div>
+          <div class="shift-stack">
+            <div class="shift-row">
+              <span class="shift-color" aria-hidden="true"></span>
+              <span><strong>Morning</strong><small>30 min unpaid break</small></span>
+              <span class="shift-time">06:00–14:00</span>
+            </div>
+            <div class="shift-row">
+              <span class="shift-color shift-color--amber" aria-hidden="true"></span>
+              <span><strong>Day</strong><small>30 min unpaid break</small></span>
+              <span class="shift-time">09:00–17:00</span>
+            </div>
+            <div class="shift-row">
+              <span class="shift-color shift-color--violet" aria-hidden="true"></span>
+              <span><strong>Evening</strong><small>No unpaid break</small></span>
+              <span class="shift-time">16:00–22:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="time-off" class="soft-section" aria-labelledby="timeoff-heading">
+      <div class="wrap timeoff-panel">
+        <div>
+          <span class="eyebrow">Schedule around approved time off</span>
+          <h2 id="timeoff-heading">Keep Approved Time Off Visible While You Schedule</h2>
+          <p>Approved vacation and days off block the affected roster cells. Closed holidays are kept off the schedule too, helping managers avoid preventable clashes before publishing.</p>
+        </div>
+        <div class="status-list" aria-label="Time-off examples">
+          <div class="status-row"><span>Mon · Alex Morgan</span><span class="status-pill status-pill--leave">Vacation</span></div>
+          <div class="status-row"><span>Thu · Jamie Lewis</span><span class="status-pill status-pill--leave">Day off</span></div>
+          <div class="status-row"><span>Fri · Team roster</span><span class="status-pill status-pill--closed">Closed holiday</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="review" aria-labelledby="review-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Review before publishing</span>
+          <h2 id="review-heading" class="section-title">Check the Week, Then Make It Official</h2>
+          <p class="section-lead">Simple status cues help you spot unassigned days before publishing and decide whether the roster is ready to share.</p>
+        </div>
+        <div class="review-grid">
+          <article class="card review-card">
+            <span class="step-no">Step 1</span>
+            <h3>Build in draft</h3>
+            <p>Keep the roster private while you assign shifts, copy last week, and make adjustments.</p>
+          </article>
+          <article class="card review-card review-card--warn">
+            <span class="step-no">Step 2</span>
+            <h3>Review unassigned days</h3>
+            <p>See a warning when staff-days remain unassigned and choose whether to fill them first.</p>
+          </article>
+          <article class="card review-card review-card--live">
+            <span class="step-no">Step 3</span>
+            <h3>Publish when ready</h3>
+            <p>Publish one read-only version for the team, with the option to return it to draft later.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="share" class="feature-section" aria-labelledby="share-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Publish and share</span>
+          <h2 id="share-heading" class="section-title">Publish and Share One Read-Only Roster</h2>
+          <p class="section-lead">Give your team one published roster they can open without editing it. Managers choose how to pass the link along.</p>
+        </div>
+        <div class="share-grid">
+          <article class="card share-card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7.5l-1 1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7.5l1-1"/></svg>
+            </div>
+            <h3>Read-only share link</h3>
+            <p>Publish an unguessable link to the full location roster.</p>
+          </article>
+          <article class="card share-card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4V9h16v9h-2M7 14h10v7H7z"/></svg>
+            </div>
+            <h3>Print the roster</h3>
+            <p>Open a print-ready view when a physical copy works best.</p>
+          </article>
+          <article class="card share-card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+            </div>
+            <h3>Download a PNG</h3>
+            <p>Save an image of the published roster for manual sharing.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="attendance" class="attendance-band" aria-labelledby="attendance-heading">
+      <div class="wrap attendance-inner">
+        <div class="attendance-copy">
+          <span class="eyebrow">Scheduling connected to attendance</span>
+          <h2 id="attendance-heading">Compare the Plan with What Actually Happened</h2>
+          <p>The weekly roster supplies the expected shift. Attendance can then show whether that employee is still scheduled, arrived on time, arrived late, or was absent—without turning scheduling into a payroll system.</p>
+        </div>
+        <div class="attendance-statuses" aria-label="Attendance statuses">
+          <div class="attendance-status">Scheduled<span>Shift is still ahead</span></div>
+          <div class="attendance-status">Present<span>Clock-in matched the plan</span></div>
+          <div class="attendance-status">Late<span>Clock-in followed the grace window</span></div>
+          <div class="attendance-status">Absent<span>No clock-in after the shift was due</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" aria-labelledby="pricing-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Pricing and product fit</span>
+          <h2 id="pricing-heading" class="section-title">Simple Plans for Small, Shift-Based Teams</h2>
+          <p class="section-lead">Start with the weekly roster you need now—without buying a full payroll or enterprise HR suite.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <p class="plan-label">Free</p>
+            <p class="plan-price">$0 <span>/ month</span></p>
+            <p>Up to 10 staff and 2 locations. No credit card required.</p>
+            <a class="btn btn-secondary" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+          </article>
+          <article class="pricing-card featured">
+            <p class="plan-label">Plus</p>
+            <p class="plan-price">$19.99 <span>/ month</span></p>
+            <p>Up to 50 staff with unlimited locations and live attendance.</p>
+            <a class="btn btn-primary" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+          </article>
+          <article class="pricing-card">
+            <p class="plan-label">Pro</p>
+            <p class="plan-price">$49.99 <span>/ month</span></p>
+            <p>Up to 100 staff, with more devices and admin access.</p>
+            <a class="btn btn-secondary" href="/#contact">Contact us</a>
+          </article>
+        </div>
+        <p class="fit-note">Roster and attendance only—no payroll automation. See full limits and annual options in <a href="/#pricing">Simple Roster Plus pricing</a>.</p>
+      </div>
+    </section>
+
+    <section id="faq" class="soft-section" aria-labelledby="faq-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Employee scheduling questions</span>
+          <h2 id="faq-heading" class="section-title">What Managers Ask Before They Start</h2>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>Can I copy last week's employee schedule?</summary>
+            <p class="faq-answer">Yes. Copy the previous week's eligible shifts into the new week, then adjust what changed. Approved leave, closed holidays, and locked days are respected.</p>
+          </details>
+          <details>
+            <summary>Can I create reusable shifts?</summary>
+            <p class="faq-answer">Yes. Save shift names, start and end times, unpaid breaks, and colors so familiar hours are quick to assign again.</p>
+          </details>
+          <details>
+            <summary>Can I see leave while building the roster?</summary>
+            <p class="faq-answer">Yes. Approved vacation and approved days off remain visible and block those roster cells. Closed holidays can block assignments too.</p>
+          </details>
+          <details>
+            <summary>Can employees see their schedules?</summary>
+            <p class="faq-answer">Staff can open the published read-only full-roster link. Simple Roster Plus does not currently provide a personalized authenticated employee schedule portal.</p>
+          </details>
+          <details>
+            <summary>Does it support multiple locations?</summary>
+            <p class="faq-answer">Roster weeks and staff can be tied to a location. The Free plan supports up to two locations; Plus and Pro support more. The product does not present every location in one combined scheduling view.</p>
+          </details>
+          <details>
+            <summary>Does Simple Roster Plus track attendance too?</summary>
+            <p class="faq-answer">Yes. Scheduled shifts provide expected times for attendance, helping managers see scheduled, present, late, and absent status. Attendance supports the roster—it is not payroll automation.</p>
+          </details>
+          <details>
+            <summary>Is Auto Scheduler available?</summary>
+            <p class="faq-answer"><strong>Auto Scheduler is coming soon.</strong> Today, managers can copy the previous week and adjust the roster manually.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="cta-close" aria-labelledby="cta-heading">
+      <div class="wrap">
+        <h2 id="cta-heading">Build This Week's Roster Without Starting from Scratch</h2>
+        <p>Save familiar shifts, account for approved time off, and publish one clear schedule for your team.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+          <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <a class="logo" href="/" aria-label="Simple Roster Plus home">
+        <img
+          src="../brand/srp-logo-lockup-on-dark.png"
+          srcset="../brand/srp-logo-lockup-on-dark-640.png 640w, ../brand/srp-logo-lockup-on-dark-1280.png 1280w, ../brand/srp-logo-lockup-on-dark.png 1361w"
+          sizes="(max-width: 640px) 154px, 190px"
+          width="190"
+          height="36"
+          alt="Simple Roster Plus"
+        >
+      </a>
+      <p class="footer-mission">Simple Roster Plus helps managers build weekly staff rosters, publish clear schedules, and connect the plan to attendance.</p>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="/">Employee roster software</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/privacy.html">Privacy policy</a>
+        <a href="/terms.html">Terms of service</a>
+        <a href="https://app.simplerosterplus.com/login" rel="noopener noreferrer">Log in</a>
+        <a href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+      </nav>
+      <p class="footer-copy">© <span id="year"></span> Simple Roster Plus. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var year = document.getElementById("year");
+      if (year) year.textContent = new Date().getFullYear();
+
+      var header = document.getElementById("site-header");
+      if (header) {
+        var onScroll = function () {
+          header.classList.toggle("is-scrolled", window.scrollY > 8);
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+      }
+    })();
+  </script>
+</body>
+</html>
