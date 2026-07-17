@@ -69,9 +69,11 @@ export function resolveDeviceTimeZone(device: AdmsResolvedDevice): string {
 export async function touchDeviceLastSeen(deviceId: string): Promise<void> {
   const device = await prisma.device.findUnique({
     where: { id: deviceId },
-    select: { organizationId: true },
+    select: { organizationId: true, lastSeenAt: true },
   });
   if (!device) return;
+
+  const firstContact = device.lastSeenAt == null;
 
   await startDeviceTrialOnFirstConnect(device.organizationId);
 
@@ -79,4 +81,13 @@ export async function touchDeviceLastSeen(deviceId: string): Promise<void> {
     where: { id: deviceId },
     data: { lastSeenAt: new Date() },
   });
+
+  if (firstContact) {
+    const { trackOrgMilestone } = await import("@/lib/onboarding-funnel/track-org");
+    trackOrgMilestone({
+      stage: "attendance_device_connected",
+      organizationId: device.organizationId,
+      source: "adms",
+    });
+  }
 }

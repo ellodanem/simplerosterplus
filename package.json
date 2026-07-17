@@ -7,6 +7,9 @@
     "build": "prisma generate && node scripts/migrate-deploy.mjs && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "node scripts/run-prisma.mjs migrate dev",
     "db:deploy": "node scripts/run-prisma.mjs migrate deploy",
@@ -51,6 +54,7 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

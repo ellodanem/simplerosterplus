@@ -78,14 +78,42 @@ export async function PUT(request: Request) {
       return { organization: org, defaultLocation: loc };
     });
 
+    const { trackOrgMilestone } = await import(
+      "@/lib/onboarding-funnel/track-org"
+    );
+    trackOrgMilestone({
+      stage: "business_details_completed",
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "setup_api",
+      businessName: result.organization.name,
+    });
+
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      const { trackOrgOnboardingError } = await import("@/lib/onboarding-funnel/track-org");
+      trackOrgOnboardingError({
+        category: "workspace_creation_failure",
+        organizationId: session.orgId,
+        userId: session.sub,
+        source: "setup_api",
+        message: "Duplicate location name",
+        step: "business_details_completed",
+      });
       return NextResponse.json(
         { error: "That location name is already used in this organization." },
         { status: 409 },
       );
     }
+    const { trackOrgOnboardingError } = await import("@/lib/onboarding-funnel/track-org");
+    trackOrgOnboardingError({
+      category: "workspace_creation_failure",
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "setup_api",
+      step: "business_details_completed",
+    });
     return uncaughtApiErrorResponse(err, "setup business");
   }
 }

@@ -7,6 +7,7 @@ import { DemoSandboxBanner } from "@/app/components/demo-sandbox-banner";
 import { FeedbackButton } from "@/app/components/feedback-button";
 import { ImpersonationBanner } from "@/app/components/impersonation-banner";
 import { LogoutButton } from "@/app/components/logout-button";
+import { OnboardingSessionLinker } from "@/app/components/onboarding-signup-beacon";
 import { clerkConfigured, tenantSignInPath } from "@/lib/clerk/config";
 import { subscriptionNeedsPaymentAttention } from "@/lib/billing-access";
 import { getPlanUsage } from "@/lib/plan-limits";
@@ -52,6 +53,7 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="flex min-h-full flex-col">
+      <OnboardingSessionLinker />
       {operatorSession ? (
         <ImpersonationBanner
           orgName={session.orgName ?? "Organization"}

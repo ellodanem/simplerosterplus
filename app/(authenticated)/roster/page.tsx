@@ -130,6 +130,18 @@ export default async function RosterPage({
     select: { id: true, weekStart: true, status: true, shareToken: true, notes: true },
   });
 
+  // Idempotent milestone: first RosterWeek for the org (empty weeks count as started only).
+  {
+    const { trackFirstRosterStarted } = await import("@/lib/onboarding-funnel/track-roster");
+    const { getSession } = await import("@/lib/session");
+    const session = await getSession();
+    trackFirstRosterStarted({
+      organizationId: org.id,
+      userId: session?.sub,
+      source: "roster_page",
+    });
+  }
+
   const rosterLock = rosterLockFromShareToken(week.shareToken);
   const weekLocked = isRosterWeekLocked(weekStartYmd, effectiveTimeZone, rosterLock);
 

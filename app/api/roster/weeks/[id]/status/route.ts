@@ -86,6 +86,9 @@ async function postRosterWeekStatus(request: Request, params: Promise<{ id: stri
     select: { id: true, status: true, shareToken: true, updatedAt: true },
   });
 
+  const { trackRosterPublished } = await import("@/lib/onboarding-funnel/track-roster");
+  trackRosterPublished({ organizationId: session.orgId, userId: session.sub });
+
   const whatsapp = await sendRosterWhatsappOnPublish({
     organizationId: session.orgId,
     rosterWeekId: updated.id,

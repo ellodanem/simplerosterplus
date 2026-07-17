@@ -85,6 +85,9 @@ model Organization {
   testerFeedbacks       TesterFeedback[]
   schedulingRules       SchedulingRule[]
   rosterNotifications   RosterNotificationLog[]
+  onboardingEvents      OnboardingEvent[]
+  onboardingProgress    OnboardingProgress[]
+  onboardingFollowUps   OnboardingFollowUp[]
 }
 
 /// Idempotent log for automated roster publish notifications (step 13).
@@ -233,6 +236,10 @@ model AppUser {
   createdPunches        AttendanceLog[]      @relation("PunchCreatedBy")
   correctedPunches      AttendanceLog[]      @relation("PunchCorrectedBy")
   decidedOverrides      AttendanceDayOverride[] @relation("OverrideDecidedBy")
+  onboardingEvents      OnboardingEvent[]
+  onboardingProgress    OnboardingProgress?
+  onboardingFollowUps   OnboardingFollowUp[]
+  onboardingNotes       OnboardingNote[]
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -798,4 +805,119 @@ model SchedulingRule {
 
   @@index([organizationId])
   @@index([organizationId, type])
+}
+
+// --- Onboarding funnel (docs/ONBOARDING_FUNNEL.md) ---
+
+/// Append-only funnel / friction event. Milestone stages use a stable `idempotencyKey`;
+/// supporting or error events use per-occurrence keys. See docs/ONBOARDING_FUNNEL.md.
+model OnboardingEvent {
+  id                 String    @id @default(cuid())
+  userId             String?
+  user               AppUser?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  anonymousSessionId String?
+  eventName          String
+  eventVersion       Int       @default(1)
+  /// e.g. signup_beacon | clerk_provision | setup_api | roster_api | adms | system
+  source             String
+  idempotencyKey     String    @unique
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([anonymousSessionId, createdAt])
+  @@index([eventName, createdAt])
+}
+
+/// Current-state row for Ops queries. One row per AppUser once known; pre-account rows
+/// are keyed by `anonymousSessionId` until linked.
+model OnboardingProgress {
+  id                  String    @id @default(cuid())
+  userId              String?   @unique
+  user                AppUser?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId      String?
+  organization        Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  anonymousSessionId  String?   @unique
+  /// Ops snapshot — canonical name/email/org live on AppUser / Organization.
+  contactName         String?
+  contactEmail        String?
+  businessName        String?
+  currentStage        String
+  highestStageReached String
+  signupStartedAt     DateTime?
+  lastActivityAt      DateTime
+  activatedAt         DateTime?
+  completedAt         DateTime?
+  abandonedAt         DateTime?
+  abandonmentReason   String?
+  needsSupport        Boolean   @default(false)
+  supportResolvedAt   DateTime?
+  /// none | recommended | due | scheduled | sent | failed | suppressed | contacted
+  followUpStatus      String    @default("none")
+  lastFollowUpAt      DateTime?
+  nextFollowUpAt      DateTime?
+  followUpCount       Int       @default(0)
+  doNotContact        Boolean   @default(false)
+  signupSource        String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  followUps OnboardingFollowUp[]
+  notes     OnboardingNote[]
+
+  @@index([organizationId])
+  @@index([currentStage])
+  @@index([highestStageReached])
+  @@index([lastActivityAt])
+  @@index([nextFollowUpAt])
+  @@index([abandonedAt])
+  @@index([followUpStatus])
+}
+
+model OnboardingFollowUp {
+  id                   String             @id @default(cuid())
+  userId               String?
+  user                 AppUser?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId       String?
+  organization         Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  onboardingProgressId String
+  progress             OnboardingProgress @relation(fields: [onboardingProgressId], references: [id], onDelete: Cascade)
+  channel              String             @default("email")
+  templateKey          String
+  subject              String
+  /// draft | scheduled | sending | sent | failed | cancelled | suppressed
+  status               String             @default("draft")
+  scheduledFor         DateTime?
+  sentAt               DateTime?
+  failedAt             DateTime?
+  failureReason        String?
+  providerMessageId    String?
+  /// e.g. operator:{id} | system
+  initiatedBy          String
+  /// Stable key to prevent duplicate sends for the same step in a sequence.
+  idempotencyKey       String             @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([onboardingProgressId])
+  @@index([userId])
+  @@index([status, scheduledFor])
+}
+
+model OnboardingNote {
+  id                   String             @id @default(cuid())
+  onboardingProgressId String
+  progress             OnboardingProgress @relation(fields: [onboardingProgressId], references: [id], onDelete: Cascade)
+  userId               String?
+  user                 AppUser?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// OperatorUser id when authored from Ops (no FK — separate auth plane).
+  authorOperatorUserId String?
+  body                 String             @db.Text
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([onboardingProgressId, createdAt])
 }

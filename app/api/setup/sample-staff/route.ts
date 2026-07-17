@@ -24,9 +24,26 @@ export async function POST() {
         message: "Staff already exist — sample people were not added.",
       });
     }
+    const { trackOrgMilestone } = await import("@/lib/onboarding-funnel/track-org");
+    trackOrgMilestone({
+      stage: "employees_added",
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "setup_sample_staff",
+      metadata: { created: result.created },
+    });
     return NextResponse.json({ created: result.created, skipped: false }, { status: 201 });
   } catch (err) {
     if (err instanceof SampleStaffSeedError) {
+      const { trackOrgOnboardingError } = await import("@/lib/onboarding-funnel/track-org");
+      trackOrgOnboardingError({
+        category: "employee_import_failure",
+        organizationId: session.orgId,
+        userId: session.sub,
+        source: "setup_sample_staff",
+        message: err.message,
+        step: "employees_added",
+      });
       return NextResponse.json(
         {
           error: err.message,

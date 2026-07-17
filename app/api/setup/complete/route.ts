@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { trackOrgMilestone } from "@/lib/onboarding-funnel/track-org";
 
 const ONBOARDING_COMPLETED_AT_KEY = "onboarding_completed_at";
 
@@ -18,6 +19,13 @@ export async function POST() {
       value: new Date().toISOString(),
     },
     update: { value: new Date().toISOString() },
+  });
+
+  trackOrgMilestone({
+    stage: "onboarding_completed",
+    organizationId: session.orgId,
+    userId: session.sub,
+    source: "setup_api",
   });
 
   return NextResponse.json({ ok: true });

@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../lib/password";
-import { assertSeedAllowedInProduction } from "../lib/production-hardening";
+import { assertSeedAllowedInProduction, isProductionDeploy } from "../lib/production-hardening";
 import { provisionOperator } from "../lib/ops/provision-operator";
 
 config({ path: ".env" });
@@ -324,6 +324,11 @@ async function main() {
   }
 
   console.log("Seed OK:", { orgId: org.id, orgName, timeZone, adminEmail, adminPasswordHint: "(see SEED_ADMIN_PASSWORD or default 'demo')" });
+
+  if (!isProductionDeploy()) {
+    const { seedOnboardingFunnelPersonas } = await import("../lib/onboarding-funnel/seed-personas");
+    await seedOnboardingFunnelPersonas(prisma);
+  }
 }
 
 main()

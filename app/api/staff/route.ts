@@ -196,6 +196,14 @@ export async function POST(request: Request) {
       select: STAFF_SELECT,
     });
 
+    const { trackOrgMilestone } = await import("@/lib/onboarding-funnel/track-org");
+    trackOrgMilestone({
+      stage: "employees_added",
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "staff_api",
+    });
+
     return NextResponse.json(
       {
         staff: {
@@ -213,6 +221,14 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
+    const { trackOrgOnboardingError } = await import("@/lib/onboarding-funnel/track-org");
+    trackOrgOnboardingError({
+      category: "employee_import_failure",
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "staff_api",
+      step: "employees_added",
+    });
     return uncaughtApiErrorResponse(err, "staff POST");
   }
 }

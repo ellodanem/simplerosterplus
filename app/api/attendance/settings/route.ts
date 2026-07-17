@@ -52,5 +52,13 @@ export async function PUT(request: Request) {
     update: { value: String(minutes) },
   });
 
+  const { trackOrgMilestone } = await import("@/lib/onboarding-funnel/track-org");
+  trackOrgMilestone({
+    stage: "attendance_setup_started",
+    organizationId: session.orgId,
+    userId: session.sub,
+    source: "attendance_settings",
+  });
+
   return NextResponse.json({ graceMinutes: minutes });
 }

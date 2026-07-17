@@ -1,4 +1,5 @@
 import type { AppUserRole } from "@prisma/client";
+import { cookies } from "next/headers";
 import { notifyOperatorOfSignup } from "@/lib/email/signup-notify";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +8,11 @@ import { mapClerkRoleToAppUserRole } from "@/lib/clerk/roles";
 import { checkAdminLimit } from "@/lib/plan-limits";
 import { PLAN_FREE } from "@/lib/plans";
 import { ensureDefaultShiftTemplates } from "@/lib/seed-default-shifts";
+import {
+  ONBOARDING_ANON_COOKIE,
+  linkAnonymousOnboardingSession,
+  trackOnboardingMilestone,
+} from "@/lib/onboarding-funnel/record-event";
 
 const DEFAULT_LOCATION_NAME = "Main";
 
@@ -20,6 +26,8 @@ export type ClerkProvisionInput = {
   firstName?: string | null;
   /** When true, skip assigning the free self-serve plan (demo / operator orgs). */
   skipFreePlan?: boolean;
+  /** Optional anonymous signup beacon id to link into OnboardingProgress. */
+  anonymousSessionId?: string | null;
 };
 
 export type ClerkProvisionResult = {
@@ -84,6 +92,64 @@ export async function ensureOrganizationFromClerk(args: {
   return { organizationId: org.id, created: true };
 }
 
+async function readAnonymousSessionIdFromCookie(): Promise<string | null> {
+  try {
+    const jar = await cookies();
+    const value = jar.get(ONBOARDING_ANON_COOKIE)?.value?.trim() ?? "";
+    return /^[a-zA-Z0-9_-]{8,64}$/.test(value) ? value : null;
+  } catch {
+    // cookies() unavailable outside a request (scripts / webhooks)
+    return null;
+  }
+}
+
+function trackProvisionFunnel(args: {
+  organizationId: string;
+  orgName: string;
+  appUserId: string;
+  email: string;
+  firstName?: string | null;
+  anonymousSessionId?: string | null;
+}): void {
+  const contactName = args.firstName?.trim() || null;
+  const contactEmail = args.email.trim().toLowerCase();
+  const businessName = args.orgName.trim() || null;
+
+  trackOnboardingMilestone({
+    stage: "workspace_created",
+    source: "clerk_provision",
+    userId: args.appUserId,
+    organizationId: args.organizationId,
+    contactName,
+    contactEmail,
+    businessName,
+  });
+
+  trackOnboardingMilestone({
+    stage: "account_created",
+    source: "clerk_provision",
+    userId: args.appUserId,
+    organizationId: args.organizationId,
+    anonymousSessionId: args.anonymousSessionId,
+    contactName,
+    contactEmail,
+    businessName,
+  });
+
+  if (args.anonymousSessionId) {
+    void linkAnonymousOnboardingSession({
+      anonymousSessionId: args.anonymousSessionId,
+      userId: args.appUserId,
+      organizationId: args.organizationId,
+      contactName,
+      contactEmail,
+      businessName,
+    }).catch((err) => {
+      console.error("[onboarding-funnel] anon link failed", err);
+    });
+  }
+}
+
 /** Idempotent: link Clerk user to org AppUser row (creates owner on first member). */
 export async function ensureAppUserFromClerk(
   input: ClerkProvisionInput,
@@ -92,6 +158,9 @@ export async function ensureAppUserFromClerk(
   if (!email.includes("@")) {
     throw new Error("A valid email is required to provision an app user.");
   }
+
+  const anonFromInput = input.anonymousSessionId?.trim() || null;
+  const anonymousSessionId = anonFromInput ?? (await readAnonymousSessionIdFromCookie());
 
   const { organizationId } = await ensureOrganizationFromClerk({
     clerkOrgId: input.clerkOrgId,
@@ -115,6 +184,14 @@ export async function ensureAppUserFromClerk(
       where: { id: byClerk.id },
       data: { email, role: mappedRole },
     });
+    trackProvisionFunnel({
+      organizationId,
+      orgName: input.orgName,
+      appUserId: byClerk.id,
+      email,
+      firstName: input.firstName,
+      anonymousSessionId,
+    });
     return { organizationId, appUserId: byClerk.id, created: false, role: mappedRole };
   }
 
@@ -128,6 +205,14 @@ export async function ensureAppUserFromClerk(
     await prisma.appUser.update({
       where: { id: byEmail.id },
       data: { clerkUserId: input.clerkUserId, role: mappedRole },
+    });
+    trackProvisionFunnel({
+      organizationId,
+      orgName: input.orgName,
+      appUserId: byEmail.id,
+      email,
+      firstName: input.firstName,
+      anonymousSessionId,
     });
     return { organizationId, appUserId: byEmail.id, created: false, role: mappedRole };
   }
@@ -192,6 +277,15 @@ export async function ensureAppUserFromClerk(
       });
     }
   }
+
+  trackProvisionFunnel({
+    organizationId,
+    orgName: input.orgName,
+    appUserId: user.id,
+    email,
+    firstName: input.firstName,
+    anonymousSessionId,
+  });
 
   return { organizationId, appUserId: user.id, created, role };
 }

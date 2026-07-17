@@ -209,6 +209,13 @@ async function putRosterEntry(request: Request, params: Promise<{ id: string }>)
     },
   });
 
+  const { maybeTrackFirstRosterCreated } = await import("@/lib/onboarding-funnel/track-roster");
+  maybeTrackFirstRosterCreated({
+    organizationId: session.orgId,
+    userId: session.sub,
+    source: "roster_entry",
+  });
+
   return NextResponse.json({
     entry: {
       id: entry.id,

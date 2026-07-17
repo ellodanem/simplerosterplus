@@ -219,6 +219,13 @@ async function postRosterEntriesBatch(request: Request, params: Promise<{ id: st
         }),
       ),
     );
+
+    const { maybeTrackFirstRosterCreated } = await import("@/lib/onboarding-funnel/track-roster");
+    maybeTrackFirstRosterCreated({
+      organizationId: session.orgId,
+      userId: session.sub,
+      source: "roster_entry_batch",
+    });
   } else {
     await prisma.rosterEntry.deleteMany({
       where: {
