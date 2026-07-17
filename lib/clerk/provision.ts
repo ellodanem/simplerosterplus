@@ -1,4 +1,5 @@
 import type { AppUserRole } from "@prisma/client";
+import { notifyOperatorOfSignup } from "@/lib/email/signup-notify";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { prisma } from "@/lib/prisma";
 import { isUniqueConstraintError } from "@/lib/clerk/prisma-errors";
@@ -178,6 +179,18 @@ export async function ensureAppUserFromClerk(
     }).catch((err) => {
       console.error("[welcome] send failed", { email, err });
     });
+
+    if (role === "owner") {
+      void notifyOperatorOfSignup({
+        organizationId,
+        orgName: input.orgName,
+        email,
+        firstName: input.firstName,
+        plan: input.skipFreePlan ? null : PLAN_FREE,
+      }).catch((err) => {
+        console.error("[signup:notify] send failed", { email, err });
+      });
+    }
   }
 
   return { organizationId, appUserId: user.id, created, role };

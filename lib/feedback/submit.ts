@@ -1,3 +1,4 @@
+import { resolveOperatorNotifyRecipients } from "@/lib/email/notify-recipients";
 import { sendResendEmail } from "@/lib/email/send";
 import { prisma } from "@/lib/prisma";
 
@@ -65,7 +66,7 @@ export async function notifyTesterFeedback(
   ctx: { organizationId: string; orgName: string; userEmail: string },
   feedbackId: string,
 ): Promise<void> {
-  const to = await resolveFeedbackNotifyRecipients();
+  const to = await resolveOperatorNotifyRecipients(["FEEDBACK_CONTACT_TO"]);
   if (to.length === 0) return;
 
   const from =
@@ -108,24 +109,6 @@ export async function notifyTesterFeedback(
   if (!ok) {
     console.error("[feedback:notify] email skipped or failed (check RESEND_API_KEY and recipients)");
   }
-}
-
-async function resolveFeedbackNotifyRecipients(): Promise<string[]> {
-  const configured =
-    process.env.FEEDBACK_CONTACT_TO?.trim() || process.env.MARKETING_CONTACT_TO?.trim();
-  if (configured) {
-    return configured
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  const operators = await prisma.operatorUser.findMany({
-    where: { disabledAt: null },
-    select: { email: true },
-    take: 20,
-  });
-  return operators.map((o) => o.email).filter(Boolean);
 }
 
 function trimString(v: unknown): string | undefined {
