@@ -17,10 +17,14 @@
   - Added accessible link styling for that dark-green section.
 - `landing-page/sitemap.xml`
   - Added the canonical attendance-page URL.
+- `landing-page/images/attendance-week-current.png`
+- `landing-page/images/attendance-week-current.webp`
+  - Added a current attendance week-view capture supplied after the initial implementation.
+  - Cropped out the global account header so no account email appears on the marketing page.
 - `docs/seo-employee-attendance-implementation.md`
   - This implementation record and production checklist.
 
-No application functionality, pricing source, framework, CMS, or product image was changed.
+No application functionality, pricing source, framework, CMS, or existing product image was changed.
 
 ## 2. Final metadata, H1, and canonical
 
@@ -167,7 +171,7 @@ No duplicate `SoftwareApplication`, ratings, reviews, compliance certification, 
 
 ## 11. Screenshots used
 
-The page reuses the existing attendance screenshot:
+The hero and social metadata reuse the existing attendance screenshot:
 
 - WebP:
   - `landing-page/images/solution-attendance.webp`
@@ -179,12 +183,20 @@ The page reuses the existing attendance screenshot:
 
 The screenshot was inspected before implementation. Its visible planned shifts and on-time, late, absent, and scheduled labels remain a reasonable representation of the current roster-connected attendance behavior.
 
-No new or invented product screenshots were created. The roster screenshot was not repeated on this page.
+The weekly-review section uses a newer product capture supplied after implementation:
+
+- `landing-page/images/attendance-week-current.webp`
+- `landing-page/images/attendance-week-current.png` (fallback)
+- Dimensions: `1024 × 530`
+- The capture shows the current week view with rostered shifts, attendance states, punches, weekly worked time, irregularity counts, filters, and report/pay-period actions.
+- The account header was cropped out to remove the visible email address; the product UI itself was not fabricated or altered.
+
+No invented product screenshot was created. The roster screenshot was not repeated on this page.
 
 ## 12. Validation completed locally
 
 - The directory route redirected once to its trailing-slash form in Python's static server, then returned `200`.
-- All four attendance screenshot variants returned `200`.
+- All referenced attendance screenshot variants returned `200`.
 - The page contains exactly one H1.
 - Canonical, title, homepage link, scheduling-page link, and sitemap URL were present.
 - JSON-LD parsed successfully with `WebPage` and `BreadcrumbList` nodes.
@@ -197,20 +209,20 @@ No new or invented product screenshots were created. The roster screenshot was n
 
 Complete after deployment:
 
-- [ ] `https://www.simplerosterplus.com/employee-attendance-software` returns `200`.
-- [ ] The canonical is the exact extensionless `www` URL.
-- [ ] No `.html` or `/index.html` version remains separately indexable.
-- [ ] Title and meta description match the approved copy.
-- [ ] The rendered page has exactly one H1.
-- [ ] Homepage contextual and footer links work.
-- [ ] The scheduling-page contextual link works and has sufficient contrast.
-- [ ] The production sitemap includes the attendance URL.
-- [ ] Signup, demo, and login links work with JavaScript disabled.
-- [ ] WebP loads and PNG fallback remains available.
-- [ ] Schema Markup Validator reports no structured-data syntax errors.
-- [ ] No localhost, staging, or `vercel.app` URL appears in production HTML.
-- [ ] No unsupported real-time, payroll, GPS, mobile, compliance, hardware, universal-device, or history claim appears.
-- [ ] The attendance screenshot still matches production behavior.
-- [ ] Header, hero, status cards, FAQ, pricing, and footer are checked on representative phone, tablet, and desktop widths.
+- `https://www.simplerosterplus.com/employee-attendance-software` returns `200`.
+- The canonical is the exact extensionless `www` URL.
+- No `.html` or `/index.html` version remains separately indexable.
+- Title and meta description match the approved copy.
+- The rendered page has exactly one H1.
+- Homepage contextual and footer links work.
+- The scheduling-page contextual link works and has sufficient contrast.
+- The production sitemap includes the attendance URL.
+- Signup, demo, and login links work with JavaScript disabled.
+- WebP loads and PNG fallback remains available.
+- Schema Markup Validator reports no structured-data syntax errors.
+- No localhost, staging, or `vercel.app` URL appears in production HTML.
+- No unsupported real-time, payroll, GPS, mobile, compliance, hardware, universal-device, or history claim appears.
+- The attendance screenshot still matches production behavior.
+- Header, hero, status cards, FAQ, pricing, and footer are checked on representative phone, tablet, and desktop widths.
 
 The deployment platform's extensionless route behavior remains a production verification item. The directory-based `index.html` pattern mirrors the existing scheduling page and avoids relying on a flat-file rewrite.

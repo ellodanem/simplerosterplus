@@ -392,45 +392,21 @@
     }
     .text-link { display: inline-flex; margin-top: 1.3rem; font-weight: 700; }
 
-    .week-panel {
-      padding: 1rem;
+    .current-shot {
+      margin: 0;
+      padding: 0.55rem;
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       background: var(--surface);
       box-shadow: var(--shadow-md);
     }
-    .week-panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 0.8rem;
+    .current-shot img { width: 100%; border-radius: calc(var(--radius-lg) - 8px); }
+    .current-shot figcaption {
+      padding: 0.65rem 0.35rem 0.15rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-align: center;
     }
-    .week-panel-head strong { font-size: 0.9rem; }
-    .week-panel-head span { color: var(--text-muted); font-size: 0.75rem; }
-    .week-row {
-      display: grid;
-      grid-template-columns: minmax(5.2rem, 0.8fr) minmax(6rem, 1fr) minmax(6rem, 1fr);
-      gap: 0.45rem;
-      margin-top: 0.45rem;
-      align-items: stretch;
-    }
-    .week-cell {
-      padding: 0.65rem 0.7rem;
-      border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      background: #fafcfb;
-      font-size: 0.76rem;
-    }
-    .week-cell strong { display: block; margin-bottom: 0.15rem; font-size: 0.79rem; }
-    .week-cell small { color: var(--text-muted); }
-    .week-cell--ok { color: #065f46; border-color: #a7f3d0; background: var(--brand-tint); }
-    .week-cell--late { color: #92400e; border-color: #fde68a; background: var(--amber-soft); }
-    .week-cell--absent { color: #9f1239; border-color: #fecdd3; background: var(--rose-soft); }
-    .week-legend { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 0.8rem; color: var(--text-muted); font-size: 0.7rem; }
-    .legend-dot { display: inline-block; width: 8px; height: 8px; margin-right: 0.25rem; border-radius: 50%; background: var(--brand-bright); }
-    .legend-dot--late { background: var(--amber); }
-    .legend-dot--absent { background: var(--rose); }
 
     .capture-section { background: var(--surface-2); }
     .capture-grid { display: grid; gap: 1rem; }
@@ -616,8 +592,6 @@
       .hero-meta { display: grid; }
       .float-chip { position: static; width: fit-content; margin-top: 0.7rem; }
       .float-chip--bottom { margin-left: auto; }
-      .week-row { grid-template-columns: 1fr 1fr; }
-      .week-row .week-cell:first-child { grid-column: 1 / -1; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -789,32 +763,19 @@
           </ul>
           <a class="text-link" href="/employee-scheduling-software">See how employee scheduling software creates the weekly plan →</a>
         </div>
-        <div class="week-panel" aria-label="Example roster-connected attendance summary">
-          <div class="week-panel-head">
-            <strong>Tuesday attendance</strong>
-            <span>Expected shift · Actual result</span>
-          </div>
-          <div class="week-row">
-            <div class="week-cell"><strong>Amara</strong><small>Morning shift</small></div>
-            <div class="week-cell"><strong>08:00–16:00</strong><small>Scheduled</small></div>
-            <div class="week-cell week-cell--ok"><strong>Present</strong><small>In 07:58</small></div>
-          </div>
-          <div class="week-row">
-            <div class="week-cell"><strong>Malik</strong><small>Morning shift</small></div>
-            <div class="week-cell"><strong>08:00–16:00</strong><small>Scheduled</small></div>
-            <div class="week-cell week-cell--late"><strong>Late · 12 min</strong><small>In 08:22</small></div>
-          </div>
-          <div class="week-row">
-            <div class="week-cell"><strong>Leah</strong><small>Day shift</small></div>
-            <div class="week-cell"><strong>09:00–17:00</strong><small>Scheduled</small></div>
-            <div class="week-cell week-cell--absent"><strong>Absent</strong><small>No in-punch</small></div>
-          </div>
-          <div class="week-legend">
-            <span><i class="legend-dot"></i>Present</span>
-            <span><i class="legend-dot legend-dot--late"></i>Late</span>
-            <span><i class="legend-dot legend-dot--absent"></i>Absent</span>
-          </div>
-        </div>
+        <figure class="current-shot">
+          <picture>
+            <source type="image/webp" srcset="../images/attendance-week-current.webp">
+            <img
+              src="../images/attendance-week-current.png"
+              width="1024"
+              height="530"
+              alt="Current Simple Roster Plus attendance week view with rostered shifts, present, late, absent, vacation, worked hours, and weekly irregularities."
+              loading="lazy"
+            >
+          </picture>
+          <figcaption>Current attendance week view: expected shifts, actual punches, worked time, and exceptions in one place.</figcaption>
+        </figure>
       </div>
     </section>
 
