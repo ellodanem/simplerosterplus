@@ -122,6 +122,9 @@ ONBOARDING_MAX_FOLLOW_UPS=3
 ONBOARDING_FOLLOW_UP_FROM="Simple Roster Plus <hello@simplerosterplus.com>"
 ONBOARDING_MANUAL_SEND_WINDOW_HOURS=6
 ONBOARDING_OPERATOR_SENDS_PER_HOUR=30
+ONBOARDING_AUTOMATION_FIRST_HOURS=24
+ONBOARDING_AUTOMATION_SECOND_HOURS=72
+ONBOARDING_AUTOMATION_FINAL_HOURS=120
 ```
 
 ---
@@ -174,3 +177,34 @@ store a future scheduled send.
   and 30 per operator per hour.
 - Send, schedule, suppression, and related actions write `OperatorAuditLog`.
 - Templates are transactional setup assistance only; no promotional copy is included.
+
+## Scheduled processing and automation readiness (Phase 5)
+
+Call the database-backed processor from the existing cron infrastructure:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  https://app.simplerosterplus.com/api/cron/onboarding-followups
+```
+
+Each invocation:
+
+1. Detects and marks newly abandoned progress rows.
+2. When `ONBOARDING_AUTOMATION_ENABLED=true`, creates the next idempotent automatic
+   sequence row (24 hours, then 3 days, then 5 days; maximum three).
+3. Claims due `scheduled` rows with an atomic `scheduled` → `sending` update.
+4. Rechecks eligibility immediately before delivery, then records `sent`, `failed`, or
+   `suppressed` with the provider message id where available.
+
+Operator-scheduled messages are processed even while automatic sequences are disabled,
+because the operator explicitly requested them. Rows initiated by `system:automation`
+are not delivered while the feature flag is false.
+
+Pending `draft`/`scheduled` rows are cancelled when activity resumes, activation or
+completion is recorded, or an operator suppresses communication. The progress row's
+`nextFollowUpAt` and scheduled status are cleared in the same transaction.
+
+The cron is safe to retry: sequence rows have stable
+`auto:sequence:{progressId}:{step}` keys, manual rows have request-scoped unique keys,
+and delivery claims require the row still to be `scheduled`.

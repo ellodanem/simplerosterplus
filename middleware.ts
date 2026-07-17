@@ -60,6 +60,7 @@ const isClerkPublicRoute = createRouteMatcher([
   "/api/marketing(.*)",
   "/api/onboarding/signup-intent(.*)",
   "/api/cron/reclaim-demos(.*)",
+  "/api/cron/onboarding-followups(.*)",
   "/iclock(.*)",
   "/api/auth/login(.*)",
   "/api/auth/end-impersonation(.*)",

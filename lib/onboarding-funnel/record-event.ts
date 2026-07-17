@@ -85,13 +85,22 @@ function rowToSnapshot(row: {
 }
 
 async function cancelPendingFollowUps(tx: Tx, progressId: string): Promise<void> {
-  await tx.onboardingFollowUp.updateMany({
+  const cancelled = await tx.onboardingFollowUp.updateMany({
     where: {
       onboardingProgressId: progressId,
       status: { in: ["draft", "scheduled"] },
     },
     data: { status: "cancelled" },
   });
+  if (cancelled.count > 0) {
+    await tx.onboardingProgress.update({
+      where: { id: progressId },
+      data: {
+        followUpStatus: "none",
+        nextFollowUpAt: null,
+      },
+    });
+  }
 }
 
 async function findProgress(
