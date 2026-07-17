@@ -396,3 +396,32 @@ describe("needsSupport flag", () => {
     expect(p.abandonedAt).toBeNull();
   });
 });
+
+describe("funnel conversion helpers", () => {
+  it("computes conversion rates and formats", async () => {
+    const {
+      computeConversionRate,
+      formatPercent,
+      resolveOnboardingDateRange,
+    } = await import("@/lib/ops/onboarding-data");
+
+    expect(computeConversionRate(25, 100)).toBe(0.25);
+    expect(computeConversionRate(1, 0)).toBeNull();
+    expect(formatPercent(0.256)).toBe("25.6%");
+    expect(formatPercent(null)).toBe("—");
+
+    const now = new Date("2026-07-16T15:00:00.000Z");
+    const r7 = resolveOnboardingDateRange({ range: "7d", now });
+    expect(r7.preset).toBe("7d");
+    expect(r7.to.getTime()).toBeGreaterThan(r7.from.getTime());
+
+    const custom = resolveOnboardingDateRange({
+      range: "custom",
+      from: "2026-07-01",
+      to: "2026-07-10",
+      now,
+    });
+    expect(custom.preset).toBe("custom");
+    expect(custom.from.toISOString().startsWith("2026-07-01")).toBe(true);
+  });
+});

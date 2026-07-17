@@ -8,6 +8,7 @@ type NavItem = { href: string; label: string; exact?: boolean };
 const NAV_ITEMS: NavItem[] = [
   { href: "/ops", label: "Overview", exact: true },
   { href: "/ops/organizations", label: "Organizations" },
+  { href: "/ops/onboarding", label: "Onboarding Funnel" },
   { href: "/ops/billing", label: "Billing" },
   { href: "/ops/devices", label: "Devices & Ingest" },
   { href: "/ops/audit", label: "Audit Log" },

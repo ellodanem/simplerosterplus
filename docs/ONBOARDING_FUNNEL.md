@@ -139,6 +139,16 @@ npm run lint
 | Phase | Scope |
 |-------|--------|
 | **2** | Schema, record/merge, instrumentation, abandonment helpers, seed personas, Vitest |
-| **3** | Ops Dashboard Onboarding Funnel UI |
+| **3** | Ops Dashboard Onboarding Funnel UI + lead detail + basic Ops actions |
 | **4** | Manual follow-up email |
 | **5** | Cron automation readiness (still gated by flag) |
+
+## Ops routes (Phase 3)
+
+| Route | Purpose |
+|-------|---------|
+| `/ops/onboarding` | Summary cards, funnel table, leads list |
+| `/ops/onboarding/[id]` | Lead detail, timeline, notes, suppress / clear abandoned |
+| `PATCH /api/ops/onboarding/[id]` | Ops actions (`support`+) |
+
+Authorization: pages use `requireOperator()`; mutations use `guardOperatorApi("support")`.
