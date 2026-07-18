@@ -190,9 +190,9 @@ Added:
 | Asset | Role |
 | --- | --- |
 | `landing-page/images/zkteco-f22-attendance-hero.webp` (+ PNG) | Hero and social image — example fingerprint terminal beside attendance software |
-| `landing-page/images/attendance-week-current.webp` (+ PNG) | Matching section — current week view |
+| `landing-page/images/zkteco-staff-matching.webp` (+ PNG) | Matching section — device user ID / terminal enrolment mapping |
 
-Hero visual is a composite for relevance (terminal + attendance UI). Alt text frames it as an example terminal setup, not a certified F22 product endorsement or hardware offer. No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
+Hero visual is a composite for relevance (terminal + attendance UI). Matching section visual shows linking a terminal enrolment ID to a staff device user ID. Alt text frames these as example setup, not certified hardware or a fabricated live product screenshot claim. No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
 
 ---
 
