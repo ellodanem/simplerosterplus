@@ -187,14 +187,12 @@ Added:
 
 ## 14. Visuals used
 
+| Asset | Role |
+| --- | --- |
+| `landing-page/images/zkteco-f22-attendance-hero.webp` (+ PNG) | Hero and social image — example fingerprint terminal beside attendance software |
+| `landing-page/images/attendance-week-current.webp` (+ PNG) | Matching section — current week view |
 
-| Asset                                                          | Role                                                              |
-| -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `landing-page/images/solution-attendance.webp` (+ PNG / `@2x`) | Hero and social image — roster-connected attendance after punches |
-| `landing-page/images/attendance-week-current.webp` (+ PNG)     | Matching section — current week view                              |
-
-
-No ZKTeco product photography, compatibility matrices, certification badges, or invented device UI mockups were added. Setup is described with a checklist panel rather than a fabricated Add Device screenshot.
+Hero visual is a composite for relevance (terminal + attendance UI). Alt text frames it as an example terminal setup, not a certified F22 product endorsement or hardware offer. No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
 
 ---
 
