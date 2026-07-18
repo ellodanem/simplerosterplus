@@ -187,10 +187,12 @@ Added:
 
 ## 14. Visuals used
 
-| Asset | Role |
-| --- | --- |
+
+| Asset                                                         | Role                                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `landing-page/images/zkteco-f22-attendance-hero.webp` (+ PNG) | Hero and social image — example fingerprint terminal beside attendance software |
-| `landing-page/images/zkteco-staff-matching.webp` (+ PNG) | Matching section — device user ID / terminal enrolment mapping |
+| `landing-page/images/zkteco-staff-matching.webp` (+ PNG)      | Matching section — cropped unmatched-punches → staff Device user ID mapping UI  |
+
 
 Hero visual is a composite for relevance (terminal + attendance UI). Matching section visual shows linking a terminal enrolment ID to a staff device user ID. Alt text frames these as example setup, not certified hardware or a fabricated live product screenshot claim. No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
 
