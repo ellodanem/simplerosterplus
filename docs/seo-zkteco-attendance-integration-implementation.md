@@ -187,14 +187,76 @@ Added:
 
 ## 14. Visuals used
 
-
-| Asset                                                         | Role                                                                            |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Asset | Role |
+| --- | --- |
 | `landing-page/images/zkteco-f22-attendance-hero.webp` (+ PNG) | Hero and social image — example fingerprint terminal beside attendance software |
-| `landing-page/images/zkteco-staff-matching.webp` (+ PNG)      | Matching section — cropped unmatched-punches → staff Device user ID mapping UI  |
+| `landing-page/images/zkteco-staff-matching.webp` (+ PNG) | Matching section — cropped unmatched-punches → staff Device user ID mapping UI |
 
+### User-requested image changes (post-launch)
 
-Hero visual is a composite for relevance (terminal + attendance UI). Matching section visual shows linking a terminal enrolment ID to a staff device user ID. Alt text frames these as example setup, not certified hardware or a fabricated live product screenshot claim. No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
+These visual updates were requested after the page first shipped, so the page would match each section’s message instead of reusing generic attendance screenshots.
+
+| When | Request | What changed |
+| --- | --- | --- |
+| Hero | Make the hero relevant: **F22-style terminal + attendance**, not a standalone week-view screenshot | Replaced hero/`og`/`twitter` image with `zkteco-f22-attendance-hero` (terminal beside attendance UI). Kept honest F22/copy limits; alt avoids naming a certified model. |
+| Matching section | Same idea for “Match Terminal User IDs to Employees” — image must show **device user ID / enrolment matching**, not the attendance week grid | First used a generated matching UI visual; then replaced with the **cropped** matching screenshot the stakeholder approved (`zkteco-staff-matching`). |
+| Matching crop preference | “This cropped version is fine. Let’s go with that.” | Final matching asset is the cropped unmatched-punches → Device user ID mapping image (1024 × 755), with caption/alt updated to that workflow. |
+
+**Do not regress:** keep the hero as terminal + attendance, and keep the matching section on the cropped staff-matching visual—not `solution-attendance` or `attendance-week-current` in those slots.
+
+### Hero image record
+
+| Item | Detail |
+| --- | --- |
+| **Why added** | Stakeholder request: attendance-only hero under-communicated ZKTeco integration. Terminal-beside-dashboard visual makes ADMS punch → roster attendance clearer. |
+| **File paths** | `landing-page/images/zkteco-f22-attendance-hero.webp`, `landing-page/images/zkteco-f22-attendance-hero.png` |
+| **Hosting** | Locally hosted under the marketing site `images/` directory (not hotlinked) |
+| **Dimensions** | 1536 × 1024 |
+| **File sizes** | WebP ≈ 96 KB; PNG ≈ 1.5 MB (fallback) |
+| **Formats** | WebP primary via `<picture>`; PNG fallback |
+| **Alt text** | `Attendance terminal beside the Simple Roster Plus attendance dashboard` |
+| **OG / Twitter** | Uses `https://www.simplerosterplus.com/images/zkteco-f22-attendance-hero.png` with matching alt |
+| **Provenance** | AI-generated marketing composite created in-repo for this page (not a licensed ZKTeco product photo; not a physical field-test capture). Commercial use is intended as an illustrative SR+ marketing asset, not as vendor artwork. |
+| **Model / branding** | Depicts a **generic** fingerprint attendance terminal beside an attendance UI. Filename retains `f22` for asset history only. Image should not be treated as a certified F22 product shot. No intentional ZKTeco logo or endorsement seal was added. |
+| **Certification risk** | Medium if misread as “official F22 proof.” Mitigated by page copy: supported terminals, ADMS push, compatibility depends on model/firmware/configuration, and F22 described only as a common ADMS setup family—not production-certified. |
+| **Surrounding copy** | Unchanged F22 wording and honest limits remain in place. |
+
+### Matching-section image record
+
+| Item | Detail |
+| --- | --- |
+| **Why added / replaced** | Stakeholder request: week-view screenshot did not illustrate terminal user ID → employee matching. |
+| **Final asset** | Cropped matching UI approved by stakeholder: `zkteco-staff-matching.webp` / `.png` |
+| **Dimensions** | 1024 × 755 |
+| **File sizes** | WebP ≈ 36 KB; PNG ≈ 386 KB |
+| **Caption intent** | Map unmatched terminal user IDs to employees / Device user ID fields |
+| **Prior attempt** | An earlier full-frame generated matching mock was superseded by the cropped version; do not restore the week-view screenshot here. |
+
+No compatibility matrices or certification badges were added. Setup remains a checklist panel rather than a fabricated Add Device screenshot.
+
+---
+
+## 14a. Mobile setup-checklist fix (July 2026)
+
+### Root cause
+
+`.setup-list span` applied the number-badge rules (`width/height: 28px`, `flex: 0 0 auto`, grid centering) to **both** the step number and the step text. On narrow viewports the text was forced into a 28px-wide box, which clipped and overflowed while empty space remained in the card.
+
+### Fix
+
+- Number badge uses `.setup-num` only.
+- Step copy uses `.setup-text` with `flex: 1 1 auto`, `min-width: 0`, and normal wrapping.
+- Checklist items and panel use `min-width: 0` and `height: auto`.
+- Mobile (`max-width: 560px`) tightens panel/list padding without truncating text.
+- Desktop two-column `.setup-panel` from `620px` is unchanged.
+
+### Viewports tested (local static server)
+
+320, 375, 400, 480, 768, 1024, 1440 — checklist fully visible, no clipping/overlap, no horizontal page overflow, limits section starts below setup.
+
+### Prior record correction
+
+Earlier §14 described the hero only briefly and did not document provenance, social-image use, or the mobile checklist defect. This section corrects that.
 
 ---
 
@@ -215,3 +277,5 @@ After deployment, verify:
 - No universal compatibility, F22 certification, BioTime, ZKBio, pull TCP, offline sync, hardware, installation, compliance, or secure-by-default claims
 - Screenshots still match product behavior
 - Phone, tablet, and desktop layouts checked
+- Setup checklist readable at ~400px with no overflow into the limits section
+- Hero image loads via WebP with PNG fallback and remains in-frame on mobile

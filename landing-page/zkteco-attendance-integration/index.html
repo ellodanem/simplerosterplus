@@ -13,12 +13,12 @@
   <meta property="og:description" content="Receive compatible attendance punches from supported ZKTeco terminals using ADMS push, match terminal users to staff, and compare clock-ins with your weekly roster.">
   <meta property="og:url" content="https://www.simplerosterplus.com/zkteco-attendance-integration">
   <meta property="og:image" content="https://www.simplerosterplus.com/images/zkteco-f22-attendance-hero.png">
-  <meta property="og:image:alt" content="Example fingerprint attendance terminal beside Simple Roster Plus attendance software on a laptop.">
+  <meta property="og:image:alt" content="Attendance terminal beside the Simple Roster Plus attendance dashboard">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ZKTeco Attendance Integration | Simple Roster Plus">
   <meta name="twitter:description" content="Connect supported ZKTeco terminals with ADMS push and review punches against your weekly roster.">
   <meta name="twitter:image" content="https://www.simplerosterplus.com/images/zkteco-f22-attendance-hero.png">
-  <meta name="twitter:image:alt" content="Example fingerprint attendance terminal beside Simple Roster Plus attendance software on a laptop.">
+  <meta name="twitter:image:alt" content="Attendance terminal beside the Simple Roster Plus attendance dashboard">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../brand/srp-icon-180.png">
@@ -404,26 +404,31 @@
     .setup-panel {
       display: grid;
       gap: 1.5rem;
+      min-width: 0;
       padding: clamp(1.35rem, 4vw, 2.5rem);
       border: 1px solid #bae6fd;
       border-radius: var(--radius-lg);
       background: linear-gradient(135deg, #fff 0%, var(--sky-soft) 100%);
       box-shadow: var(--shadow);
     }
+    .setup-copy { min-width: 0; }
     .setup-copy h2 { margin: 0 0 0.7rem; font-size: clamp(1.65rem, 3.8vw, 2.35rem); line-height: 1.15; }
     .setup-copy p { margin: 0 0 1rem; color: var(--text-muted); }
-    .setup-list { display: grid; gap: 0.65rem; margin: 0; padding: 0; list-style: none; }
+    .setup-list { display: grid; gap: 0.65rem; margin: 0; padding: 0; list-style: none; min-width: 0; }
     .setup-list li {
       display: flex;
       gap: 0.75rem;
       align-items: flex-start;
+      min-width: 0;
+      width: 100%;
+      height: auto;
       padding: 0.8rem 0.9rem;
       border: 1px solid rgba(3, 105, 161, 0.14);
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.88);
       font-size: 0.9rem;
     }
-    .setup-list span {
+    .setup-num {
       display: grid;
       flex: 0 0 auto;
       width: 28px;
@@ -434,6 +439,14 @@
       background: var(--sky);
       font-size: 0.72rem;
       font-weight: 800;
+      line-height: 1;
+    }
+    .setup-text {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      line-height: 1.45;
     }
     .setup-note {
       margin: 0;
@@ -554,6 +567,10 @@
       .hero-meta { display: grid; }
       .float-chip { position: static; width: fit-content; margin-top: 0.7rem; }
       .float-chip--bottom { margin-left: auto; }
+      .setup-panel { gap: 1.15rem; padding: 1.15rem; }
+      .setup-list { gap: 0.55rem; }
+      .setup-list li { padding: 0.75rem 0.8rem; }
+      .setup-text { font-size: 0.88rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -625,7 +642,7 @@
                 src="../images/zkteco-f22-attendance-hero.png"
                 width="1536"
                 height="1024"
-                alt="Example fingerprint attendance terminal beside Simple Roster Plus attendance software, illustrating ADMS punch data reviewed against the weekly roster."
+                alt="Attendance terminal beside the Simple Roster Plus attendance dashboard"
                 decoding="async"
                 fetchpriority="high"
               >
@@ -796,11 +813,11 @@
             <p class="setup-note">Older firmware may require full push and poll URLs instead of a server address alone. The Add Device checklist shows both styles.</p>
           </div>
           <ol class="setup-list">
-            <li><span>1</span><span>Register the terminal serial in Simple Roster Plus and assign it to a location.</span></li>
-            <li><span>2</span><span>Set the public HTTPS server address the device can reach.</span></li>
-            <li><span>3</span><span>Use port 443 and enable HTTPS.</span></li>
-            <li><span>4</span><span>Enable ATTLOG or real-time attendance upload. Do not rely on OPERLOG-only.</span></li>
-            <li><span>5</span><span>Match terminal user IDs to employee device user IDs.</span></li>
+            <li><span class="setup-num" aria-hidden="true">1</span><span class="setup-text">Register the terminal serial in Simple Roster Plus and assign it to a location.</span></li>
+            <li><span class="setup-num" aria-hidden="true">2</span><span class="setup-text">Set the public HTTPS server address the device can reach.</span></li>
+            <li><span class="setup-num" aria-hidden="true">3</span><span class="setup-text">Use port 443 and enable HTTPS.</span></li>
+            <li><span class="setup-num" aria-hidden="true">4</span><span class="setup-text">Enable ATTLOG or real-time attendance upload. Do not rely on OPERLOG-only.</span></li>
+            <li><span class="setup-num" aria-hidden="true">5</span><span class="setup-text">Match terminal user IDs to employee device user IDs.</span></li>
           </ol>
         </div>
       </div>
