@@ -9,11 +9,14 @@
 
 | File                                                            | Change                                     |
 | --------------------------------------------------------------- | ------------------------------------------ |
-| `landing-page/small-business-employee-scheduling/index.html`    | New commercial landing page                |
+| `landing-page/small-business-employee-scheduling/index.html`    | Commercial landing page (copy + visuals)   |
+| `landing-page/images/smb-scheduling-hero.webp` (+ `.png`)       | Hero lifestyle + roster visual             |
+| `landing-page/images/smb-weekly-workflow.webp` (+ `.png`)       | Mid-page workflow roster visual            |
 | `landing-page/index.html`                                       | Contextual pricing-foot link + footer link |
 | `landing-page/employee-scheduling-software/index.html`          | Contextual fit-note link + footer link     |
 | `landing-page/sitemap.xml`                                      | Canonical URL added once                   |
 | `docs/seo-small-business-employee-scheduling-implementation.md` | This implementation record                 |
+| `docs/seo-small-business-employee-scheduling-page-brief.md`     | Brief; visuals note updated after ship     |
 
 
 No application functionality, pricing source of truth, Auto Scheduler flags, employee self-service, staff import, or legal `noindex` pages were changed.
@@ -25,7 +28,7 @@ No application functionality, pricing source of truth, Auto Scheduler flags, emp
 - **Canonical:** `https://www.simplerosterplus.com/small-business-employee-scheduling`
 - **Robots:** `index, follow`
 - **H1:** `Simple Employee Scheduling Software for Small Businesses`
-- **Open Graph / Twitter:** Aligned title, description, canonical URL, and `app-roster-week.png` image
+- **Open Graph / Twitter:** Aligned title, description, canonical URL, and `smb-scheduling-hero.png` image
 
 ## 3. Page structure
 
@@ -132,9 +135,16 @@ once, monthly changefreq, priority 0.8.
 
 ## 12. Images used
 
-- Primary: `landing-page/images/app-roster-week.webp` with PNG fallback
-- Width/height 1400×900, descriptive alt, WebP `<source>`, responsive `max-width: 100%`
-- No Auto Scheduler, employee-app, drag-and-drop, import, or hardware-included imagery
+- Hero: `landing-page/images/smb-scheduling-hero.webp` (+ PNG fallback) — small-business manager reviewing a weekly roster on a laptop
+- Workflow: `landing-page/images/smb-weekly-workflow.webp` (+ PNG fallback) — illustrative roster UI emphasizing copy previous week, presets, share, and leave cells
+- Social: OG/Twitter absolute image URL points to `https://www.simplerosterplus.com/images/smb-scheduling-hero.png`
+- Dimensions ~1350×900, descriptive alt, WebP `<source>`, responsive `max-width: 100%`
+- Generated to match page copy; no Auto Scheduler button, employee-app, drag-and-drop, import, or hardware-included marketing imagery
+- Note: workflow mock is illustrative marketing UI, not a live product screenshot claim
+
+### Visual update (19 July 2026)
+
+Replaced the shared `app-roster-week` asset on this page with dedicated SMB hero and workflow images so the visuals match small-business fit copy (under-10 team context, leave visibility, copy-previous / presets / share) without advertising Auto Scheduler as live.
 
 ## 13. Local validation performed
 

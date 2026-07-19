@@ -444,12 +444,18 @@ Do **not** add nav/sitemap in this task.
 
 ## 19. Recommended screenshots or visuals
 
-Prefer **existing** product screenshots over new AI art:
+**Shipped (19 July 2026):** dedicated page assets (not the shared homepage roster crop):
 
-1. Weekly roster grid (desktop) — primary visual for “this is the schedule”
-2. Publish/share controls or share-link phone mock — staff access honesty
-3. Simple pricing/limits callout graphic (text-based; not fake UI)
-4. Optional: attendance week strip as secondary proof
+1. `landing-page/images/smb-scheduling-hero.webp` (+ PNG) — hero lifestyle + weekly roster on laptop
+2. `landing-page/images/smb-weekly-workflow.webp` (+ PNG) — mid-page workflow roster UI (copy previous week, presets, share, leave cells)
+
+Original brief preference was existing product screenshots; generated SMB-specific visuals were later approved for this URL so the page does not rely solely on `app-roster-week`.
+
+Still useful if expanding later:
+
+- Publish/share phone mock for staff-access honesty
+- Attendance week strip as secondary proof
+- Pricing limits remain HTML cards (not a fake screenshot)
 
 Avoid:
 
@@ -458,6 +464,8 @@ Avoid:
 - “Unlimited locations” hero badges
 - Hardware-included imagery
 - Auto Scheduler as live product chrome while flag is off
+
+See `docs/seo-small-business-employee-scheduling-implementation.md` §12 for live paths and OG image.
 
 ---
 
