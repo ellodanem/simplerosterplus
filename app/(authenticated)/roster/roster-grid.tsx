@@ -42,7 +42,7 @@ import type { SchedulingRuleRecord } from "@/lib/scheduling-rule-registry";
 import { calendarWeekdayIndex } from "@/lib/datetime-policy";
 import { HolidayCalendarSettings } from "./holiday-calendar-settings";
 import { TemplatesManager, type Template } from "./templates-manager";
-import { RequestsModal, type RequestStaff } from "./requests-modal";
+import { RequestsModal, type RequestStaff, type RequestsModalIntent } from "./requests-modal";
 import { WeekStartSettings } from "./week-start-settings";
 import { RosterShareControls } from "./roster-share-controls";
 import { AutoSchedulerModal } from "./auto-scheduler-modal";
@@ -252,6 +252,8 @@ export function RosterGrid({
   const [showMinimumOffDaysSettings, setShowMinimumOffDaysSettings] = useState(false);
   const [showSchedulingRulesSettings, setShowSchedulingRulesSettings] = useState(false);
   const [showRequests, setShowRequests] = useState(initialOpenRequests);
+  const [requestsIntent, setRequestsIntent] = useState<RequestsModalIntent>("review");
+  const [showRequestsMenu, setShowRequestsMenu] = useState(false);
   const [showAutoScheduler, setShowAutoScheduler] = useState(initialOpenAutoScheduler);
   const [autoSchedulerMode, setAutoSchedulerMode] = useState<AutoSchedulerMode>(
     initialAutoSchedulerMode,
@@ -271,7 +273,10 @@ export function RosterGrid({
   }, [staff]);
 
   useEffect(() => {
-    if (initialOpenRequests) setShowRequests(true);
+    if (initialOpenRequests) {
+      setRequestsIntent("review");
+      setShowRequests(true);
+    }
   }, [initialOpenRequests]);
   useEffect(() => {
     if (AUTO_SCHEDULER_ENABLED && initialOpenAutoScheduler) {
@@ -836,18 +841,80 @@ export function RosterGrid({
           >
             {copying ? "Copying…" : "Copy previous week"}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowRequests(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800 hover:bg-rose-100"
-          >
-            Requests
-            {pendingRequests > 0 ? (
-              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
-                {pendingRequests}
-              </span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowRequestsMenu((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={showRequestsMenu}
+              className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-sm font-medium text-rose-800 hover:bg-rose-100"
+            >
+              Requests
+              {pendingRequests > 0 ? (
+                <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
+                  {pendingRequests}
+                </span>
+              ) : null}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="opacity-80"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {showRequestsMenu ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close requests menu"
+                  onClick={() => setShowRequestsMenu(false)}
+                  className="fixed inset-0 z-30 cursor-default bg-transparent"
+                />
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full z-40 mt-2 w-52 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowRequestsMenu(false);
+                      setRequestsIntent("create");
+                      setShowRequests(true);
+                    }}
+                    className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                  >
+                    New request
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowRequestsMenu(false);
+                      setRequestsIntent("review");
+                      setShowRequests(true);
+                    }}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                  >
+                    <span>Review requests</span>
+                    {pendingRequests > 0 ? (
+                      <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
+                        {pendingRequests}
+                      </span>
+                    ) : null}
+                  </button>
+                </div>
+              </>
             ) : null}
-          </button>
+          </div>
           <button
             type="button"
             onClick={() => setShowPresets(true)}
@@ -1592,6 +1659,7 @@ export function RosterGrid({
       <RequestsModal
         open={showRequests}
         onClose={() => setShowRequests(false)}
+        intent={requestsIntent}
         staff={staffRows as RequestStaff[]}
         shiftTemplates={templates.map((t) => ({
           id: t.id,

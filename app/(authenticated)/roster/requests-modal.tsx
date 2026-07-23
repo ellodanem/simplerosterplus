@@ -48,6 +48,7 @@ type ListResponse = {
 };
 
 type Filter = "requested" | "all";
+export type RequestsModalIntent = "create" | "review";
 export type RequestChange =
   | { kind: "approved"; request: LeaveRequest; clearedDates: string[] }
   | { kind: "deletedApproved"; request: LeaveRequest }
@@ -65,17 +66,21 @@ function requestApiPath(type: LeaveRequest["type"], id?: string): string {
 }
 
 /**
- * Approval modal. Self-contained: fetches its own state on open, posts approvals/denials
+ * Requests modal. Self-contained: fetches its own state on open, posts approvals/denials
  * inline, and surfaces conflict-preview + confirm for leave. Shift requests are soft
  * preferences (approve does not change the roster). Parent gets `onPendingCountChange` so the
  * top-bar badge stays accurate without a route refresh, and `onRequestChanged` so the grid can
  * update blocking state when an approved leave request changes roster availability.
+ *
+ * `intent` selects the entry path: create opens with the new-request form expanded; review
+ * opens on the pending queue (home deep-links use review).
  */
 export function RequestsModal({
   open,
   onClose,
   staff,
   shiftTemplates,
+  intent = "review",
   onPendingCountChange,
   onRequestChanged,
 }: {
@@ -83,6 +88,7 @@ export function RequestsModal({
   onClose: () => void;
   staff: RequestStaff[];
   shiftTemplates: RequestShiftTemplate[];
+  intent?: RequestsModalIntent;
   onPendingCountChange: (n: number) => void;
   onRequestChanged: (change: RequestChange) => void;
 }) {
@@ -105,6 +111,16 @@ export function RequestsModal({
   useEffect(() => {
     onPendingCountChangeRef.current = onPendingCountChange;
   }, [onPendingCountChange]);
+
+  useEffect(() => {
+    if (!open) return;
+    setShowCreate(intent === "create");
+    setFilter("requested");
+    setQuery("");
+    setStaffFilter("all");
+    setDateFilter("");
+    setError(null);
+  }, [open, intent]);
 
   const load = useCallback(
     async (f: Filter, opts: { silent?: boolean } = {}) => {
@@ -280,7 +296,12 @@ export function RequestsModal({
 
   return (
     <>
-      <Modal open={open} onClose={onClose} title="Requests" size="xl">
+      <Modal
+        open={open}
+        onClose={onClose}
+        title={showCreate ? "New request" : "Review requests"}
+        size="xl"
+      >
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="inline-flex rounded-md border border-zinc-200 bg-zinc-50 p-0.5 text-xs">
