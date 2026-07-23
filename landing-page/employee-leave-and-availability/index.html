@@ -12,13 +12,13 @@
   <meta property="og:title" content="Employee Leave and Availability Software | Simple Roster Plus">
   <meta property="og:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
   <meta property="og:url" content="https://www.simplerosterplus.com/employee-leave-and-availability">
-  <meta property="og:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
-  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with color-coded shifts and leave visibility.">
+  <meta property="og:image" content="https://www.simplerosterplus.com/images/app-leave-roster-hero.png">
+  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with vacation leave visible on blocked cells.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Employee Leave and Availability Software | Simple Roster Plus">
   <meta name="twitter:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
-  <meta name="twitter:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
-  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with color-coded shifts and leave visibility.">
+  <meta name="twitter:image" content="https://www.simplerosterplus.com/images/app-leave-roster-hero.png">
+  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with vacation leave visible on blocked cells.">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../brand/srp-icon-180.png">
@@ -584,6 +584,15 @@
     .scope-card--out { border-color: #fecdd3; background: #fff8f8; }
     .scope-card--out .card-icon { color: #be123c; background: #ffe4e6; }
     .panel-note { margin: 0.75rem 1rem 1rem; color: var(--text-muted); font-size: 0.78rem; }
+    .product-shot { margin: 0; }
+    .product-shot-frame {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-md);
+    }
+    .product-shot-frame img { display: block; width: 100%; height: auto; }
     @media (min-width: 620px) {
       .scope-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -648,12 +657,12 @@
           <span class="float-chip float-chip--top"><span class="dot"></span>Leave stays visible</span>
           <div class="hero-frame">
             <picture>
-              <source type="image/webp" srcset="../images/app-roster-week.webp">
+              <source type="image/webp" srcset="../images/app-leave-roster-hero.webp">
               <img
-                src="../images/app-roster-week.png"
-                width="1400"
-                height="900"
-                alt="Weekly roster grid in Simple Roster Plus where managers account for time off while assigning shifts."
+                src="../images/app-leave-roster-hero.png"
+                width="1536"
+                height="1024"
+                alt="Weekly roster in Simple Roster Plus with vacation leave visible on blocked roster cells."
                 decoding="async"
                 fetchpriority="high"
               >
@@ -718,18 +727,22 @@
             <li><span class="check" aria-hidden="true">✓</span><span>Optional notes and who decided, when.</span></li>
           </ul>
         </div>
-        <div class="ui-panel" aria-label="Illustrative leave record examples">
-          <div class="ui-panel-head">
-            <strong>Leave records</strong>
-            <span>Manager-managed</span>
+        <figure class="product-shot" aria-label="New leave request in Simple Roster Plus">
+          <div class="product-shot-frame">
+            <picture>
+              <source type="image/webp" srcset="../images/app-leave-new-request.webp">
+              <img
+                src="../images/app-leave-new-request.png"
+                width="1536"
+                height="1024"
+                alt="New request dialog for recording vacation leave for a staff member in Simple Roster Plus."
+                loading="lazy"
+                decoding="async"
+              >
+            </picture>
           </div>
-          <div class="status-list" style="padding:1rem;">
-            <div class="status-row"><span>Alex Morgan · 12–16 May</span><span class="status-pill status-pill--leave">Vacation</span></div>
-            <div class="status-row"><span>Jamie Lewis · Thu 15 May</span><span class="status-pill status-pill--leave">Day off</span></div>
-            <div class="status-row"><span>Sam Rivera · 14–15 May</span><span class="status-pill status-pill--sick">Sick leave</span></div>
-          </div>
-          <p class="panel-note">Illustrative examples of manager-managed leave types—not a live product screenshot.</p>
-        </div>
+          <figcaption class="panel-note" style="margin:0.75rem 0 0;">Manager-managed leave request—vacation, days off, or sick leave.</figcaption>
+        </figure>
       </div>
     </section>
 
