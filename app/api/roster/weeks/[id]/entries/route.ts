@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { isApprovedBlocked } from "@/lib/leave-blocks";
+import { isApprovedBlocked, leaveAssignmentConflictMessage } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
 import { isRosterDayLocked, isRosterWeekLocked, rosterLockFromShareToken } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
@@ -17,8 +17,8 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
  * Body: { staffId, date: YYYY-MM-DD, shiftTemplateId: string | null }
  * - null/clears the cell (deletes any existing entry)
  * - non-null creates or updates the entry
- * Enforces: org scoping, date within week, public-holiday closed days, staff vacation,
- * roster membership, and read-only past weeks.
+ * Enforces: org scoping, date within week, public-holiday closed days, approved leave
+ * (vacation, sick leave, day off), roster membership, and read-only past weeks.
  */
 export async function PUT(request: Request, { params }: Ctx) {
   try {
@@ -165,15 +165,15 @@ async function putRosterEntry(request: Request, params: Promise<{ id: string }>)
     }
 
     const block = await isApprovedBlocked(staff.id, dateUtc);
-    if (block === "vacation") {
+    if (block) {
       return NextResponse.json(
-        { error: `${staff.firstName} ${staff.lastName} is on vacation on this date.` },
-        { status: 409 },
-      );
-    }
-    if (block === "dayOff") {
-      return NextResponse.json(
-        { error: `${staff.firstName} ${staff.lastName} has an approved day off on this date.` },
+        {
+          error: leaveAssignmentConflictMessage(
+            block,
+            `${staff.firstName} ${staff.lastName}`,
+            "this date",
+          ),
+        },
         { status: 409 },
       );
     }

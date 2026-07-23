@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { uncaughtApiErrorResponse } from "@/lib/api-error";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { getApprovedBlockMap } from "@/lib/leave-blocks";
+import { getApprovedBlockMap, leaveAssignmentConflictMessage } from "@/lib/leave-blocks";
 import { staffEligibleForRosterWeek, staffIdsWithRosterEntries } from "@/lib/roster-display-staff";
 import { isRosterDayLocked, isRosterWeekLocked, rosterLockFromShareToken } from "@/lib/roster-week-lock";
 import { formatYmdInZone, utcDateFromYmd } from "@/lib/datetime-policy";
@@ -185,15 +185,15 @@ async function postRosterEntriesBatch(request: Request, params: Promise<{ id: st
         );
       }
       const block = blockMap[`${staff.id}__${date}`];
-      if (block === "vacation") {
+      if (block) {
         return NextResponse.json(
-          { error: `${staff.firstName} ${staff.lastName} is on vacation on ${date}.` },
-          { status: 409 },
-        );
-      }
-      if (block === "dayOff") {
-        return NextResponse.json(
-          { error: `${staff.firstName} ${staff.lastName} has an approved day off on ${date}.` },
+          {
+            error: leaveAssignmentConflictMessage(
+              block,
+              `${staff.firstName} ${staff.lastName}`,
+              date,
+            ),
+          },
           { status: 409 },
         );
       }

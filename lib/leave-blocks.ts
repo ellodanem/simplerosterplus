@@ -122,6 +122,25 @@ export async function isApprovedBlocked(
   return null;
 }
 
+/**
+ * User-facing 409 message when a roster write would assign a shift onto approved leave.
+ * `dateLabel` is typically `"this date"` (single-cell PUT) or a `YYYY-MM-DD` (batch).
+ */
+export function leaveAssignmentConflictMessage(
+  block: BlockReason,
+  staffDisplayName: string,
+  dateLabel: string,
+): string {
+  switch (block) {
+    case "vacation":
+      return `${staffDisplayName} is on vacation on ${dateLabel}.`;
+    case "sickLeave":
+      return `${staffDisplayName} is on sick leave on ${dateLabel}.`;
+    case "dayOff":
+      return `${staffDisplayName} has an approved day off on ${dateLabel}.`;
+  }
+}
+
 export type ShiftPreferenceCue = {
   status: "requested" | "approved";
   shiftTemplateId: string;
