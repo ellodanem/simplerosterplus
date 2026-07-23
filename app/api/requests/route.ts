@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { LeaveRequestStatus } from "@prisma/client";
+import type { LeaveRequestStatus, SickLeaveStatus } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getDefaultLocation } from "@/lib/location";
@@ -12,18 +12,19 @@ import {
   requestStaffSelect,
   serializeDayOff,
   serializeShiftRequest,
+  serializeSickLeave,
   serializeVacation,
   shiftTemplateSelect,
 } from "@/lib/requests";
 
-const VALID_STATUS = new Set<LeaveRequestStatus>(["requested", "approved", "denied"]);
+const VALID_STATUS = new Set<string>(["requested", "approved", "denied"]);
 
 /**
  * GET /api/requests?status=requested|approved|denied|all
  *
- * Returns vacation + day-off + shift-request rows for the current org's default location,
- * plus a count of rows that are still `requested` regardless of the filter (so the Requests
- * button badge stays accurate even when the modal is filtering to "decided" rows).
+ * Returns vacation + day-off + sick-leave + shift-request rows for the current org's default
+ * location, plus a count of rows that are still `requested` regardless of the filter (so the
+ * Requests button badge stays accurate even when the modal is filtering to "decided" rows).
  *
  * Leave `requested` rows include `conflictCount` so the modal can surface "approving will
  * clear N shifts". Shift requests are soft preferences — no clear-on-approve conflicts.
@@ -37,10 +38,10 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get("status") ?? "requested";
-    let statusFilter: LeaveRequestStatus | null;
+    let statusFilter: LeaveRequestStatus | SickLeaveStatus | null;
     if (statusParam === "all") {
       statusFilter = null;
-    } else if (VALID_STATUS.has(statusParam as LeaveRequestStatus)) {
+    } else if (VALID_STATUS.has(statusParam)) {
       statusFilter = statusParam as LeaveRequestStatus;
     } else {
       return NextResponse.json(
@@ -59,9 +60,11 @@ export async function GET(request: Request) {
     const [
       vacationRows,
       dayOffRows,
+      sickLeaveRows,
       shiftRows,
       pendingVacation,
       pendingDayOff,
+      pendingSickLeave,
       pendingShift,
     ] = await Promise.all([
       prisma.staffVacation.findMany({
@@ -101,6 +104,25 @@ export async function GET(request: Request) {
           decidedBy: { select: decidedBySelect },
         },
       }),
+      prisma.staffSickLeave.findMany({
+        where: {
+          staff: staffWhere,
+          ...(statusFilter ? { status: statusFilter as SickLeaveStatus } : {}),
+        },
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          staffId: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          reason: true,
+          decidedAt: true,
+          createdAt: true,
+          staff: { select: requestStaffSelect },
+          decidedBy: { select: decidedBySelect },
+        },
+      }),
       prisma.staffShiftRequest.findMany({
         where: {
           staff: staffWhere,
@@ -125,6 +147,9 @@ export async function GET(request: Request) {
         where: { staff: staffWhere, status: "requested" },
       }),
       prisma.staffDayOff.count({
+        where: { staff: staffWhere, status: "requested" },
+      }),
+      prisma.staffSickLeave.count({
         where: { staff: staffWhere, status: "requested" },
       }),
       prisma.staffShiftRequest.count({
@@ -152,6 +177,14 @@ export async function GET(request: Request) {
             startDate: row.date,
             endDate: row.date,
           })),
+        ...sickLeaveRows
+          .filter((row) => row.status === "requested")
+          .map((row) => ({
+            key: requestConflictKey("sickLeave", row.id),
+            staffId: row.staffId,
+            startDate: row.startDate,
+            endDate: row.endDate,
+          })),
       ]),
       getScheduledShiftNames(
         session.orgId,
@@ -164,7 +197,7 @@ export async function GET(request: Request) {
       ),
     ]);
 
-    const [vacation, dayOff, shiftRequest] = await Promise.all([
+    const [vacation, dayOff, sickLeave, shiftRequest] = await Promise.all([
       Promise.all(
         vacationRows.map((row) =>
           serializeVacation(row, conflictSummaries.get(requestConflictKey("vacation", row.id))),
@@ -173,6 +206,11 @@ export async function GET(request: Request) {
       Promise.all(
         dayOffRows.map((row) =>
           serializeDayOff(row, conflictSummaries.get(requestConflictKey("dayOff", row.id))),
+        ),
+      ),
+      Promise.all(
+        sickLeaveRows.map((row) =>
+          serializeSickLeave(row, conflictSummaries.get(requestConflictKey("sickLeave", row.id))),
         ),
       ),
       Promise.all(
@@ -188,8 +226,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       vacation,
       dayOff,
+      sickLeave,
       shiftRequest,
-      pendingCount: pendingVacation + pendingDayOff + pendingShift,
+      pendingCount: pendingVacation + pendingDayOff + pendingSickLeave + pendingShift,
     });
   } catch (e) {
     const { status, body } = errorJson(e);

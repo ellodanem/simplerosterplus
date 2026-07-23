@@ -38,7 +38,7 @@ export function countStaffOffDaysInWeek(
   staffId: string,
   days: string[],
   entries: Record<string, string>,
-  blockMap: Record<string, "vacation" | "dayOff">,
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">,
   holidays: Record<string, { stationClosed: boolean }>,
 ): number {
   let off = 0;
@@ -55,7 +55,7 @@ export function staffBelowMinimumOffDays(
   staffId: string,
   days: string[],
   entries: Record<string, string>,
-  blockMap: Record<string, "vacation" | "dayOff">,
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">,
   holidays: Record<string, { stationClosed: boolean }>,
   settings: MinimumOffDaysSettings,
 ): boolean {
@@ -68,7 +68,7 @@ export function countStaffBelowMinimumOffDays(
   staffIds: string[],
   days: string[],
   entries: Record<string, string>,
-  blockMap: Record<string, "vacation" | "dayOff">,
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">,
   holidays: Record<string, { stationClosed: boolean }>,
   settings: MinimumOffDaysSettings,
 ): number {

@@ -679,6 +679,7 @@ function statusPillLabel(status: PresenceStatus, minutesLate: number | null): st
     case "manual_absent": return "Manual absent";
     case "exempt": return "Exempt";
     case "on_vacation": return "Vacation";
+    case "on_sick_leave": return "Sick leave";
     case "day_off": return "Day off";
     case "station_closed": return "Closed";
     case "scheduled": return "Scheduled";

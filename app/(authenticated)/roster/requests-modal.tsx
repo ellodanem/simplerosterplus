@@ -21,7 +21,7 @@ export type RequestShiftTemplate = {
 
 export type LeaveRequest = {
   id: string;
-  type: "vacation" | "dayOff" | "shiftRequest";
+  type: "vacation" | "dayOff" | "sickLeave" | "shiftRequest";
   status: LeaveRequestStatus;
   reason: string | null;
   decidedAt: string | null;
@@ -43,6 +43,7 @@ export type LeaveRequest = {
 type ListResponse = {
   vacation: LeaveRequest[];
   dayOff: LeaveRequest[];
+  sickLeave: LeaveRequest[];
   shiftRequest: LeaveRequest[];
   pendingCount: number;
 };
@@ -56,12 +57,18 @@ export type RequestChange =
   | { kind: "shiftPreferenceClear"; request: LeaveRequest };
 
 function isLeaveRequest(req: LeaveRequest): boolean {
-  return req.type === "vacation" || req.type === "dayOff";
+  return req.type === "vacation" || req.type === "dayOff" || req.type === "sickLeave";
 }
 
 function requestApiPath(type: LeaveRequest["type"], id?: string): string {
   const base =
-    type === "vacation" ? "vacation" : type === "dayOff" ? "day-off" : "shift";
+    type === "vacation"
+      ? "vacation"
+      : type === "dayOff"
+        ? "day-off"
+        : type === "sickLeave"
+          ? "sick-leave"
+          : "shift";
   return id ? `/api/requests/${base}/${encodeURIComponent(id)}` : `/api/requests/${base}`;
 }
 
@@ -135,6 +142,7 @@ export function RequestsModal({
         const next: ListResponse = {
           vacation: body.vacation ?? [],
           dayOff: body.dayOff ?? [],
+          sickLeave: body.sickLeave ?? [],
           shiftRequest: body.shiftRequest ?? [],
           pendingCount: body.pendingCount ?? 0,
         };
@@ -254,7 +262,7 @@ export function RequestsModal({
 
   const grouped = useMemo(() => {
     if (!data) return null;
-    const all = [...data.vacation, ...data.dayOff, ...data.shiftRequest];
+    const all = [...data.vacation, ...data.dayOff, ...data.sickLeave, ...data.shiftRequest];
     const pendingAll = all.filter((r) => r.status === "requested");
     const decidedAll = all.filter((r) => r.status !== "requested");
     pendingAll.sort(sortByCreatedDesc);
@@ -348,8 +356,12 @@ export function RequestsModal({
             <CreateRequestForm
               staff={sortedStaff}
               shiftTemplates={shiftTemplates}
-              onCreated={(created) => {
+              onCreated={(created, opts) => {
                 setShowCreate(false);
+                if (created && opts?.approveNow && isLeaveRequest(created)) {
+                  void patchRequest(created, "approve", false);
+                  return;
+                }
                 load(filter, { silent: true });
                 if (created?.type === "shiftRequest" && created.status === "requested") {
                   onRequestChanged({ kind: "shiftPreferenceSet", request: created });
@@ -463,7 +475,7 @@ function sortByDecidedThenCreatedDesc(a: LeaveRequest, b: LeaveRequest): number 
  * shift requests match the exact date. ISO-formatted YMD strings compare correctly
  * lexicographically. */
 function coversDate(r: LeaveRequest, ymd: string): boolean {
-  if (r.type === "vacation") {
+  if (r.type === "vacation" || r.type === "sickLeave") {
     if (!r.startDate || !r.endDate) return false;
     return ymd >= r.startDate && ymd <= r.endDate;
   }
@@ -473,18 +485,20 @@ function coversDate(r: LeaveRequest, ymd: string): boolean {
 function requestTypeLabel(type: LeaveRequest["type"]): string {
   if (type === "vacation") return "Vacation";
   if (type === "dayOff") return "Day off";
+  if (type === "sickLeave") return "Sick leave";
   return "Shift";
 }
 
 function requestTypeNoun(type: LeaveRequest["type"]): string {
   if (type === "vacation") return "vacation";
   if (type === "dayOff") return "day-off";
+  if (type === "sickLeave") return "sick leave";
   return "shift";
 }
 
 /** One-line skim label: type · details (date / range / shift name). */
 function requestSummaryLabel(req: LeaveRequest): string {
-  if (req.type === "vacation") {
+  if (req.type === "vacation" || req.type === "sickLeave") {
     return `${requestTypeLabel(req.type)} · ${formatRange(req.startDate, req.endDate)}`;
   }
   if (req.type === "dayOff") {
@@ -753,7 +767,9 @@ function StatusPill({
         ? "bg-amber-100 text-amber-800"
         : type === "dayOff"
           ? "bg-sky-100 text-sky-800"
-          : "bg-violet-100 text-violet-800"
+          : type === "sickLeave"
+            ? "bg-orange-100 text-orange-800"
+            : "bg-violet-100 text-violet-800"
       : status === "denied"
         ? "bg-zinc-200 text-zinc-700"
         : "bg-rose-100 text-rose-800";
@@ -786,22 +802,27 @@ function CreateRequestForm({
 }: {
   staff: RequestStaff[];
   shiftTemplates: RequestShiftTemplate[];
-  onCreated: (created?: LeaveRequest) => void;
+  onCreated: (created?: LeaveRequest, opts?: { approveNow?: boolean }) => void;
   onError: (msg: string) => void;
 }) {
-  const [type, setType] = useState<"vacation" | "dayOff" | "shiftRequest">("vacation");
+  const [type, setType] = useState<"vacation" | "dayOff" | "sickLeave" | "shiftRequest">(
+    "vacation",
+  );
   const [staffId, setStaffId] = useState(staff[0]?.id ?? "");
   const [date, setDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [shiftTemplateId, setShiftTemplateId] = useState(shiftTemplates[0]?.id ?? "");
   const [reason, setReason] = useState("");
+  const [approveNow, setApproveNow] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const sortedTemplates = useMemo(
     () => [...shiftTemplates].sort((a, b) => a.name.localeCompare(b.name)),
     [shiftTemplates],
   );
+
+  const usesDateRange = type === "vacation" || type === "sickLeave";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -816,7 +837,7 @@ function CreateRequestForm({
         staffId,
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       };
-      if (type === "vacation") {
+      if (usesDateRange) {
         if (!startDate || !endDate) {
           onError("Pick both a start and end date.");
           setSubmitting(false);
@@ -859,7 +880,9 @@ function CreateRequestForm({
       setDate("");
       setStartDate("");
       setEndDate("");
-      onCreated(body.request);
+      onCreated(body.request, {
+        approveNow: type === "sickLeave" && approveNow,
+      });
     } catch (err) {
       onError((err as Error).message);
     } finally {
@@ -878,12 +901,15 @@ function CreateRequestForm({
           <select
             value={type}
             onChange={(e) =>
-              setType(e.target.value as "vacation" | "dayOff" | "shiftRequest")
+              setType(
+                e.target.value as "vacation" | "dayOff" | "sickLeave" | "shiftRequest",
+              )
             }
             className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm"
           >
             <option value="vacation">Vacation</option>
             <option value="dayOff">Day off</option>
+            <option value="sickLeave">Sick leave</option>
             <option value="shiftRequest">Shift request</option>
           </select>
         </label>
@@ -906,7 +932,7 @@ function CreateRequestForm({
             )}
           </select>
         </label>
-        {type === "vacation" ? (
+        {usesDateRange ? (
           <>
             <label className="flex flex-col gap-1 text-xs font-medium text-zinc-700">
               Start date <span className="text-red-600">*</span>
@@ -980,10 +1006,25 @@ function CreateRequestForm({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
-            placeholder="Optional context for the approver"
+            placeholder={
+              type === "sickLeave"
+                ? "Optional — e.g. doctor’s note period"
+                : "Optional context for the approver"
+            }
             className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm"
           />
         </label>
+        {type === "sickLeave" ? (
+          <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={approveNow}
+              onChange={(e) => setApproveNow(e.target.checked)}
+              className="rounded border-zinc-300"
+            />
+            Approve immediately (clears overlapping shifts)
+          </label>
+        ) : null}
       </div>
       <div className="mt-3 flex items-center justify-end gap-2">
         <button
@@ -991,7 +1032,11 @@ function CreateRequestForm({
           disabled={submitting}
           className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? "Submitting…" : "Submit request"}
+          {submitting
+            ? "Submitting…"
+            : type === "sickLeave" && approveNow
+              ? "Submit & approve"
+              : "Submit request"}
         </button>
       </div>
     </form>

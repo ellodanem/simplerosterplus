@@ -6,7 +6,7 @@
  * cell. Keeps the helper testable and the per-page cost bounded by the precomputation, not
  * by N+1 queries.
  *
- * Precedence (high → low): station_closed > on_vacation > day_off > manual_* > exempt
+ * Precedence (high → low): station_closed > on_vacation > on_sick_leave > day_off > manual_* > exempt
  * > (expected ? present|late|absent|scheduled : no_shift).
  *
  * `scheduled` = shift on roster but no in-punch yet, and the absent window has not opened
@@ -19,6 +19,7 @@ export type PresenceStatus =
   | "no_shift"
   | "station_closed"
   | "on_vacation"
+  | "on_sick_leave"
   | "day_off"
   | "exempt"
   | "manual_present"
@@ -48,6 +49,7 @@ export type ComputePresenceInput = {
   /** ShiftTemplate associated with that day's RosterEntry, if any. */
   expected: ExpectedShift | null;
   vacation: boolean;
+  sickLeave: boolean;
   dayOff: boolean;
   stationClosed: boolean;
   punchExempt: boolean;
@@ -132,6 +134,9 @@ export function computePresence(input: ComputePresenceInput): PresenceResult {
   if (input.vacation) {
     return { status: "on_vacation", firstInAt, lastOutAt, minutesLate: null };
   }
+  if (input.sickLeave) {
+    return { status: "on_sick_leave", firstInAt, lastOutAt, minutesLate: null };
+  }
   if (input.dayOff) {
     return { status: "day_off", firstInAt, lastOutAt, minutesLate: null };
   }
@@ -181,6 +186,7 @@ export function presenceLabel(status: PresenceStatus): string {
     case "no_shift": return "No shift";
     case "station_closed": return "Closed";
     case "on_vacation": return "Vacation";
+    case "on_sick_leave": return "Sick leave";
     case "day_off": return "Day off";
     case "exempt": return "Exempt";
     case "manual_present": return "Present (manual)";
@@ -201,6 +207,7 @@ export function presenceGlyph(status: PresenceStatus): string {
     case "no_shift": return "—";
     case "station_closed": return "C";
     case "on_vacation": return "V";
+    case "on_sick_leave": return "S";
     case "day_off": return "O";
     case "exempt": return "E";
     case "manual_present": return "M";
@@ -246,6 +253,8 @@ export function presenceClasses(status: PresenceStatus): {
       return { solid: "bg-violet-600 text-white", soft: "bg-violet-50" };
     case "on_vacation":
       return { solid: "bg-sky-600 text-white", soft: "bg-sky-50" };
+    case "on_sick_leave":
+      return { solid: "bg-orange-600 text-white", soft: "bg-orange-50" };
     case "day_off":
       return { solid: "bg-sky-500 text-white", soft: "bg-sky-50" };
     case "station_closed":

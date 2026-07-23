@@ -29,7 +29,7 @@ export type RosterShareViewData = {
   }>;
   entries: Record<string, string>;
   holidays: Record<string, { name: string; stationClosed: boolean }>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
 };
 
 /** Load published roster for a share token. Returns null if missing, draft, or invalid. */

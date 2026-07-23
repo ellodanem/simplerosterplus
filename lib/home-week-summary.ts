@@ -51,7 +51,7 @@ export type HomeRosterPreview = {
   }>;
   entries: Record<string, string>;
   holidays: Record<string, { name: string; stationClosed: boolean }>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
 };
 
 export type HomeWeekSummary = {
@@ -141,6 +141,7 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     templates,
     pendingVacation,
     pendingDayOff,
+    pendingSickLeave,
     pendingShift,
   ] = await Promise.all([
       getAttendanceWeekData({
@@ -201,6 +202,12 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
         },
       }),
       prisma.staffDayOff.count({
+        where: {
+          status: "requested",
+          staff: { organizationId, locationId: location.id },
+        },
+      }),
+      prisma.staffSickLeave.count({
         where: {
           status: "requested",
           staff: { organizationId, locationId: location.id },
@@ -335,7 +342,7 @@ export async function getHomeWeekSummary(organizationId: string): Promise<HomeWe
     openShiftDayYmd: openShiftSummary.openShiftDayYmd,
     openShiftDayLabel: openShiftSummary.openShiftDayLabel,
     coverageRangeLabel,
-    pendingRequestsCount: pendingVacation + pendingDayOff + pendingShift,
+    pendingRequestsCount: pendingVacation + pendingDayOff + pendingSickLeave + pendingShift,
     rosterStatus: rosterWeek?.status ?? null,
     rosterShareToken:
       rosterWeek?.status === "published" && rosterWeek.shareToken

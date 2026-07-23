@@ -68,7 +68,7 @@ type HolidayCalendarConfig = {
   subdivisions: HolidayOption[];
 };
 
-type BlockReason = "holiday" | "vacation" | "dayOff";
+type BlockReason = "holiday" | "vacation" | "sickLeave" | "dayOff";
 
 type PopoverTriggerRect = {
   /** Viewport Y of the trigger top edge. */
@@ -221,7 +221,7 @@ export function RosterGrid({
   initialEntries: Record<string, string>;
   initialPreviousWeekEntries: Record<string, string | null>;
   holidays: Record<string, Holiday>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   preferenceMap: Record<string, ShiftPreferenceCue>;
   initialPendingCount: number;
   initialOpenRequests?: boolean;
@@ -638,7 +638,7 @@ export function RosterGrid({
   }
 
   function requestDates(req: {
-    type: "vacation" | "dayOff" | "shiftRequest";
+    type: "vacation" | "dayOff" | "sickLeave" | "shiftRequest";
     startDate?: string;
     endDate?: string;
     date?: string;
@@ -654,7 +654,7 @@ export function RosterGrid({
   }
 
   function applyApprovedRequestChange(req: {
-    type: "vacation" | "dayOff" | "shiftRequest";
+    type: "vacation" | "dayOff" | "sickLeave" | "shiftRequest";
     staff: { id: string };
     startDate?: string;
     endDate?: string;
@@ -665,7 +665,12 @@ export function RosterGrid({
     if (nextDates.length > 0) {
       setBlockMap((curr) => {
         const next = { ...curr };
-        const blockType = req.type === "vacation" ? "vacation" : "dayOff";
+        const blockType =
+          req.type === "vacation"
+            ? "vacation"
+            : req.type === "sickLeave"
+              ? "sickLeave"
+              : "dayOff";
         for (const ymd of nextDates) next[cellKey(req.staff.id, ymd)] = blockType;
         return next;
       });
@@ -681,7 +686,7 @@ export function RosterGrid({
 
   function removeApprovedRequestChange(req: {
     staff: { id: string };
-    type: "vacation" | "dayOff" | "shiftRequest";
+    type: "vacation" | "dayOff" | "sickLeave" | "shiftRequest";
     startDate?: string;
     endDate?: string;
     date?: string;
@@ -702,7 +707,7 @@ export function RosterGrid({
     if (Object.keys(entries).length > 0) {
       const ok = window.confirm(
         lockedLabel
-          ? `Replace unlocked days with the previous week's shifts? ${lockedLabel} ${lockedDays.length === 1 ? "is" : "are"} locked and will not change. Approved vacation and days off will not change.`
+          ? `Replace unlocked days with the previous week's shifts? ${lockedLabel} ${lockedDays.length === 1 ? "is" : "are"} locked and will not change. Approved vacation, sick leave, and days off will not change.`
           : "Replace this week's roster with the previous week's shifts? Existing entries will be overwritten.",
       );
       if (!ok) return;
@@ -736,7 +741,7 @@ export function RosterGrid({
       } else {
         const word = copied === 1 ? "shift" : "shifts";
         setNotice(
-          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to locked days, holidays, vacation, or approved days off)` : ""}.`,
+          `Copied ${copied} ${word} from the previous week${skipped > 0 ? ` (${skipped} skipped due to locked days, holidays, vacation, sick leave, or approved days off)` : ""}.`,
         );
       }
     } catch (e) {
@@ -758,7 +763,7 @@ export function RosterGrid({
     if (lockedLabel) {
       message += `\n\n${lockedLabel} ${lockedDays.length === 1 ? "is" : "are"} locked and will not change.`;
     }
-    message += "\n\nApproved vacation and days off will not change.";
+    message += "\n\nApproved vacation, sick leave, and days off will not change.";
 
     if (!window.confirm(message)) return;
 
@@ -1889,13 +1894,17 @@ function CellButton({
         ? "Closed"
         : blocked === "vacation"
           ? "Vacation"
-          : "Day off";
+          : blocked === "sickLeave"
+            ? "Sick leave"
+            : "Day off";
     const ariaLabel =
       blocked === "holiday"
         ? "Closed (holiday)"
         : blocked === "vacation"
           ? "On vacation"
-          : "Approved day off";
+          : blocked === "sickLeave"
+            ? "On sick leave"
+            : "Approved day off";
     return (
       <div
         className="relative flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"

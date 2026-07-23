@@ -135,7 +135,7 @@ export function collectSchedulingRuleViolations(args: {
   days: string[];
   timeZone: string;
   entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   holidays: Record<string, { stationClosed: boolean }>;
   settings: SchedulingRulesSettings;
   rules?: SchedulingRuleRecord[];
@@ -169,7 +169,7 @@ export function filterProposalsBySchedulingRules<
   staff: Array<{ id: string; role: string | null }>;
   days: string[];
   timeZone: string;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   holidays: Record<string, { stationClosed: boolean }>;
   settings: SchedulingRulesSettings;
   rules?: SchedulingRuleRecord[];

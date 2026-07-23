@@ -214,6 +214,12 @@ export default async function RosterPage({
           staff: { organizationId: org.id, locationId: location.id },
         },
       }),
+      prisma.staffSickLeave.count({
+        where: {
+          status: "requested",
+          staff: { organizationId: org.id, locationId: location.id },
+        },
+      }),
       prisma.staffShiftRequest.count({
         where: {
           status: "requested",
@@ -285,7 +291,7 @@ export default async function RosterPage({
   ]);
 
   const pendingRequestsCount =
-    pendingCounts[0] + pendingCounts[1] + pendingCounts[2];
+    pendingCounts[0] + pendingCounts[1] + pendingCounts[2] + pendingCounts[3];
 
   const prevWeek = shiftYmd(weekStartYmd, -7);
   const nextWeek = shiftYmd(weekStartYmd, 7);

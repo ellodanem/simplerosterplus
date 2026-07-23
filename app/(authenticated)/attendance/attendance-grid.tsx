@@ -36,7 +36,7 @@ import {
 } from "@/lib/attendance-staff-display";
 
 type Holiday = { name: string; stationClosed: boolean };
-type BlockReason = "vacation" | "dayOff";
+type BlockReason = "vacation" | "sickLeave" | "dayOff";
 type AttendanceWeekViewState = Pick<
   AttendanceWeekData,
   | "staff"
@@ -744,7 +744,10 @@ function AttendanceCellButton({
 }) {
   const classes = presenceClasses(status);
   const blocked =
-    status === "station_closed" || status === "on_vacation" || status === "day_off";
+    status === "station_closed" ||
+    status === "on_vacation" ||
+    status === "on_sick_leave" ||
+    status === "day_off";
   const interactive = filed || !blocked;
   const title = filed
     ? `${presenceLabel(status)} — filed in Extract Pay Period (read-only)`

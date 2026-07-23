@@ -157,7 +157,7 @@ export async function getAttendanceLogData(args: {
     const rangeEndDate = utcDateFromYmd(maxYmd);
     const touchedStaffIds = Array.from(new Set([...dayKeys].map((k) => k.split("__")[0])));
 
-    const [rosterEntries, vacations, daysOff, holidays, overrides, allDayPunches] = await Promise.all([
+    const [rosterEntries, vacations, sickLeaves, daysOff, holidays, overrides, allDayPunches] = await Promise.all([
       prisma.rosterEntry.findMany({
         where: {
           staffId: { in: touchedStaffIds },
@@ -172,6 +172,15 @@ export async function getAttendanceLogData(args: {
         },
       }),
       prisma.staffVacation.findMany({
+        where: {
+          staffId: { in: touchedStaffIds },
+          status: "approved",
+          startDate: { lte: rangeEndDate },
+          endDate: { gte: rangeStartDate },
+        },
+        select: { staffId: true, startDate: true, endDate: true },
+      }),
+      prisma.staffSickLeave.findMany({
         where: {
           staffId: { in: touchedStaffIds },
           status: "approved",
@@ -236,6 +245,13 @@ export async function getAttendanceLogData(args: {
         vacationDayKeys.add(`${v.staffId}__${ymd}`);
       }
     }
+    const sickLeaveDayKeys = new Set<string>();
+    for (const s of sickLeaves) {
+      for (let t = s.startDate.getTime(); t <= s.endDate.getTime(); t += 24 * 60 * 60_000) {
+        const ymd = ymdForDbDate(new Date(t));
+        sickLeaveDayKeys.add(`${s.staffId}__${ymd}`);
+      }
+    }
     const dayOffDayKeys = new Set<string>();
     for (const d of daysOff) {
       dayOffDayKeys.add(`${d.staffId}__${ymdForDbDate(d.date)}`);
@@ -289,6 +305,7 @@ export async function getAttendanceLogData(args: {
         timeZone,
         expected: expectedByDayKey.get(key) ?? null,
         vacation: vacationDayKeys.has(key),
+        sickLeave: sickLeaveDayKeys.has(key),
         dayOff: dayOffDayKeys.has(key),
         stationClosed: stationClosedYmds.has(ymd),
         punchExempt: staff.punchExempt,

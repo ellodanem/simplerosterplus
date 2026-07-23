@@ -15,7 +15,7 @@ function blockedReason(
   ymd: string,
   holidays: RosterShareViewData["holidays"],
   blockMap: RosterShareViewData["blockMap"],
-): "holiday" | "vacation" | "dayOff" | null {
+): "holiday" | "vacation" | "sickLeave" | "dayOff" | null {
   const h = holidays[ymd];
   if (h?.stationClosed) return "holiday";
   const leave = blockMap[`${staffId}__${ymd}`];
@@ -29,12 +29,18 @@ function ReadOnlyCell({
   holidayName,
 }: {
   tpl: Template | undefined;
-  blocked: "holiday" | "vacation" | "dayOff" | null;
+  blocked: "holiday" | "vacation" | "sickLeave" | "dayOff" | null;
   holidayName: string | null;
 }) {
   if (blocked) {
     const label =
-      blocked === "holiday" ? "Closed" : blocked === "vacation" ? "Vacation" : "Day off";
+      blocked === "holiday"
+        ? "Closed"
+        : blocked === "vacation"
+          ? "Vacation"
+          : blocked === "sickLeave"
+            ? "Sick leave"
+            : "Day off";
     return (
       <div className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500">
         {holidayName ? (

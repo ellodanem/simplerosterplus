@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { utcDateFromYmd } from "./datetime-policy";
 import { ymdForDbDate } from "./roster-week";
 
-export type RequestType = "vacation" | "dayOff" | "shiftRequest";
+export type RequestType = "vacation" | "dayOff" | "sickLeave" | "shiftRequest";
 export type ConflictSummary = { count: number; dates: string[] };
 
 type ConflictRange = {
@@ -13,7 +13,10 @@ type ConflictRange = {
   endDate: Date;
 };
 
-export function requestConflictKey(type: "vacation" | "dayOff", id: string): string {
+export function requestConflictKey(
+  type: "vacation" | "dayOff" | "sickLeave",
+  id: string,
+): string {
   return `${type}:${id}`;
 }
 
@@ -31,9 +34,9 @@ export type SerializedRequest = {
     lastName: string;
     role: string | null;
   };
-  /** Only set for `vacation` rows. */
+  /** Only set for `vacation` and `sickLeave` rows. */
   startDate?: string;
-  /** Only set for `vacation` rows. */
+  /** Only set for `vacation` and `sickLeave` rows. */
   endDate?: string;
   /** Only set for `dayOff` and `shiftRequest` rows. */
   date?: string;
@@ -148,6 +151,19 @@ type VacationRow = {
   decidedBy: DecidedByMini;
 };
 
+type SickLeaveRow = {
+  id: string;
+  staffId: string;
+  startDate: Date;
+  endDate: Date;
+  status: "requested" | "approved" | "denied";
+  reason: string | null;
+  decidedAt: Date | null;
+  createdAt: Date;
+  staff: StaffMini;
+  decidedBy: DecidedByMini;
+};
+
 type DayOffRow = {
   id: string;
   staffId: string;
@@ -196,6 +212,32 @@ export async function serializeVacation(
   organizationId?: string,
 ): Promise<SerializedRequest> {
   const base = baseSerialized("vacation", row, {
+    startDate: ymdForDbDate(row.startDate),
+    endDate: ymdForDbDate(row.endDate),
+  });
+  if (row.status === "requested") {
+    const conflicts =
+      conflictSummary ??
+      (organizationId
+        ? await countConflicts({
+            organizationId,
+            staffId: row.staffId,
+            startDate: row.startDate,
+            endDate: row.endDate,
+          })
+        : { count: 0, dates: [] });
+    base.conflictCount = conflicts.count;
+    base.conflictDates = conflicts.dates;
+  }
+  return base;
+}
+
+export async function serializeSickLeave(
+  row: SickLeaveRow,
+  conflictSummary?: ConflictSummary,
+  organizationId?: string,
+): Promise<SerializedRequest> {
+  const base = baseSerialized("sickLeave", row, {
     startDate: ymdForDbDate(row.startDate),
     endDate: ymdForDbDate(row.endDate),
   });
@@ -317,7 +359,7 @@ function baseSerialized(
   type: RequestType,
   row: {
     id: string;
-    status: LeaveRequestStatus;
+    status: "requested" | "approved" | "denied";
     reason: string | null;
     decidedAt: Date | null;
     createdAt: Date;
@@ -398,13 +440,13 @@ export async function loadStaffForLocation(args: {
  * grid's empty-cell semantics stay consistent with the manual clear flow in
  * `app/api/roster/weeks/[id]/entries/route.ts` (PUT with `shiftTemplateId: null` deletes too).
  *
- * Use `kind: "vacation"` for ranges and `kind: "dayOff"` for single-date rows; the leave row's
- * status update happens inside the same transaction so the inbox can never show "approved" while
- * conflicting shifts still exist.
+ * Use `kind: "vacation"` / `sickLeave` for ranges and `kind: "dayOff"` for single-date rows;
+ * the leave row's status update happens inside the same transaction so the inbox can never show
+ * "approved" while conflicting shifts still exist.
  */
 export async function approveLeaveTx(args: {
   organizationId: string;
-  kind: "vacation" | "dayOff";
+  kind: "vacation" | "dayOff" | "sickLeave";
   leaveId: string;
   staffId: string;
   startDate: Date;
@@ -412,14 +454,7 @@ export async function approveLeaveTx(args: {
   decidedByUserId: string;
 }): Promise<void> {
   const decidedAt = new Date();
-  await prisma.$transaction([
-    prisma.rosterEntry.deleteMany({
-      where: {
-        staff: { organizationId: args.organizationId, id: args.staffId },
-        shiftTemplateId: { not: null },
-        date: { gte: args.startDate, lte: args.endDate },
-      },
-    }),
+  const leaveUpdate =
     args.kind === "vacation"
       ? prisma.staffVacation.update({
           where: { id: args.leaveId },
@@ -429,13 +464,32 @@ export async function approveLeaveTx(args: {
             decidedAt,
           },
         })
-      : prisma.staffDayOff.update({
-          where: { id: args.leaveId },
-          data: {
-            status: "approved",
-            decidedByUserId: args.decidedByUserId,
-            decidedAt,
-          },
-        }),
+      : args.kind === "sickLeave"
+        ? prisma.staffSickLeave.update({
+            where: { id: args.leaveId },
+            data: {
+              status: "approved",
+              decidedByUserId: args.decidedByUserId,
+              decidedAt,
+            },
+          })
+        : prisma.staffDayOff.update({
+            where: { id: args.leaveId },
+            data: {
+              status: "approved",
+              decidedByUserId: args.decidedByUserId,
+              decidedAt,
+            },
+          });
+
+  await prisma.$transaction([
+    prisma.rosterEntry.deleteMany({
+      where: {
+        staff: { organizationId: args.organizationId, id: args.staffId },
+        shiftTemplateId: { not: null },
+        date: { gte: args.startDate, lte: args.endDate },
+      },
+    }),
+    leaveUpdate,
   ]);
 }

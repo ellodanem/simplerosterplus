@@ -40,7 +40,7 @@ export type RuleEvalContext = {
   days: string[];
   timeZone: string;
   entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   holidays: Record<string, { stationClosed: boolean }>;
   workedAnchorLastWeek: Set<string>;
 };
@@ -76,7 +76,7 @@ function isStationClosed(holidays: Record<string, { stationClosed: boolean }>, y
   return holidays[ymd]?.stationClosed === true;
 }
 
-function isApprovedDayOff(blockMap: Record<string, "vacation" | "dayOff">, staffId: string, ymd: string): boolean {
+function isApprovedDayOff(blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">, staffId: string, ymd: string): boolean {
   return blockMap[cellKey(staffId, ymd)] === "dayOff";
 }
 

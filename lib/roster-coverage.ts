@@ -11,7 +11,7 @@ export type RosterCoverageStaffRow = {
 export function offCountForDay(args: {
   staff: RosterCoverageStaffRow[];
   entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   stationClosed: boolean;
   ymd: string;
 }): number {
@@ -41,7 +41,7 @@ export function summarizeOpenShiftsFromToday(args: {
   todayYmd: string;
   staff: RosterCoverageStaffRow[];
   entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   closedDays: Set<string>;
   timeZone: string;
 }): OpenShiftSummary {
@@ -80,7 +80,7 @@ export function summarizeOpenShiftsFullWeek(args: {
   days: string[];
   staff: RosterCoverageStaffRow[];
   entries: Record<string, string>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   closedDays: Set<string>;
   timeZone: string;
 }): OpenShiftSummary {

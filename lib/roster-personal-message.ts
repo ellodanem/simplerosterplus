@@ -24,7 +24,7 @@ export function buildPersonalScheduleLines(input: {
   days: string[];
   entries: Record<string, string>;
   templates: Map<string, ShiftTemplateLite>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   holidays: Record<string, { name: string; stationClosed: boolean }>;
 }): string[] {
   const lines: string[] = [];
@@ -37,6 +37,10 @@ export function buildPersonalScheduleLines(input: {
     const block = input.blockMap[`${input.staffId}__${ymd}`];
     if (block === "vacation") {
       lines.push(`${formatDayLabel(ymd)}: Vacation`);
+      continue;
+    }
+    if (block === "sickLeave") {
+      lines.push(`${formatDayLabel(ymd)}: Sick leave`);
       continue;
     }
     if (block === "dayOff") {
@@ -57,7 +61,7 @@ export function buildPersonalScheduleBody(input: {
   days: string[];
   entries: Record<string, string>;
   templates: Map<string, ShiftTemplateLite>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   holidays: Record<string, { name: string; stationClosed: boolean }>;
 }): string {
   const lines = buildPersonalScheduleLines(input);

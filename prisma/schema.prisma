@@ -232,6 +232,7 @@ model AppUser {
 
   decidedDayOffs        StaffDayOff[]        @relation("DayOffDecidedBy")
   decidedVacations      StaffVacation[]      @relation("VacationDecidedBy")
+  decidedSickLeaves     StaffSickLeave[]     @relation("SickLeaveDecidedBy")
   decidedShiftRequests  StaffShiftRequest[]  @relation("ShiftRequestDecidedBy")
   createdPunches        AttendanceLog[]      @relation("PunchCreatedBy")
   correctedPunches      AttendanceLog[]      @relation("PunchCorrectedBy")
@@ -402,17 +403,25 @@ enum SickLeaveStatus {
   denied
 }
 
+/// Approved-or-pending sick leave (doctor-backed health absence). Roster blocking and
+/// attendance excuse honor `approved` rows only. Not mixed with vacation/day-off inbox UX
+/// beyond sharing the Requests modal — managers often record it after the fact.
 model StaffSickLeave {
-  id        String          @id @default(cuid())
-  staffId   String
-  staff     Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  startDate DateTime        @db.Date
-  endDate   DateTime        @db.Date
-  status    SickLeaveStatus @default(requested)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  staffId         String
+  staff           Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  startDate       DateTime        @db.Date
+  endDate         DateTime        @db.Date
+  status          SickLeaveStatus @default(requested)
+  reason          String?
+  decidedByUserId String?
+  decidedBy       AppUser?        @relation("SickLeaveDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+  decidedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([staffId])
+  @@index([staffId, status])
 }
 
 model ShiftTemplate {

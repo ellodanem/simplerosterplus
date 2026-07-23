@@ -95,7 +95,7 @@ export type AttendanceWeekData = {
   staff: AttendanceStaff[];
   days: string[];
   holidays: Record<string, { name: string; stationClosed: boolean }>;
-  blockMap: Record<string, "vacation" | "dayOff">;
+  blockMap: Record<string, "vacation" | "sickLeave" | "dayOff">;
   /** All punches for the week, in time order. Used by both the grid and the log drawer. */
   punches: SerializedPunch[];
   overrides: SerializedOverride[];
@@ -337,6 +337,7 @@ export async function getAttendanceWeekData(args: {
         timeZone,
         expected,
         vacation: blockMap[key] === "vacation",
+        sickLeave: blockMap[key] === "sickLeave",
         dayOff: blockMap[key] === "dayOff",
         stationClosed: !!holidayMap[d]?.stationClosed,
         punchExempt: s.punchExempt,
