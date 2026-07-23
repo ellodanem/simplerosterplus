@@ -41,14 +41,22 @@ function ReadOnlyCell({
           : blocked === "sickLeave"
             ? "Sick leave"
             : "Day off";
+    const labelClass =
+      blocked === "holiday"
+        ? "text-zinc-500"
+        : blocked === "vacation"
+          ? "text-amber-700"
+          : blocked === "sickLeave"
+            ? "text-orange-700"
+            : "text-sky-700";
     return (
-      <div className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500">
+      <div className="roster-share-cell flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium">
         {holidayName ? (
           <span className="truncate text-[10px] font-medium leading-tight text-violet-700">
             {holidayName}
           </span>
         ) : null}
-        {label}
+        <span className={labelClass}>{label}</span>
       </div>
     );
   }

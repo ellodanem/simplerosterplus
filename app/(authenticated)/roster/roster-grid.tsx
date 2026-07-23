@@ -1897,6 +1897,14 @@ function CellButton({
           : blocked === "sickLeave"
             ? "Sick leave"
             : "Day off";
+    const labelClass =
+      blocked === "holiday"
+        ? "text-zinc-500"
+        : blocked === "vacation"
+          ? "text-amber-700"
+          : blocked === "sickLeave"
+            ? "text-orange-700"
+            : "text-sky-700";
     const ariaLabel =
       blocked === "holiday"
         ? "Closed (holiday)"
@@ -1907,7 +1915,7 @@ function CellButton({
             : "Approved day off";
     return (
       <div
-        className="relative flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium text-zinc-500"
+        className="relative flex h-14 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-[repeating-linear-gradient(45deg,_#f4f4f5_0,_#f4f4f5_6px,_#fafafa_6px,_#fafafa_12px)] px-1 text-center text-xs font-medium"
         aria-label={ariaLabel}
         title={lastWeekTitle}
       >
@@ -1917,7 +1925,7 @@ function CellButton({
             {holidayName}
           </span>
         ) : null}
-        {label}
+        <span className={labelClass}>{label}</span>
       </div>
     );
   }
