@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employee Scheduling Software for Small Teams | Simple Roster Plus</title>
-  <meta name="description" content="Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.">
-  <link rel="canonical" href="https://www.simplerosterplus.com/employee-scheduling-software">
+  <title>Employee Leave and Availability Software | Simple Roster Plus</title>
+  <meta name="description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
+  <link rel="canonical" href="https://www.simplerosterplus.com/employee-leave-and-availability">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Simple Roster Plus">
-  <meta property="og:title" content="Employee Scheduling Software for Small Teams | Simple Roster Plus">
-  <meta property="og:description" content="Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.">
-  <meta property="og:url" content="https://www.simplerosterplus.com/employee-scheduling-software">
+  <meta property="og:title" content="Employee Leave and Availability Software | Simple Roster Plus">
+  <meta property="og:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
+  <meta property="og:url" content="https://www.simplerosterplus.com/employee-leave-and-availability">
   <meta property="og:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
-  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with color-coded employee shifts.">
+  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with color-coded shifts and leave visibility.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Employee Scheduling Software for Small Teams | Simple Roster Plus">
-  <meta name="twitter:description" content="Build weekly rosters, assign reusable shifts, account for approved time off and publish one clear schedule.">
+  <meta name="twitter:title" content="Employee Leave and Availability Software | Simple Roster Plus">
+  <meta name="twitter:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
   <meta name="twitter:image" content="https://www.simplerosterplus.com/images/app-roster-week.png">
-  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with color-coded employee shifts.">
+  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with color-coded shifts and leave visibility.">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../brand/srp-icon-180.png">
@@ -31,23 +31,17 @@
     "@graph": [
       {
         "@type": "WebPage",
-        "@id": "https://www.simplerosterplus.com/employee-scheduling-software#webpage",
-        "name": "Employee Scheduling Software for Small Teams | Simple Roster Plus",
-        "url": "https://www.simplerosterplus.com/employee-scheduling-software",
-        "description": "Create weekly employee schedules, assign reusable shifts, manage approved time off and publish a clear staff roster with Simple Roster Plus.",
-        "isPartOf": {
-          "@id": "https://www.simplerosterplus.com/#website"
-        },
-        "about": {
-          "@id": "https://www.simplerosterplus.com/#software"
-        },
-        "breadcrumb": {
-          "@id": "https://www.simplerosterplus.com/employee-scheduling-software#breadcrumb"
-        }
+        "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#webpage",
+        "name": "Employee Leave and Availability Software | Simple Roster Plus",
+        "url": "https://www.simplerosterplus.com/employee-leave-and-availability",
+        "description": "Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.",
+        "isPartOf": { "@id": "https://www.simplerosterplus.com/#website" },
+        "about": { "@id": "https://www.simplerosterplus.com/#software" },
+        "breadcrumb": { "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#breadcrumb" }
       },
       {
         "@type": "BreadcrumbList",
-        "@id": "https://www.simplerosterplus.com/employee-scheduling-software#breadcrumb",
+        "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#breadcrumb",
         "itemListElement": [
           {
             "@type": "ListItem",
@@ -58,15 +52,15 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Employee Scheduling Software",
-            "item": "https://www.simplerosterplus.com/employee-scheduling-software"
+            "name": "Employee Leave and Availability",
+            "item": "https://www.simplerosterplus.com/employee-leave-and-availability"
           }
         ]
       }
     ]
   }
   </script>
-  <style>
+<style>
     :root {
       --bg: #f6f8f7;
       --surface: #ffffff;
@@ -109,6 +103,7 @@
       color: var(--text);
       background: var(--bg);
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
     img { display: block; max-width: 100%; height: auto; }
     a { color: var(--brand); text-underline-offset: 3px; }
@@ -247,7 +242,7 @@
     .breadcrumb a { color: var(--text-muted); text-decoration: none; }
     .breadcrumb a:hover { color: var(--brand); }
     .hero-copy h1 {
-      max-width: 13ch;
+      max-width: 18ch;
       margin: 0 0 1.1rem;
       font-size: clamp(2.35rem, 5.3vw, 4rem);
       font-weight: 800;
@@ -570,7 +565,29 @@
       html { scroll-behavior: auto; }
       .btn { transition: none; }
     }
-  </style>
+  
+    .status-pill--sick { color: #9f1239; background: #ffe4e6; }
+    .status-pill--pref { color: #065f46; background: #d1fae5; }
+    .pref-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .scope-grid { display: grid; gap: 1rem; }
+    .scope-card--out { border-color: #fecdd3; background: #fff8f8; }
+    .scope-card--out .card-icon { color: #be123c; background: #ffe4e6; }
+    .panel-note { margin: 0.75rem 1rem 1rem; color: var(--text-muted); font-size: 0.78rem; }
+    @media (min-width: 620px) {
+      .scope-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -588,9 +605,10 @@
         >
       </a>
       <nav class="header-nav" aria-label="Page">
-        <a href="#workflow">How it works</a>
-        <a href="#share">Share</a>
-        <a href="#pricing">Pricing</a>
+        <a href="#record">Leave types</a>
+        <a href="#approve">Approval</a>
+        <a href="#preferences">Preferences</a>
+        <a href="#faq">FAQ</a>
       </nav>
       <div class="header-actions">
         <a class="btn btn-ghost" href="https://app.simplerosterplus.com/login" rel="noopener noreferrer">Log in</a>
@@ -603,10 +621,10 @@
     <section id="hero" aria-labelledby="hero-heading">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="breadcrumb"><a href="/">Home</a> / Employee scheduling software</p>
-          <span class="eyebrow">Weekly scheduling for small teams</span>
-          <h1 id="hero-heading">Employee Scheduling Software That Keeps <span class="accent">Every Shift Clear</span></h1>
-          <p class="hero-lead">Create a weekly staff roster, reuse familiar shifts, account for approved time off, and publish one clear schedule for your team.</p>
+          <p class="breadcrumb"><a href="/">Home</a> / Employee leave and availability</p>
+          <span class="eyebrow">Employee leave management software</span>
+          <h1 id="hero-heading">Manage <span class="accent">Leave and Availability</span> Before You Build the Roster</h1>
+          <p class="hero-lead">Record vacation, days off, and sick leave, review conflicts before approval, and keep approved time off visible while assigning the weekly roster.</p>
           <div class="cta-row">
             <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
             <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
@@ -614,20 +632,20 @@
           <ul class="hero-meta">
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              Manager-managed leave
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+              Soft shift preferences
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
               Free for up to 10 staff
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-              Reusable shift presets
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-              Publish and share
             </li>
           </ul>
         </div>
         <div class="hero-visual">
-          <span class="float-chip float-chip--top"><span class="dot"></span>Weekly roster ready</span>
+          <span class="float-chip float-chip--top"><span class="dot"></span>Leave stays visible</span>
           <div class="hero-frame">
             <picture>
               <source type="image/webp" srcset="../images/app-roster-week.webp">
@@ -635,283 +653,277 @@
                 src="../images/app-roster-week.png"
                 width="1400"
                 height="900"
-                alt="Simple Roster Plus weekly roster showing employee rows, color-coded shifts, coverage counts and shift presets."
+                alt="Weekly roster grid in Simple Roster Plus where managers account for time off while assigning shifts."
                 decoding="async"
                 fetchpriority="high"
               >
             </picture>
           </div>
-          <span class="float-chip float-chip--bottom"><span class="dot dot-amber"></span>Time off stays visible</span>
+          <span class="float-chip float-chip--bottom"><span class="dot dot-amber"></span>Preferences stay soft</span>
         </div>
       </div>
     </section>
 
-    <div class="proof-strip" aria-label="Scheduling workflow">
+    <div class="proof-strip" aria-label="Leave planning summary">
       <ul class="wrap proof-list">
-        <li><strong>Plan the week</strong>One roster for each location</li>
-        <li><strong>Reuse familiar shifts</strong>Times, breaks and colors saved</li>
-        <li><strong>Publish one clear version</strong>Read-only link for your team</li>
+        <li><strong>Record time off</strong>Vacation, days off, and sick leave</li>
+        <li><strong>Approve carefully</strong>Review conflicts before confirming</li>
+        <li><strong>Assign with context</strong>Blocked leave cells on the roster</li>
       </ul>
     </div>
 
     <section id="problem" aria-labelledby="problem-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">The weekly scheduling problem</span>
-          <h2 id="problem-heading" class="section-title">The Schedule Should Not Start from Zero Every Week</h2>
-          <p class="section-lead">Spreadsheets, paper, and group-chat screenshots make a familiar job feel harder than it needs to be. Simple Roster Plus keeps the weekly roster in one practical workflow.</p>
+          <span class="eyebrow">See time off before you assign the week</span>
+          <h2 id="problem-heading" class="section-title">Disconnected Leave Records Create Avoidable Roster Clashes</h2>
+          <p class="section-lead">When vacation and days off live in spreadsheets or group chats, managers often discover them after the schedule is already built. Simple Roster Plus keeps leave next to the weekly roster.</p>
         </div>
         <div class="problem-grid">
           <article class="card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M8 3v4M16 3v4"/></svg>
-            </div>
-            <h3>Stop rebuilding the basics</h3>
-            <p>Save the shift patterns your team already uses instead of retyping the same hours.</p>
-          </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4"/></svg>
             </div>
-            <h3>Keep time off in view</h3>
-            <p>See approved vacation and days off while building the roster—not after it is shared.</p>
+            <h3>Stop hunting through chat history</h3>
+            <p>Keep vacation, days off, and sick leave in one manager-managed place instead of scattered messages.</p>
           </article>
           <article class="card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M8 12h8M12 8v8M4 6h16v12H4z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M8 3v4M16 3v4"/></svg>
             </div>
-            <h3>Share one current roster</h3>
-            <p>Publish a read-only link instead of sending another schedule screenshot that can go stale.</p>
+            <h3>See leave while you schedule</h3>
+            <p>Approved time off stays visible on the roster so you are not assigning shifts into blocked days.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+            </div>
+            <h3>Stay roster-first</h3>
+            <p>Leave supports weekly planning—it does not turn Simple Roster Plus into a full HR leave suite.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="workflow" class="feature-section" aria-labelledby="build-heading">
+    <section id="record" class="feature-section" aria-labelledby="record-heading">
       <div class="wrap feature-grid">
         <div class="feature-copy">
-          <span class="eyebrow">Build the weekly roster</span>
-          <h2 id="build-heading">Build the Weekly Schedule in One Clear View</h2>
-          <p>Choose the week, scan the staff list, and assign a familiar shift to each editable day. The roster stays focused on the work a manager needs to finish.</p>
+          <span class="eyebrow">Record vacation, days off, and sick leave</span>
+          <h2 id="record-heading">Manager-Managed Leave Records for Shift Teams</h2>
+          <p>Managers record time off for staff in the Requests workflow—vacation date ranges, single days off, and sick-leave date ranges—with optional reasons and approve or deny decisions.</p>
           <ul class="check-list">
-            <li><span class="check" aria-hidden="true">✓</span><span>Assign shifts to employees day by day.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Apply one shift across an employee's editable week.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>See daily shift counts and scheduled-hour indicators.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Keep roster weeks tied to the right location.</span></li>
-          </ul>
-          <a class="inline-link" href="/">See our employee roster software →</a>
-        </div>
-        <div class="hero-frame">
-          <picture>
-            <source type="image/webp" srcset="../images/app-roster-week.webp">
-            <img
-              src="../images/app-roster-week.png"
-              width="1400"
-              height="900"
-              alt="Weekly employee schedule in Simple Roster Plus with staff assignments and color-coded shifts."
-              loading="lazy"
-            >
-          </picture>
-        </div>
-      </div>
-    </section>
-
-    <section id="reuse" aria-labelledby="reuse-heading">
-      <div class="wrap feature-grid reverse">
-        <div class="feature-copy">
-          <span class="eyebrow">Reuse what works</span>
-          <h2 id="reuse-heading">Reuse Shift Presets and Copy Last Week</h2>
-          <p>Most shift teams use a familiar set of hours. Save them once, then spend your time adjusting the week—not rebuilding it.</p>
-          <ul class="check-list">
-            <li><span class="check" aria-hidden="true">✓</span><span>Name each shift and set start and end times.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Record unpaid break time and choose a clear color.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Copy eligible shifts from the previous week.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Adjust the copied roster before publishing.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Vacation ranges with start and end dates.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Single days off for one-off time away.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Sick leave ranges for short absences.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Optional notes and who decided, when.</span></li>
           </ul>
         </div>
-        <div class="ui-panel" aria-label="Example reusable shift presets">
+        <div class="ui-panel" aria-label="Illustrative leave record examples">
           <div class="ui-panel-head">
-            <strong>Shift presets</strong>
-            <span>Saved for your team</span>
+            <strong>Leave records</strong>
+            <span>Manager-managed</span>
           </div>
-          <div class="shift-stack">
-            <div class="shift-row">
-              <span class="shift-color" aria-hidden="true"></span>
-              <span><strong>Morning</strong><small>30 min unpaid break</small></span>
-              <span class="shift-time">06:00–14:00</span>
-            </div>
-            <div class="shift-row">
-              <span class="shift-color shift-color--amber" aria-hidden="true"></span>
-              <span><strong>Day</strong><small>30 min unpaid break</small></span>
-              <span class="shift-time">09:00–17:00</span>
-            </div>
-            <div class="shift-row">
-              <span class="shift-color shift-color--violet" aria-hidden="true"></span>
-              <span><strong>Evening</strong><small>No unpaid break</small></span>
-              <span class="shift-time">16:00–22:00</span>
-            </div>
+          <div class="status-list" style="padding:1rem;">
+            <div class="status-row"><span>Alex Morgan · 12–16 May</span><span class="status-pill status-pill--leave">Vacation</span></div>
+            <div class="status-row"><span>Jamie Lewis · Thu 15 May</span><span class="status-pill status-pill--leave">Day off</span></div>
+            <div class="status-row"><span>Sam Rivera · 14–15 May</span><span class="status-pill status-pill--sick">Sick leave</span></div>
           </div>
+          <p class="panel-note">Illustrative examples of manager-managed leave types—not a live product screenshot.</p>
         </div>
       </div>
     </section>
 
-    <section id="time-off" class="soft-section" aria-labelledby="timeoff-heading">
-      <div class="wrap timeoff-panel">
-        <div>
-          <span class="eyebrow">Schedule around approved time off</span>
-          <h2 id="timeoff-heading">Keep Approved Time Off Visible While You Schedule</h2>
-          <p>Approved vacation, days off, and sick leave block the affected roster cells. Closed holidays are kept off the schedule too, helping managers avoid preventable clashes before publishing.</p>
-          <a class="inline-link" href="/employee-leave-and-availability">See leave and availability →</a>
-        </div>
-        <div class="status-list" aria-label="Time-off examples">
-          <div class="status-row"><span>Mon · Alex Morgan</span><span class="status-pill status-pill--leave">Vacation</span></div>
-          <div class="status-row"><span>Thu · Jamie Lewis</span><span class="status-pill status-pill--leave">Day off</span></div>
-          <div class="status-row"><span>Fri · Team roster</span><span class="status-pill status-pill--closed">Closed holiday</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="review" aria-labelledby="review-heading">
+    <section id="approve" class="soft-section" aria-labelledby="approve-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">Review before publishing</span>
-          <h2 id="review-heading" class="section-title">Check the Week, Then Make It Official</h2>
-          <p class="section-lead">Simple status cues help you spot unassigned days before publishing and decide whether the roster is ready to share.</p>
+          <span class="eyebrow">Approve leave without surprises</span>
+          <h2 id="approve-heading" class="section-title">Review Roster Conflicts Before You Confirm</h2>
+          <p class="section-lead">When leave overlaps existing shifts, managers see a conflict summary and can confirm clearing those assignments as part of approval.</p>
         </div>
         <div class="review-grid">
           <article class="card review-card">
             <span class="step-no">Step 1</span>
-            <h3>Build in draft</h3>
-            <p>Keep the roster private while you assign shifts, copy last week, and make adjustments.</p>
+            <h3>Record the request</h3>
+            <p>Add vacation, a day off, or sick leave for a staff member, with an optional reason.</p>
           </article>
           <article class="card review-card review-card--warn">
             <span class="step-no">Step 2</span>
-            <h3>Review unassigned days</h3>
-            <p>See a warning when staff-days remain unassigned and choose whether to fill them first.</p>
+            <h3>Check overlapping shifts</h3>
+            <p>If the dates already have roster assignments, review the conflict before approving.</p>
           </article>
           <article class="card review-card review-card--live">
             <span class="step-no">Step 3</span>
-            <h3>Publish when ready</h3>
-            <p>Publish one read-only version for the team, with the option to return it to draft later.</p>
+            <h3>Approve and clear</h3>
+            <p>Confirm approval to clear overlapping shifts, or deny the request when the roster should stay as planned.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="share" class="feature-section" aria-labelledby="share-heading">
-      <div class="wrap">
-        <div class="section-head">
-          <span class="eyebrow">Publish and share</span>
-          <h2 id="share-heading" class="section-title">Publish and Share One Read-Only Roster</h2>
-          <p class="section-lead">Give your team one published roster they can open without editing it. Managers choose how to pass the link along.</p>
+    <section id="visibility" class="feature-section" aria-labelledby="visibility-heading">
+      <div class="wrap feature-grid reverse">
+        <div class="feature-copy">
+          <span class="eyebrow">Keep approved leave visible on the roster</span>
+          <h2 id="visibility-heading">Blocked Leave Cells While You Assign the Week</h2>
+          <p>Approved vacation, days off, and sick leave appear on the roster and prevent conflicting assignments. Closed holidays block separately so station closures stay clear of leave records.</p>
+          <ul class="check-list">
+            <li><span class="check" aria-hidden="true">✓</span><span>Approved leave labels on blocked roster cells.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Assignment writes reject conflicting leave dates.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Closed holidays handled as their own roster blocks.</span></li>
+          </ul>
+          <a class="inline-link" href="/employee-scheduling-software">See how weekly scheduling works →</a>
         </div>
-        <div class="share-grid">
-          <article class="card share-card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7.5l-1 1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7.5l1-1"/></svg>
-            </div>
-            <h3>Read-only share link</h3>
-            <p>Publish an unguessable link to the full location roster.</p>
-          </article>
-          <article class="card share-card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4V9h16v9h-2M7 14h10v7H7z"/></svg>
-            </div>
-            <h3>Print the roster</h3>
-            <p>Open a print-ready view when a physical copy works best.</p>
-          </article>
-          <article class="card share-card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
-            </div>
-            <h3>Download a PNG</h3>
-            <p>Save an image of the published roster for manual sharing.</p>
-          </article>
+        <div class="timeoff-panel">
+          <div>
+            <h2 style="font-size:1.35rem;margin:0 0 0.65rem;">On the roster</h2>
+            <p>Leave stays in view while managers assign reusable shifts for the rest of the week.</p>
+          </div>
+          <div class="status-list" aria-label="Illustrative blocked roster cells">
+            <div class="status-row"><span>Mon · Alex Morgan</span><span class="status-pill status-pill--leave">Vacation</span></div>
+            <div class="status-row"><span>Wed · Sam Rivera</span><span class="status-pill status-pill--sick">Sick leave</span></div>
+            <div class="status-row"><span>Fri · Team roster</span><span class="status-pill status-pill--closed">Closed holiday</span></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="attendance" class="attendance-band" aria-labelledby="attendance-heading">
+    <section id="preferences" aria-labelledby="pref-heading">
+      <div class="wrap feature-grid">
+        <div class="feature-copy">
+          <span class="eyebrow">Capture soft shift preferences</span>
+          <h2 id="pref-heading">Staff Shift Preferences Are Planning Cues—Not Hard Rules</h2>
+          <p>Capture staff shift preferences as soft planning cues without treating them as automatic scheduling rules. Preference chips can appear while you roster; they do not assign shifts or act as recurring availability windows.</p>
+          <ul class="check-list">
+            <li><span class="check" aria-hidden="true">✓</span><span>Preferred-shift requests for a specific day.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Visible cues while assigning open cells.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Managers still choose the final assignment.</span></li>
+          </ul>
+          <p style="margin:1.1rem 0 0;color:var(--text-muted);font-size:0.94rem;">If you searched for employee availability software, treat this as preference-aware rostering—not a full availability engine.</p>
+        </div>
+        <div class="ui-panel" aria-label="Illustrative soft preference cue">
+          <div class="ui-panel-head">
+            <strong>Open roster cell</strong>
+            <span>Soft cue</span>
+          </div>
+          <div style="padding:1.25rem;display:grid;gap:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+              <span><strong>Thu · Emma R.</strong><br><small style="color:var(--text-muted);">Pump Attendant</small></span>
+              <span class="pref-chip">Wants Evening</span>
+            </div>
+            <p class="panel-note" style="margin:0;">Illustrative preference chip—preferences do not automatically assign or block shifts.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="connect" class="attendance-band" aria-labelledby="connect-heading">
       <div class="wrap attendance-inner">
         <div class="attendance-copy">
-          <span class="eyebrow">Scheduling connected to attendance</span>
-          <h2 id="attendance-heading">Compare the Plan with What Actually Happened</h2>
-          <p>The weekly roster supplies the expected shift. Attendance can then show whether that employee is still scheduled, arrived on time, arrived late, or was absent. See how our <a href="/employee-attendance-software">employee attendance software</a> connects the plan to actual clock-ins.</p>
+          <span class="eyebrow" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#ecfdf5;">Plan, then track</span>
+          <h2 id="connect-heading">Leave Supports the Roster—Attendance Comes Next</h2>
+          <p>After leave is accounted for and the week is published, managers can review what was scheduled against what actually happened. Explore <a href="/employee-scheduling-software">employee scheduling software</a> for building and publishing the week, and <a href="/employee-attendance-software">employee attendance software</a> for plan-versus-actual review.</p>
         </div>
-        <div class="attendance-statuses" aria-label="Attendance statuses">
-          <div class="attendance-status">Scheduled<span>Shift is still ahead</span></div>
-          <div class="attendance-status">Present<span>Clock-in matched the plan</span></div>
-          <div class="attendance-status">Late<span>Clock-in followed the grace window</span></div>
-          <div class="attendance-status">Absent<span>No clock-in after the shift was due</span></div>
+        <div class="attendance-statuses" aria-label="Core product flow">
+          <div class="attendance-status">Leave first<span>Record and approve time off</span></div>
+          <div class="attendance-status">Roster next<span>Assign around blocked days</span></div>
+          <div class="attendance-status">Publish<span>Share one clear schedule</span></div>
+          <div class="attendance-status">Attendance<span>Compare plan vs actual</span></div>
         </div>
+      </div>
+    </section>
+
+    <section id="boundaries" aria-labelledby="boundaries-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Leave planning without a full HRIS</span>
+          <h2 id="boundaries-heading" class="section-title">What Simple Roster Plus Does Not Replace</h2>
+          <p class="section-lead">Simple Roster Plus helps managers plan around leave. It does not calculate leave balances, accruals, entitlements, carryover, payroll, or statutory compliance.</p>
+        </div>
+        <div class="scope-grid">
+          <article class="card scope-card--out">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+            <h3>Not leave-balance software</h3>
+            <p>No entitlements, accrual tracking, or carryover engines.</p>
+          </article>
+          <article class="card scope-card--out">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+            <h3>Not employee self-service</h3>
+            <p>Leave is manager-managed today—no employee leave portal or mobile leave app.</p>
+          </article>
+          <article class="card scope-card--out">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+            <h3>Not leave messaging automation</h3>
+            <p>Leave approvals do not send SMS or WhatsApp notifications.</p>
+          </article>
+          <article class="card scope-card--out">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+            <h3>Not a recurring availability engine</h3>
+            <p>Shift preferences are soft cues, not hard weekly availability calendars.</p>
+          </article>
+        </div>
+        <p class="fit-note">Comparing plans for a small team? See <a href="/small-business-employee-scheduling">employee scheduling software for small business</a>.</p>
       </div>
     </section>
 
     <section id="pricing" aria-labelledby="pricing-heading">
-      <div class="wrap">
-        <div class="section-head">
-          <span class="eyebrow">Pricing and product fit</span>
-          <h2 id="pricing-heading" class="section-title">Simple Plans for Small, Shift-Based Teams</h2>
-          <p class="section-lead">Start with the weekly roster you need now—without buying a full payroll or enterprise HR suite.</p>
+      <div class="wrap" style="text-align:center;">
+        <span class="eyebrow">Ready to start</span>
+        <h2 id="pricing-heading" class="section-title">Start Free and Keep Leave Next to the Roster</h2>
+        <p class="section-lead" style="margin-inline:auto;max-width:40rem;">Free for up to 10 staff. Explore a demo if you want to see a sample week before adding your team.</p>
+        <div class="cta-row" style="justify-content:center;margin-top:1.5rem;">
+          <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
+          <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
         </div>
-        <div class="pricing-grid">
-          <article class="pricing-card">
-            <p class="plan-label">Free</p>
-            <p class="plan-price">$0 <span>/ month</span></p>
-            <p>Up to 10 staff and 2 locations. No credit card required.</p>
-            <a class="btn btn-secondary" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
-          </article>
-          <article class="pricing-card featured">
-            <p class="plan-label">Plus</p>
-            <p class="plan-price">$19.99 <span>/ month</span></p>
-            <p>Up to 50 staff with unlimited locations and live attendance.</p>
-            <a class="btn btn-primary" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
-          </article>
-          <article class="pricing-card">
-            <p class="plan-label">Pro</p>
-            <p class="plan-price">$49.99 <span>/ month</span></p>
-            <p>Up to 100 staff, with more devices and admin access.</p>
-            <a class="btn btn-secondary" href="/#contact">Contact us</a>
-          </article>
-        </div>
-        <p class="fit-note">Roster and attendance only—no payroll automation. See full limits and annual options in <a href="/#pricing">Simple Roster Plus pricing</a>. Comparing Free, Plus, and Pro for a small team? See <a href="/small-business-employee-scheduling">employee scheduling software for small business</a>.</p>
+        <p class="fit-note">See full plan limits on <a href="/#pricing">Simple Roster Plus pricing</a>.</p>
       </div>
     </section>
 
     <section id="faq" class="soft-section" aria-labelledby="faq-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">Employee scheduling questions</span>
-          <h2 id="faq-heading" class="section-title">What Managers Ask Before They Start</h2>
+          <span class="eyebrow">Employee leave and availability questions</span>
+          <h2 id="faq-heading" class="section-title">Employee Leave and Availability Questions</h2>
         </div>
         <div class="faq-list">
           <details open>
-            <summary>Can I copy last week's employee schedule?</summary>
-            <p class="faq-answer">Yes. Copy the previous week's eligible shifts into the new week, then adjust what changed. Approved leave, closed holidays, and locked days are respected.</p>
+            <summary>Can managers record vacation and days off?</summary>
+            <p class="faq-answer">Yes. Managers can record vacation date ranges and single days off, then approve or deny them.</p>
           </details>
           <details>
-            <summary>Can I create reusable shifts?</summary>
-            <p class="faq-answer">Yes. Save shift names, start and end times, unpaid breaks, and colors so familiar hours are quick to assign again.</p>
+            <summary>Is sick leave supported?</summary>
+            <p class="faq-answer">Yes. Managers can record sick-leave date ranges. Approved sick leave is visible on the roster and blocks conflicting assignments, alongside vacation and days off.</p>
           </details>
           <details>
-            <summary>Can I see leave while building the roster?</summary>
-            <p class="faq-answer">Yes. Approved vacation, days off, and sick leave remain visible and block those roster cells. Closed holidays can block assignments too. See <a href="/employee-leave-and-availability">employee leave and availability</a> for leave types, approval, and soft shift preferences.</p>
+            <summary>Can employees submit their own leave requests?</summary>
+            <p class="faq-answer">No. Leave is currently manager-managed; Simple Roster Plus does not yet provide an employee self-service leave portal.</p>
           </details>
           <details>
-            <summary>Can employees see their schedules?</summary>
-            <p class="faq-answer">Staff can open the published read-only full-roster link. Simple Roster Plus does not currently provide a personalized authenticated employee schedule portal.</p>
+            <summary>Does approved leave appear on the roster?</summary>
+            <p class="faq-answer">Yes. Approved vacation, days off, and sick leave appear as blocked cells while managers assign the week.</p>
           </details>
           <details>
-            <summary>Does it support multiple locations?</summary>
-            <p class="faq-answer">Roster weeks and staff can be tied to a location. The Free plan supports up to two locations; Plus and Pro support more. The product does not present every location in one combined scheduling view.</p>
+            <summary>What happens when leave overlaps an existing shift?</summary>
+            <p class="faq-answer">Managers see a conflict summary before approval. Confirming approval can clear the overlapping roster assignments.</p>
           </details>
           <details>
-            <summary>Does Simple Roster Plus track attendance too?</summary>
-            <p class="faq-answer">Yes. Scheduled shifts provide expected times for attendance, helping managers see scheduled, present, late, and absent status. Attendance supports the roster—it is not payroll automation.</p>
+            <summary>Are shift preferences hard availability rules?</summary>
+            <p class="faq-answer">No. Shift preferences are soft planning cues. They do not automatically assign shifts or create recurring availability restrictions.</p>
           </details>
           <details>
-            <summary>Is Auto Scheduler available?</summary>
-            <p class="faq-answer"><strong>Auto Scheduler is coming soon.</strong> Today, managers can copy the previous week and adjust the roster manually.</p>
+            <summary>Does Simple Roster Plus track leave balances or accruals?</summary>
+            <p class="faq-answer">No. It does not calculate leave balances, accruals, entitlements, or carryover.</p>
+          </details>
+          <details>
+            <summary>Does it calculate statutory leave?</summary>
+            <p class="faq-answer">No. Simple Roster Plus does not provide statutory leave or compliance calculations.</p>
+          </details>
+          <details>
+            <summary>Does it send leave approval notifications?</summary>
+            <p class="faq-answer">No. Leave approvals do not send email, SMS, or WhatsApp notifications today.</p>
+          </details>
+          <details>
+            <summary>How does leave connect to attendance?</summary>
+            <p class="faq-answer">Approved leave helps keep the published plan accurate. Attendance later compares scheduled days with actual clock-ins, and leave can excuse planned absences where the product supports it.</p>
           </details>
         </div>
       </div>
@@ -919,8 +931,8 @@
 
     <section id="cta-close" aria-labelledby="cta-heading">
       <div class="wrap">
-        <h2 id="cta-heading">Build This Week's Roster Without Starting from Scratch</h2>
-        <p>Save familiar shifts, account for approved time off, and publish one clear schedule for your team.</p>
+        <h2 id="cta-heading">Plan Around Leave Before You Assign the Week</h2>
+        <p>Record time off, review conflicts, keep approved leave on the roster, and capture soft shift preferences—then build the schedule with clearer context.</p>
         <div class="cta-row">
           <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
           <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
@@ -941,10 +953,12 @@
           alt="Simple Roster Plus"
         >
       </a>
-      <p class="footer-mission">Simple Roster Plus helps managers build weekly staff rosters, publish clear schedules, and connect the plan to attendance.</p>
+      <p class="footer-mission">Simple Roster Plus helps managers record leave, plan weekly staff rosters, and review attendance—without enterprise HR leave software.</p>
       <nav class="footer-links" aria-label="Footer">
         <a href="/">Employee roster software</a>
-        <a href="/employee-leave-and-availability">Leave and availability</a>
+        <a href="/employee-scheduling-software">Employee scheduling</a>
+        <a href="/employee-leave-and-availability" aria-current="page">Leave and availability</a>
+        <a href="/employee-attendance-software">Employee attendance</a>
         <a href="/small-business-employee-scheduling">Small business scheduling</a>
         <a href="/#pricing">Pricing</a>
         <a href="/privacy">Privacy policy</a>
