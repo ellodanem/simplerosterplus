@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employee Leave and Availability Software | Simple Roster Plus</title>
-  <meta name="description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
-  <link rel="canonical" href="https://www.simplerosterplus.com/employee-leave-and-availability">
+  <title>Employee Time Clock Software for Scheduled Teams | Simple Roster Plus</title>
+  <meta name="description" content="Record employee clock-in and clock-out events manually or from supported ZKTeco devices, match punches to staff, and compare attendance with your weekly roster.">
+  <link rel="canonical" href="https://www.simplerosterplus.com/employee-time-clock-app">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Simple Roster Plus">
-  <meta property="og:title" content="Employee Leave and Availability Software | Simple Roster Plus">
-  <meta property="og:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
-  <meta property="og:url" content="https://www.simplerosterplus.com/employee-leave-and-availability">
-  <meta property="og:image" content="https://www.simplerosterplus.com/images/app-leave-roster-hero.png">
-  <meta property="og:image:alt" content="Simple Roster Plus weekly roster with vacation leave visible on blocked cells.">
+  <meta property="og:title" content="Employee Time Clock Software for Scheduled Teams | Simple Roster Plus">
+  <meta property="og:description" content="Record employee clock-in and clock-out events manually or from supported ZKTeco devices, match punches to staff, and compare attendance with your weekly roster.">
+  <meta property="og:url" content="https://www.simplerosterplus.com/employee-time-clock-app">
+  <meta property="og:image" content="https://www.simplerosterplus.com/images/attendance-week-current.png">
+  <meta property="og:image:alt" content="Simple Roster Plus attendance week view comparing scheduled shifts with present, late, and absent outcomes.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Employee Leave and Availability Software | Simple Roster Plus">
-  <meta name="twitter:description" content="Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.">
-  <meta name="twitter:image" content="https://www.simplerosterplus.com/images/app-leave-roster-hero.png">
-  <meta name="twitter:image:alt" content="Simple Roster Plus weekly roster with vacation leave visible on blocked cells.">
+  <meta name="twitter:title" content="Employee Time Clock Software for Scheduled Teams | Simple Roster Plus">
+  <meta name="twitter:description" content="Record employee clock-in and clock-out events manually or from supported ZKTeco devices, match punches to staff, and compare attendance with your weekly roster.">
+  <meta name="twitter:image" content="https://www.simplerosterplus.com/images/attendance-week-current.png">
+  <meta name="twitter:image:alt" content="Simple Roster Plus attendance week view comparing scheduled shifts with present, late, and absent outcomes.">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../brand/srp-icon-180.png">
@@ -31,17 +31,17 @@
     "@graph": [
       {
         "@type": "WebPage",
-        "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#webpage",
-        "name": "Employee Leave and Availability Software | Simple Roster Plus",
-        "url": "https://www.simplerosterplus.com/employee-leave-and-availability",
-        "description": "Record vacation, days off, and sick leave, see approved time off on the weekly roster, and capture soft shift preferences without full HR leave software.",
+        "@id": "https://www.simplerosterplus.com/employee-time-clock-app#webpage",
+        "name": "Employee Time Clock Software for Scheduled Teams | Simple Roster Plus",
+        "url": "https://www.simplerosterplus.com/employee-time-clock-app",
+        "description": "Record employee clock-in and clock-out events manually or from supported ZKTeco devices, match punches to staff, and compare attendance with your weekly roster.",
         "isPartOf": { "@id": "https://www.simplerosterplus.com/#website" },
         "about": { "@id": "https://www.simplerosterplus.com/#software" },
-        "breadcrumb": { "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#breadcrumb" }
+        "breadcrumb": { "@id": "https://www.simplerosterplus.com/employee-time-clock-app#breadcrumb" }
       },
       {
         "@type": "BreadcrumbList",
-        "@id": "https://www.simplerosterplus.com/employee-leave-and-availability#breadcrumb",
+        "@id": "https://www.simplerosterplus.com/employee-time-clock-app#breadcrumb",
         "itemListElement": [
           {
             "@type": "ListItem",
@@ -52,8 +52,8 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Employee Leave and Availability",
-            "item": "https://www.simplerosterplus.com/employee-leave-and-availability"
+            "name": "Employee Time Clock",
+            "item": "https://www.simplerosterplus.com/employee-time-clock-app"
           }
         ]
       }
@@ -596,6 +596,147 @@
     @media (min-width: 620px) {
       .scope-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    .current-shot {
+      margin: 0;
+      padding: 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-md);
+    }
+    .current-shot img { width: 100%; border-radius: calc(var(--radius-lg) - 8px); }
+    .current-shot figcaption {
+      padding: 0.65rem 0.35rem 0.15rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-align: center;
+    }
+    .capture-section { background: var(--surface-2); }
+    .payroll-section { background: var(--surface); }
+    .qualify-panel {
+      margin-top: 1.5rem;
+      padding: 1.25rem 1.4rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, #fffbeb, #fff);
+      box-shadow: var(--shadow-sm);
+    }
+    .qualify-panel strong { color: var(--text); }
+    .capture-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+    .capture-card {
+      position: relative;
+      overflow: hidden;
+      padding: 1.45rem 1.4rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+    .capture-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -40% auto;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: var(--brand-soft);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .capture-card--device::after { background: var(--sky-soft); }
+    .capture-label {
+      margin: 0 0 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+    .capture-card--device .capture-label { color: var(--sky); }
+    .capture-card h3 { position: relative; z-index: 1; margin: 0 0 0.55rem; font-size: 1.15rem; }
+    .capture-card p { position: relative; z-index: 1; margin: 0; color: var(--text-muted); }
+    .capture-list {
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.45rem;
+      position: relative;
+      z-index: 1;
+    }
+    .capture-list li {
+      padding-left: 1.15rem;
+      position: relative;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .capture-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--brand);
+      font-weight: 800;
+    }
+    .device-note {
+      margin: 1.25rem 0 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .limits-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .limit-card {
+      padding: 1.2rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .limit-card h3 { margin: 0 0 0.45rem; font-size: 1.02rem; }
+    .limit-card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+    .status-card {
+      padding: 1.1rem 1.15rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .status-card h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .status-card p { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
+    .status-symbol {
+      display: inline-flex;
+      width: 1.6rem;
+      height: 1.6rem;
+      margin-right: 0.4rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.4rem;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+    .status-card--late .status-symbol { background: var(--amber-soft); color: var(--amber); }
+    .status-card--absent .status-symbol { background: var(--rose-soft); color: var(--rose); }
+    .status-card--leave .status-symbol { background: var(--sky-soft); color: var(--sky); }
+    @media (max-width: 900px) {
+      .capture-grid, .limits-grid { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .status-grid { grid-template-columns: 1fr; }
+    }
+
 </style>
 </head>
 <body>
@@ -614,9 +755,9 @@
         >
       </a>
       <nav class="header-nav" aria-label="Page">
-        <a href="#record">Leave types</a>
-        <a href="#approve">Approval</a>
-        <a href="#preferences">Preferences</a>
+        <a href="#capture">Capture</a>
+        <a href="#match">Matching</a>
+        <a href="#review">Review</a>
         <a href="#faq">FAQ</a>
       </nav>
       <div class="header-actions">
@@ -630,10 +771,10 @@
     <section id="hero" aria-labelledby="hero-heading">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="breadcrumb"><a href="/">Home</a> / Employee leave and availability</p>
-          <span class="eyebrow">Employee leave management software</span>
-          <h1 id="hero-heading">Manage <span class="accent">Leave and Availability</span> Before You Build the Roster</h1>
-          <p class="hero-lead">Record vacation, days off, and sick leave, review conflicts before approval, and keep approved time off visible while assigning the weekly roster.</p>
+          <p class="breadcrumb"><a href="/">Home</a> / Employee time clock</p>
+          <span class="eyebrow">Employee punch clock software</span>
+          <h1 id="hero-heading">Connect <span class="accent">Clock Events</span> to the Weekly Roster</h1>
+          <p class="hero-lead">Capture attendance manually or from supported ZKTeco devices, match clock events to staff, and review present, late, and absent outcomes against scheduled shifts.</p>
           <div class="cta-row">
             <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
             <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
@@ -641,302 +782,375 @@
           <ul class="hero-meta">
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-              Manager-managed leave
+              Manager-entered punches
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-              Soft shift preferences
+              Supported ZKTeco ADMS events
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-              Free for up to 10 staff
+              Roster-connected review
             </li>
           </ul>
         </div>
         <div class="hero-visual">
-          <span class="float-chip float-chip--top"><span class="dot"></span>Leave stays visible</span>
+          <span class="float-chip float-chip--top"><span class="dot"></span>Plan vs punches</span>
           <div class="hero-frame">
             <picture>
-              <source type="image/webp" srcset="../images/app-leave-roster-hero.webp">
+              <source type="image/webp" srcset="../images/attendance-week-current.webp">
               <img
-                src="../images/app-leave-roster-hero.png"
-                width="1536"
-                height="1024"
-                alt="Weekly roster in Simple Roster Plus with vacation leave visible on blocked roster cells."
+                src="../images/attendance-week-current.png"
+                width="1024"
+                height="530"
+                alt="Attendance week view in Simple Roster Plus showing scheduled shifts beside present, late, absent, and leave-backed outcomes."
                 decoding="async"
                 fetchpriority="high"
               >
             </picture>
           </div>
-          <span class="float-chip float-chip--bottom"><span class="dot dot-amber"></span>Preferences stay soft</span>
+          <span class="float-chip float-chip--bottom"><span class="dot dot-amber"></span>Exceptions stay visible</span>
         </div>
       </div>
     </section>
 
-    <div class="proof-strip" aria-label="Leave planning summary">
+    <div class="proof-strip" aria-label="Clock event summary">
       <ul class="wrap proof-list">
-        <li><strong>Record time off</strong>Vacation, days off, and sick leave</li>
-        <li><strong>Approve carefully</strong>Review conflicts before confirming</li>
-        <li><strong>Assign with context</strong>Blocked leave cells on the roster</li>
+        <li><strong>Capture punches</strong>Manual entry or supported devices</li>
+        <li><strong>Match people</strong>Map terminal users to staff</li>
+        <li><strong>Review the week</strong>Present, late, and absent vs schedule</li>
       </ul>
     </div>
 
-    <section id="problem" aria-labelledby="problem-heading">
+    <section id="qualify" aria-labelledby="qualify-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">See time off before you assign the week</span>
-          <h2 id="problem-heading" class="section-title">Disconnected Leave Records Create Avoidable Roster Clashes</h2>
-          <p class="section-lead">When vacation and days off live in spreadsheets or group chats, managers often discover them after the schedule is already built. Simple Roster Plus keeps leave next to the weekly roster.</p>
+          <span class="eyebrow">What “employee time clock app” means here</span>
+          <h2 id="qualify-heading" class="section-title">A Roster-Connected Time Clock—Not a Mobile Punch App</h2>
+          <p class="section-lead">Searching for an employee time clock app? Simple Roster Plus uses a roster-connected workflow for managers—not employee phone clock-in.</p>
         </div>
-        <div class="problem-grid">
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4"/></svg>
-            </div>
-            <h3>Stop hunting through chat history</h3>
-            <p>Keep vacation, days off, and sick leave in one manager-managed place instead of scattered messages.</p>
-          </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 9h16M8 3v4M16 3v4"/></svg>
-            </div>
-            <h3>See leave while you schedule</h3>
-            <p>Approved time off stays visible on the roster so you are not assigning shifts into blocked days.</p>
-          </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
-            </div>
-            <h3>Stay roster-first</h3>
-            <p>Leave supports weekly planning—it does not turn Simple Roster Plus into a full HR leave suite.</p>
-          </article>
+        <div class="qualify-panel" role="note">
+          <p><strong>Simple Roster Plus is not an employee phone clock-in app.</strong> Managers can enter attendance manually, or supported ZKTeco devices can send clock events to the system. There is no employee browser self-service punch, GPS, geofencing, or in-app kiosk mode.</p>
         </div>
       </div>
     </section>
 
-    <section id="record" class="feature-section" aria-labelledby="record-heading">
+    <section id="capture" class="capture-section" aria-labelledby="capture-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Clock-event capture</span>
+          <h2 id="capture-heading" class="section-title">Two Ways Clock Events Enter Simple Roster Plus</h2>
+          <p class="section-lead">Choose the capture path that fits today. Both paths feed the same roster-connected attendance records.</p>
+        </div>
+        <div class="capture-grid">
+          <article class="capture-card">
+            <p class="capture-label">Manual attendance</p>
+            <h3>Managers enter clock-in and clock-out</h3>
+            <p>Add an in or out punch with an optional note. The product can suggest the next punch direction from the staff member’s latest record.</p>
+            <ul class="capture-list">
+              <li>In and out punch types</li>
+              <li>Optional punch notes</li>
+              <li>No terminal required</li>
+            </ul>
+          </article>
+          <article class="capture-card capture-card--device">
+            <p class="capture-label">Supported device attendance</p>
+            <h3>Receive ZKTeco ADMS clock events</h3>
+            <p>Supported ADMS-capable ZKTeco terminals can send compatible attendance events. Setup and compatibility limits live on our <a href="/zkteco-attendance-integration">ZKTeco attendance integration</a> page.</p>
+            <ul class="capture-list">
+              <li>Device-sourced punch records</li>
+              <li>Location-scoped staff matching</li>
+              <li>Near-duplicate suppression on ingest</li>
+            </ul>
+          </article>
+        </div>
+        <p class="device-note">Compatibility depends on terminal model, firmware, and configuration. Device slots are software connectivity—not included biometric hardware.</p>
+      </div>
+    </section>
+
+    <section id="match" class="feature-section" aria-labelledby="match-heading">
       <div class="wrap feature-grid">
         <div class="feature-copy">
-          <span class="eyebrow">Record vacation, days off, and sick leave</span>
-          <h2 id="record-heading">Manager-Managed Leave Records for Shift Teams</h2>
-          <p>Managers record time off for staff in the Requests workflow—vacation date ranges, single days off, and sick-leave date ranges—with optional reasons and approve or deny decisions.</p>
+          <span class="eyebrow">Staff-device matching</span>
+          <h2 id="match-heading">Match Device Punches to the Right Staff Member</h2>
+          <p>Each terminal user ID can be linked to an employee at that location so incoming clock events attach to the correct person on the roster.</p>
           <ul class="check-list">
-            <li><span class="check" aria-hidden="true">✓</span><span>Vacation ranges with start and end dates.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Single days off for one-off time away.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Sick leave ranges for short absences.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Optional notes and who decided, when.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Map device user IDs to staff at the device’s location.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Keep the device source on the punch record.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Review attendance after matching—not in a separate spreadsheet.</span></li>
           </ul>
+          <a class="inline-link" href="/zkteco-attendance-integration">See ZKTeco ADMS setup and matching →</a>
         </div>
-        <figure class="product-shot" aria-label="New leave request in Simple Roster Plus">
-          <div class="product-shot-frame">
-            <picture>
-              <source type="image/webp" srcset="../images/app-leave-new-request.webp">
-              <img
-                src="../images/app-leave-new-request.png"
-                width="1536"
-                height="1024"
-                alt="New request dialog for recording vacation leave for a staff member in Simple Roster Plus."
-                loading="lazy"
-                decoding="async"
-              >
-            </picture>
-          </div>
-          <figcaption class="panel-note" style="margin:0.75rem 0 0;">Manager-managed leave request—vacation, days off, or sick leave.</figcaption>
+        <figure class="current-shot">
+          <picture>
+            <source type="image/webp" srcset="../images/zkteco-staff-matching.webp">
+            <img
+              src="../images/zkteco-staff-matching.png"
+              width="1024"
+              height="755"
+              alt="Simple Roster Plus staff mapping screen linking a terminal user ID to an employee for attendance punches."
+              loading="lazy"
+            >
+          </picture>
+          <figcaption>Map terminal user IDs to employees so device punches attach to the right person.</figcaption>
         </figure>
       </div>
     </section>
 
-    <section id="approve" class="soft-section" aria-labelledby="approve-heading">
+    <section id="unmatched" aria-labelledby="unmatched-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">Approve leave without surprises</span>
-          <h2 id="approve-heading" class="section-title">Review Roster Conflicts Before You Confirm</h2>
-          <p class="section-lead">When leave overlaps existing shifts, managers see a conflict summary and can confirm clearing those assignments as part of approval.</p>
+          <span class="eyebrow">Unmatched punch recovery</span>
+          <h2 id="unmatched-heading" class="section-title">Keep Unmatched Punches for Review</h2>
+          <p class="section-lead">If a device event arrives before a user is mapped, Simple Roster Plus retains it instead of silently dropping the clock event.</p>
         </div>
-        <div class="review-grid">
-          <article class="card review-card">
-            <span class="step-no">Step 1</span>
-            <h3>Record the request</h3>
-            <p>Add vacation, a day off, or sick leave for a staff member, with an optional reason.</p>
-          </article>
-          <article class="card review-card review-card--warn">
-            <span class="step-no">Step 2</span>
-            <h3>Check overlapping shifts</h3>
-            <p>If the dates already have roster assignments, review the conflict before approving.</p>
-          </article>
-          <article class="card review-card review-card--live">
-            <span class="step-no">Step 3</span>
-            <h3>Approve and clear</h3>
-            <p>Confirm approval to clear overlapping shifts, or deny the request when the roster should stay as planned.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="visibility" class="feature-section" aria-labelledby="visibility-heading">
-      <div class="wrap feature-grid reverse">
-        <div class="feature-copy">
-          <span class="eyebrow">Keep approved leave visible on the roster</span>
-          <h2 id="visibility-heading">Blocked Leave Cells While You Assign the Week</h2>
-          <p>Approved vacation, days off, and sick leave appear on the roster and prevent conflicting assignments. Closed holidays block separately so station closures stay clear of leave records.</p>
-          <ul class="check-list">
-            <li><span class="check" aria-hidden="true">✓</span><span>Approved leave labels on blocked roster cells.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Assignment writes reject conflicting leave dates.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Closed holidays handled as their own roster blocks.</span></li>
-          </ul>
-          <a class="inline-link" href="/employee-scheduling-software">See how weekly scheduling works →</a>
-        </div>
-        <div class="timeoff-panel">
-          <div>
-            <h2 style="font-size:1.35rem;margin:0 0 0.65rem;">On the roster</h2>
-            <p>Leave stays in view while managers assign reusable shifts for the rest of the week.</p>
-          </div>
-          <div class="status-list" aria-label="Illustrative blocked roster cells">
-            <div class="status-row"><span>Mon · Alex Morgan</span><span class="status-pill status-pill--leave">Vacation</span></div>
-            <div class="status-row"><span>Wed · Sam Rivera</span><span class="status-pill status-pill--sick">Sick leave</span></div>
-            <div class="status-row"><span>Fri · Team roster</span><span class="status-pill status-pill--closed">Closed holiday</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="preferences" aria-labelledby="pref-heading">
-      <div class="wrap feature-grid">
-        <div class="feature-copy">
-          <span class="eyebrow">Capture soft shift preferences</span>
-          <h2 id="pref-heading">Staff Shift Preferences Are Planning Cues—Not Hard Rules</h2>
-          <p>Capture staff shift preferences as soft planning cues without treating them as automatic scheduling rules. Preference chips can appear while you roster; they do not assign shifts or act as recurring availability windows.</p>
-          <ul class="check-list">
-            <li><span class="check" aria-hidden="true">✓</span><span>Preferred-shift requests for a specific day.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Visible cues while assigning open cells.</span></li>
-            <li><span class="check" aria-hidden="true">✓</span><span>Managers still choose the final assignment.</span></li>
-          </ul>
-          <p style="margin:1.1rem 0 0;color:var(--text-muted);font-size:0.94rem;">If you searched for employee availability software, treat this as preference-aware rostering—not a full availability engine.</p>
-        </div>
-        <div class="ui-panel" aria-label="Illustrative soft preference cue">
-          <div class="ui-panel-head">
-            <strong>Open roster cell</strong>
-            <span>Soft cue</span>
-          </div>
-          <div style="padding:1.25rem;display:grid;gap:0.85rem;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
-              <span><strong>Thu · Emma R.</strong><br><small style="color:var(--text-muted);">Pump Attendant</small></span>
-              <span class="pref-chip">Wants Evening</span>
+        <div class="problem-grid">
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM8 10h8M8 14h5"/></svg>
             </div>
-            <p class="panel-note" style="margin:0;">Illustrative preference chip—preferences do not automatically assign or block shifts.</p>
-          </div>
+            <h3>Retain unmatched events</h3>
+            <p>Unmatched device punches stay available for review with the terminal user ID preserved.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <h3>Map when ready</h3>
+            <p>Link the terminal user to a staff member when you confirm who should own those punches.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+            </div>
+            <h3>Backfill earlier punches</h3>
+            <p>After mapping, earlier unmatched events for that user can attach to the employee.</p>
+          </article>
         </div>
       </div>
     </section>
 
-    <section id="connect" class="attendance-band" aria-labelledby="connect-heading">
-      <div class="wrap attendance-inner">
-        <div class="attendance-copy">
-          <span class="eyebrow" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#ecfdf5;">Plan, then track</span>
-          <h2 id="connect-heading">Leave Supports the Roster—Attendance Comes Next</h2>
-          <p>After leave is accounted for and the week is published, managers can review what was scheduled against what actually happened. Explore <a href="/employee-scheduling-software">employee scheduling software</a> for building and publishing the week, and <a href="/employee-attendance-software">employee attendance software</a> for plan-versus-actual review.</p>
+    <section id="review" class="feature-section" aria-labelledby="review-heading">
+      <div class="wrap feature-grid">
+        <figure class="current-shot">
+          <picture>
+            <source type="image/webp" srcset="../images/solution-attendance.webp">
+            <img
+              src="../images/solution-attendance.png"
+              width="1536"
+              height="1024"
+              alt="Attendance review screen in Simple Roster Plus with roster-connected punch outcomes for a weekly schedule."
+              loading="lazy"
+            >
+          </picture>
+          <figcaption>Review clock events beside the weekly plan so late and absent outcomes are easy to scan.</figcaption>
+        </figure>
+        <div class="feature-copy">
+          <span class="eyebrow">Roster-connected review</span>
+          <h2 id="review-heading">See Present, Late, and Absent Against the Schedule</h2>
+          <p>Once punches land, managers compare them with scheduled shifts using an organization grace period. Vacation, sick leave, days off, and station-closed days also appear as leave-backed states.</p>
+          <ul class="check-list">
+            <li><span class="check" aria-hidden="true">✓</span><span>Present, late, and absent against expected start times.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Grace period for late and absent thresholds.</span></li>
+            <li><span class="check" aria-hidden="true">✓</span><span>Leave-backed states from vacation, sick leave, and days off.</span></li>
+          </ul>
+          <a class="inline-link" href="/employee-attendance-software">Explore employee attendance software →</a>
         </div>
-        <div class="attendance-statuses" aria-label="Core product flow">
-          <div class="attendance-status">Leave first<span>Record and approve time off</span></div>
-          <div class="attendance-status">Roster next<span>Assign around blocked days</span></div>
-          <div class="attendance-status">Publish<span>Share one clear schedule</span></div>
-          <div class="attendance-status">Attendance<span>Compare plan vs actual</span></div>
+      </div>
+      <div class="wrap" style="margin-top: 2rem;">
+        <div class="status-grid" aria-label="Attendance statuses">
+          <article class="status-card">
+            <h3><span class="status-symbol">P</span>Present</h3>
+            <p>First in-punch within the configured grace period.</p>
+          </article>
+          <article class="status-card status-card--late">
+            <h3><span class="status-symbol">L</span>Late</h3>
+            <p>First in-punch after shift start plus grace.</p>
+          </article>
+          <article class="status-card status-card--absent">
+            <h3><span class="status-symbol">A</span>Absent</h3>
+            <p>No in-punch after the scheduled start and grace window.</p>
+          </article>
+          <article class="status-card status-card--leave">
+            <h3><span class="status-symbol">V</span>Leave-backed</h3>
+            <p>Vacation, sick leave, day off, or station closed.</p>
+          </article>
         </div>
+        <p class="device-note">For building the weekly plan first, see <a href="/employee-scheduling-software">employee scheduling software</a>. For leave records that affect scheduled days, see <a href="/employee-leave-and-availability">employee leave and availability</a>.</p>
       </div>
     </section>
 
-    <section id="boundaries" aria-labelledby="boundaries-heading">
+    <section id="correct" aria-labelledby="correct-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">Leave planning without a full HRIS</span>
-          <h2 id="boundaries-heading" class="section-title">What Simple Roster Plus Does Not Replace</h2>
-          <p class="section-lead">Simple Roster Plus helps managers plan around leave. It does not calculate leave balances, accruals, entitlements, carryover, payroll, or statutory compliance.</p>
+          <span class="eyebrow">Corrections and context</span>
+          <h2 id="correct-heading" class="section-title">Correct Punches and Add Context</h2>
+          <p class="section-lead">When a punch is wrong or incomplete, managers can fix unfiled records and keep useful correction context.</p>
         </div>
-        <div class="scope-grid">
-          <article class="card scope-card--out">
-            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
-            <h3>Not leave-balance software</h3>
-            <p>No entitlements, accrual tracking, or carryover engines.</p>
+        <div class="problem-grid">
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16v4zM14 6l4 4"/></svg>
+            </div>
+            <h3>Edit a punch</h3>
+            <p>Update time, direction, or note. When the time changes, the first original time is retained.</p>
           </article>
-          <article class="card scope-card--out">
-            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
-            <h3>Not employee self-service</h3>
-            <p>Leave is manager-managed today—no employee leave portal or mobile leave app.</p>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <h3>Override a day</h3>
+            <p>Mark a day manually present or absent and add a reason when punches do not tell the full story.</p>
           </article>
-          <article class="card scope-card--out">
-            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
-            <h3>Not leave messaging automation</h3>
-            <p>Leave approvals do not send SMS or WhatsApp notifications.</p>
-          </article>
-          <article class="card scope-card--out">
-            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
-            <h3>Not a recurring availability engine</h3>
-            <p>Shift preferences are soft cues, not hard weekly availability calendars.</p>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h10"/></svg>
+            </div>
+            <h3>Add notes</h3>
+            <p>Attach notes to punches or day overrides so the next review has context.</p>
           </article>
         </div>
-        <p class="fit-note">Comparing plans for a small team? See <a href="/small-business-employee-scheduling">employee scheduling software for small business</a>.</p>
       </div>
     </section>
 
-    <section id="pricing" aria-labelledby="pricing-heading">
-      <div class="wrap" style="text-align:center;">
-        <span class="eyebrow">Ready to start</span>
-        <h2 id="pricing-heading" class="section-title">Start Free and Keep Leave Next to the Roster</h2>
-        <p class="section-lead" style="margin-inline:auto;max-width:40rem;">Free for up to 10 staff. Explore a demo if you want to see a sample week before adding your team.</p>
-        <div class="cta-row" style="justify-content:center;margin-top:1.5rem;">
-          <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
-          <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
-        </div>
-        <p class="fit-note">See full plan limits on <a href="/#pricing">Simple Roster Plus pricing</a>.</p>
-      </div>
-    </section>
-
-    <section id="faq" class="soft-section" aria-labelledby="faq-heading">
+    <section id="payroll" class="payroll-section" aria-labelledby="payroll-heading">
       <div class="wrap">
         <div class="section-head">
-          <span class="eyebrow">Employee leave and availability questions</span>
-          <h2 id="faq-heading" class="section-title">Employee Leave and Availability Questions</h2>
+          <span class="eyebrow">Payroll handoff</span>
+          <h2 id="payroll-heading" class="section-title">Prepare Attendance Hours for Payroll Handoff</h2>
+          <p class="section-lead">Worked time comes from completed in-and-out pairs. Prepare a pay-period summary, then download CSV or print it for whoever runs payroll.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="card">
+            <h3>Completed punch pairs</h3>
+            <p>Matched in/out intervals contribute worked time. Incomplete sequences may need correction first.</p>
+          </article>
+          <article class="card">
+            <h3>Weekly threshold summary</h3>
+            <p>Compare weekly worked time with a configurable threshold. This is a summary aid—not an overtime-compliance engine.</p>
+          </article>
+          <article class="card">
+            <h3>CSV or print handoff</h3>
+            <p>Export or print the pay-period summary for manual payroll handoff. There is no automated payroll sync or timesheet product.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="not-this" aria-labelledby="not-this-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Honest product boundaries</span>
+          <h2 id="not-this-heading" class="section-title">What This Employee Time Clock Workflow Is Not</h2>
+          <p class="section-lead">Clear limits help you decide fit quickly—before you compare it to a mobile punch app or payroll suite.</p>
+        </div>
+        <div class="limits-grid">
+          <article class="limit-card">
+            <h3>Not phone clock-in</h3>
+            <p>No employee mobile or browser self-service punching, GPS, or geofencing.</p>
+          </article>
+          <article class="limit-card">
+            <h3>Not a kiosk product</h3>
+            <p>No in-app kiosk, QR, or PIN station. Supported physical terminals are separate hardware.</p>
+          </article>
+          <article class="limit-card">
+            <h3>Not payroll software</h3>
+            <p>CSV and printable summaries support handoff. No payroll integration, timesheets, or break-tracking product.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="fit" aria-labelledby="fit-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Small-business fit</span>
+          <h2 id="fit-heading" class="section-title">Built for Small, Shift-Based Teams</h2>
+          <p class="section-lead">Managers who already publish a weekly roster and need digital clock events without a heavyweight HR suite.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="card">
+            <h3>Cafés, retail, and clinics</h3>
+            <p>Shift teams that need punches tied to published weeks—not project timers or enterprise HRIS.</p>
+          </article>
+          <article class="card">
+            <h3>Manual today, devices later</h3>
+            <p>Start with manager-entered punches, then add supported ZKTeco ADMS terminals when you are ready.</p>
+          </article>
+          <article class="card">
+            <h3>Clear pricing path</h3>
+            <p>See staff, location, and device-slot limits on <a href="/#pricing">Simple Roster Plus pricing</a>. For SMB scheduling context, visit <a href="/small-business-employee-scheduling">employee scheduling software for small business</a>.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="faq-section" aria-labelledby="faq-heading">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Employee time clock questions</span>
+          <h2 id="faq-heading" class="section-title">Straight Answers Before You Start</h2>
         </div>
         <div class="faq-list">
           <details open>
-            <summary>Can managers record vacation and days off?</summary>
-            <p class="faq-answer">Yes. Managers can record vacation date ranges and single days off, then approve or deny them.</p>
+            <summary>Can employees clock in from their phones?</summary>
+            <p class="faq-answer">No. Simple Roster Plus does not currently provide employee mobile or browser self-service clock-in. Managers enter punches, or supported ZKTeco devices send clock events.</p>
           </details>
           <details>
-            <summary>Is sick leave supported?</summary>
-            <p class="faq-answer">Yes. Managers can record sick-leave date ranges. Approved sick leave is visible on the roster and blocks conflicting assignments, alongside vacation and days off.</p>
+            <summary>Can managers enter attendance manually?</summary>
+            <p class="faq-answer">Yes. Managers can add clock-in and clock-out records with optional notes, including when no attendance terminal is connected.</p>
           </details>
           <details>
-            <summary>Can employees submit their own leave requests?</summary>
-            <p class="faq-answer">No. Leave is currently manager-managed; Simple Roster Plus does not yet provide an employee self-service leave portal.</p>
+            <summary>Does Simple Roster Plus support ZKTeco devices?</summary>
+            <p class="faq-answer">Supported ADMS-capable ZKTeco terminals can send compatible attendance events. Compatibility is not universal and depends on model, firmware, and configuration. See <a href="/zkteco-attendance-integration">ZKTeco attendance integration</a>.</p>
           </details>
           <details>
-            <summary>Does approved leave appear on the roster?</summary>
-            <p class="faq-answer">Yes. Approved vacation, days off, and sick leave appear as blocked cells while managers assign the week.</p>
+            <summary>What happens to unmatched clock events?</summary>
+            <p class="faq-answer">Unmatched device events are retained for review and can be mapped to staff later. Earlier unmatched punches for that user can backfill after mapping.</p>
           </details>
           <details>
-            <summary>What happens when leave overlaps an existing shift?</summary>
-            <p class="faq-answer">Managers see a conflict summary before approval. Confirming approval can clear the overlapping roster assignments.</p>
+            <summary>Can punch records be corrected?</summary>
+            <p class="faq-answer">Yes. Managers can edit or remove unfiled punches. When a time changes, the first original time is retained for context. There is no approval queue for corrections.</p>
           </details>
           <details>
-            <summary>Are shift preferences hard availability rules?</summary>
-            <p class="faq-answer">No. Shift preferences are soft planning cues. They do not automatically assign shifts or create recurring availability restrictions.</p>
+            <summary>Does it show late and absent staff?</summary>
+            <p class="faq-answer">Yes. Present, late, and absent outcomes are based on scheduled shifts and an organization grace period. Vacation, sick leave, days off, and station-closed days also appear as leave-backed states.</p>
           </details>
           <details>
-            <summary>Does Simple Roster Plus track leave balances or accruals?</summary>
-            <p class="faq-answer">No. It does not calculate leave balances, accruals, entitlements, or carryover.</p>
+            <summary>Does it track breaks?</summary>
+            <p class="faq-answer">No dedicated break-tracking or meal-break enforcement workflow is currently provided. Multiple punches may exist in the log, but that is not break management.</p>
           </details>
           <details>
-            <summary>Does it calculate statutory leave?</summary>
-            <p class="faq-answer">No. Simple Roster Plus does not provide statutory leave or compliance calculations.</p>
+            <summary>Does it calculate overtime?</summary>
+            <p class="faq-answer">Weekly worked time can be compared with a configurable threshold, but Simple Roster Plus is not an overtime-compliance engine.</p>
           </details>
           <details>
-            <summary>Does it send leave approval notifications?</summary>
-            <p class="faq-answer">No. Leave approvals do not send email, SMS, or WhatsApp notifications today.</p>
+            <summary>Does it create timesheets?</summary>
+            <p class="faq-answer">No dedicated timesheet product is currently provided. Managers can prepare pay-period summaries for handoff instead.</p>
           </details>
           <details>
-            <summary>How does leave connect to attendance?</summary>
-            <p class="faq-answer">Approved leave helps keep the published plan accurate. Attendance later compares scheduled days with actual clock-ins, and leave can excuse planned absences where the product supports it.</p>
+            <summary>Does it integrate with payroll?</summary>
+            <p class="faq-answer">CSV and printable summaries support manual payroll handoff. There is no automated payroll integration or payroll sync.</p>
+          </details>
+          <details>
+            <summary>Does it support GPS or geofencing?</summary>
+            <p class="faq-answer">No. GPS clock-in and geofencing are not current Simple Roster Plus features.</p>
+          </details>
+          <details>
+            <summary>Is it a kiosk time clock?</summary>
+            <p class="faq-answer">No. There is no in-app kiosk mode. Supported physical attendance terminals are separate hardware configured for ADMS push.</p>
+          </details>
+          <details>
+            <summary>Does it work across multiple locations?</summary>
+            <p class="faq-answer">Locations and devices are supported, but attendance review is location-scoped. There is no combined multi-location punch dashboard.</p>
+          </details>
+          <details>
+            <summary>Can it handle overnight shifts?</summary>
+            <p class="faq-answer">Overnight shift templates exist on the roster side, but attendance classification remains calendar-day based. Do not expect full overnight punch reconciliation from this workflow alone.</p>
+          </details>
+          <details>
+            <summary>What hardware is required?</summary>
+            <p class="faq-answer">None for manual entry. Optional supported ZKTeco ADMS terminals can send device punches. No Simple Roster Plus phone or tablet kiosk is required.</p>
           </details>
         </div>
       </div>
@@ -944,8 +1158,8 @@
 
     <section id="cta-close" aria-labelledby="cta-heading">
       <div class="wrap">
-        <h2 id="cta-heading">Plan Around Leave Before You Assign the Week</h2>
-        <p>Record time off, review conflicts, keep approved leave on the roster, and capture soft shift preferences—then build the schedule with clearer context.</p>
+        <h2 id="cta-heading">Connect Clock Events to the Roster Your Team Already Uses</h2>
+        <p>Enter punches manually or receive supported device events, match people, review outcomes against the week, and prepare a payroll handoff—without pretending this is a mobile employee punch app.</p>
         <div class="cta-row">
           <a class="btn btn-primary btn-lg" href="https://app.simplerosterplus.com/sign-up" rel="noopener noreferrer">Start Free</a>
           <a class="btn btn-secondary btn-lg" href="https://app.simplerosterplus.com/sign-up?intent=demo" rel="noopener noreferrer">Explore demo</a>
@@ -966,13 +1180,14 @@
           alt="Simple Roster Plus"
         >
       </a>
-      <p class="footer-mission">Simple Roster Plus helps managers record leave, plan weekly staff rosters, and review attendance—without enterprise HR leave software.</p>
+      <p class="footer-mission">Simple Roster Plus helps managers capture clock events, review attendance against the weekly roster, and prepare worked-time summaries for payroll handoff.</p>
       <nav class="footer-links" aria-label="Footer">
         <a href="/">Employee roster software</a>
         <a href="/employee-scheduling-software">Employee scheduling</a>
-        <a href="/employee-leave-and-availability" aria-current="page">Leave and availability</a>
+        <a href="/employee-leave-and-availability">Leave and availability</a>
         <a href="/employee-attendance-software">Employee attendance</a>
-        <a href="/employee-time-clock-app">Employee time clock</a>
+        <a href="/employee-time-clock-app" aria-current="page">Employee time clock</a>
+        <a href="/zkteco-attendance-integration">ZKTeco integration</a>
         <a href="/small-business-employee-scheduling">Small business scheduling</a>
         <a href="/#pricing">Pricing</a>
         <a href="/privacy">Privacy policy</a>

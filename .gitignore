@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# SEO verification runner artifacts (screenshots, Lighthouse reports)
+/artifacts/seo-verification/
+
 # next.js
 /.next/
 /out/
