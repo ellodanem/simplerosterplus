@@ -266,10 +266,33 @@ function runStaticPageCheck(page, reporter) {
     if (srcset) {
       for (const part of srcset.split(",")) {
         const candidate = part.trim().split(/\s+/)[0];
-        if (candidate) candidates.push(candidate);
+        if (candidate) {
+          candidates.push(candidate);
+          // Prefer-WebP pages often list .webp in <img srcset> as well.
+          if (/\.webp(\?|$)/i.test(candidate)) webpCount += 1;
+        }
       }
     }
     for (const candidate of candidates) {
+      const local = resolveLocalAsset(candidate, abs);
+      if (!local) continue;
+      if (fileExists(local)) localImageOk += 1;
+      else missingFiles.push(path.relative(repoPath(), local));
+    }
+  }
+
+  // Marketing pages commonly use <picture><source type="image/webp" srcset="…webp">
+  // with a PNG <img> fallback. Counting only <img src> produced false WebP WARNs.
+  for (const m of html.matchAll(/<source\b[^>]*>/gi)) {
+    const tag = m[0];
+    const type = getAttr(tag, "type") || "";
+    if (!/^image\/webp$/i.test(type.trim())) continue;
+    webpCount += 1;
+    const srcset = getAttr(tag, "srcset") || "";
+    const src = getAttr(tag, "src") || "";
+    for (const part of `${srcset},${src}`.split(",")) {
+      const candidate = part.trim().split(/\s+/)[0];
+      if (!candidate) continue;
       const local = resolveLocalAsset(candidate, abs);
       if (!local) continue;
       if (fileExists(local)) localImageOk += 1;
@@ -301,6 +324,8 @@ function runStaticPageCheck(page, reporter) {
   } else if (localImageOk) {
     reporter.pass("Local image exists", `${localImageOk} local image/icon file(s)`);
   }
+  // WARN only when PNG <img> assets exist with no WebP via <img> or <source type="image/webp">.
+  // PNG fallbacks inside <picture> are expected and should not fail this heuristic.
   if (pngCount > 0 && webpCount === 0) {
     reporter.warn("WebP usage", `${pngCount} PNG image(s) and 0 WebP references`);
   } else if (webpCount > 0) {

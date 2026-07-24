@@ -141,6 +141,7 @@ Always skim WARN excerpts before treating a page as clean.
 | Unknown page key | Add the key to `scripts/seo/page-configs.mjs` or pass `--url` |
 | Lighthouse port / debugging errors | Re-run; ensure nothing else binds the ephemeral debug port; reinstall Chromium |
 | Static check cannot find images | Confirm paths relative to the page HTML under `landing-page/` |
+| WebP WARN despite `<picture>` | Older checks counted only `<img src>`. Current `seo-check` also counts `<source type="image/webp">` and WebP entries in `srcset`. |
 | Production redirect failures | Confirm Vercel/host redirects for apex, trailing slash, and `/index.html` |
 
 ## File map
