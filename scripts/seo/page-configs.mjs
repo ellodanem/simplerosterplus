@@ -7,6 +7,65 @@
 
 /** @type {Record<string, PageConfig>} */
 export const PAGE_CONFIGS = {
+  "employee-scheduling-software": {
+    key: "employee-scheduling-software",
+    file: "landing-page/employee-scheduling-software/index.html",
+    url: "https://www.simplerosterplus.com/employee-scheduling-software",
+    title: "Employee Scheduling Software for Small Teams | Simple Roster Plus",
+    h1: "Employee Scheduling Software That Keeps Every Shift Clear",
+    canonical: "https://www.simplerosterplus.com/employee-scheduling-software",
+    requiredSchemaTypes: ["WebPage", "BreadcrumbList"],
+    requiredInternalLinks: [
+      "/employee-leave-and-availability",
+      "/employee-attendance-software",
+      "/employee-time-clock-app",
+      "/small-business-employee-scheduling",
+    ],
+  },
+  "employee-attendance-software": {
+    key: "employee-attendance-software",
+    file: "landing-page/employee-attendance-software/index.html",
+    url: "https://www.simplerosterplus.com/employee-attendance-software",
+    title: "Employee Attendance Software Connected to Your Roster | Simple Roster Plus",
+    h1: "Employee Attendance Software That Shows What Actually Happened",
+    canonical: "https://www.simplerosterplus.com/employee-attendance-software",
+    requiredSchemaTypes: ["WebPage", "BreadcrumbList"],
+    requiredInternalLinks: [
+      "/employee-scheduling-software",
+      "/employee-leave-and-availability",
+      "/employee-time-clock-app",
+      "/zkteco-attendance-integration",
+    ],
+  },
+  "zkteco-attendance-integration": {
+    key: "zkteco-attendance-integration",
+    file: "landing-page/zkteco-attendance-integration/index.html",
+    url: "https://www.simplerosterplus.com/zkteco-attendance-integration",
+    title: "ZKTeco Attendance Integration | Simple Roster Plus",
+    h1: "Connect Supported ZKTeco Attendance Terminals to Your Staff Roster",
+    canonical: "https://www.simplerosterplus.com/zkteco-attendance-integration",
+    requiredSchemaTypes: ["WebPage", "BreadcrumbList"],
+    requiredInternalLinks: [
+      "/employee-attendance-software",
+      "/employee-time-clock-app",
+    ],
+  },
+  "small-business-employee-scheduling": {
+    key: "small-business-employee-scheduling",
+    file: "landing-page/small-business-employee-scheduling/index.html",
+    url: "https://www.simplerosterplus.com/small-business-employee-scheduling",
+    title: "Employee Scheduling Software for Small Business | Simple Roster Plus",
+    h1: "Simple Employee Scheduling Software for Small Businesses",
+    canonical: "https://www.simplerosterplus.com/small-business-employee-scheduling",
+    requiredSchemaTypes: ["WebPage", "BreadcrumbList"],
+    requiredInternalLinks: [
+      "/employee-scheduling-software",
+      "/employee-leave-and-availability",
+      "/employee-attendance-software",
+      "/employee-time-clock-app",
+      "/zkteco-attendance-integration",
+    ],
+  },
   "employee-leave-and-availability": {
     key: "employee-leave-and-availability",
     file: "landing-page/employee-leave-and-availability/index.html",
