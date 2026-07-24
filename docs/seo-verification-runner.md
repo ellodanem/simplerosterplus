@@ -25,6 +25,7 @@ npx playwright install chromium
 
 ```bash
 npm run seo:check
+npm run seo:check -- homepage
 npm run seo:check -- employee-leave-and-availability
 node scripts/seo-check.mjs --page employee-leave-and-availability
 ```
@@ -36,6 +37,7 @@ Validates local HTML, assets, sitemap, robots, schema, CTAs, and page config exp
 ### Production validation
 
 ```bash
+npm run seo:verify -- homepage
 npm run seo:verify -- employee-leave-and-availability
 npm run seo:verify -- https://www.simplerosterplus.com/employee-leave-and-availability
 node scripts/seo-verify.mjs --page employee-leave-and-availability

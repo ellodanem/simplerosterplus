@@ -7,6 +7,23 @@
 
 /** @type {Record<string, PageConfig>} */
 export const PAGE_CONFIGS = {
+  homepage: {
+    key: "homepage",
+    file: "landing-page/index.html",
+    url: "https://www.simplerosterplus.com/",
+    title: "Employee Roster Software for Small Teams | Simple Roster Plus",
+    h1: "Build and Share Staff Rosters—Then Track What Actually Happened",
+    canonical: "https://www.simplerosterplus.com/",
+    requiredSchemaTypes: ["Organization", "WebSite", "SoftwareApplication"],
+    requiredInternalLinks: [
+      "/employee-scheduling-software",
+      "/employee-attendance-software",
+      "/employee-leave-and-availability",
+      "/employee-time-clock-app",
+      "/small-business-employee-scheduling",
+      "/zkteco-attendance-integration",
+    ],
+  },
   "employee-scheduling-software": {
     key: "employee-scheduling-software",
     file: "landing-page/employee-scheduling-software/index.html",
