@@ -61,6 +61,15 @@
   }
   </script>
 <style>
+    /* Metric-adjusted Arial fallback reduces H1 CLS while Plus Jakarta Sans loads (display=swap). */
+    @font-face {
+      font-family: "PJS Fallback";
+      src: local("Arial");
+      size-adjust: 87.55%;
+      ascent-override: 95%;
+      descent-override: 22%;
+      line-gap-override: 0%;
+    }
     :root {
       --bg: #f6f8f7;
       --surface: #ffffff;
@@ -88,7 +97,7 @@
       --radius: 18px;
       --radius-sm: 12px;
       --radius-lg: 26px;
-      --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font: "Plus Jakarta Sans", "PJS Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       --max: 1140px;
       --section-y: clamp(3.75rem, 7vw, 6.5rem);
     }

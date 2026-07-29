@@ -25,6 +25,6 @@ Use this positioning statement as the product lens for feature and UX decisions:
 - **Gate 1 (current):** CTAs say **Start Free** → `#contact` early-access form or app `/sign-up`; **Explore demo** optional. Honest “request early access” copy until self-serve Gate 2.
 - **Gate 2 (future):** Flip to **Start Free Trial** → self-serve signup; reduce or remove lead-capture form per `MAPPING.md`.
 - Header: **Log in** (ghost, app `/login`) before primary CTA when both are shown.
-- App base: `https://simplerosterplus.vercel.app` — update `SRP_APP_*` / `SRP_MARKETING_API` in `srp/landing-page/index.html` when routes change.
+- App base: `https://app.simplerosterplus.com` — update `SRP_APP_*` / `SRP_MARKETING_API` in `srp/landing-page/index.html` when routes change. (`*.vercel.app` is legacy; middleware redirects off it.)
 - Honest scope: roster + attendance for managers; not full payroll, not bloated HR suites.
 - Legacy path `landing page/` (repo sibling) is **not** canonical—session experiments only.

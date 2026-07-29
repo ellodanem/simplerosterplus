@@ -47,11 +47,11 @@ Hi {{1}}, your roster for {{2}} is ready. Tap View roster below to open it and d
 |-------|--------|
 | **Type** | URL (website) |
 | **Button text** | `View roster` |
-| **URL** | `https://simplerosterplus.vercel.app/share/roster/{{3}}` |
+| **URL** | `https://app.simplerosterplus.com/share/roster/{{3}}` |
 
 Meta requires a **fixed domain + path prefix**; only the trailing segment may be a variable. Do **not** put the full URL in `{{3}}` — send the share **token** only.
 
-If production ever moves to a custom domain, update this button URL in a **new** template (the base is baked into Meta approval).
+Production button base is **`app.simplerosterplus.com`** (not `*.vercel.app`). If that host ever changes, create a **new** template — Meta bakes the URL base into approval.
 
 ### Sample values (required for Meta)
 
@@ -112,7 +112,7 @@ contentVariables: {
 ## Checklist
 
 - [ ] Call-to-action Utility **Approved** + **WhatsApp business initiated** green
-- [ ] Button URL base matches production (`simplerosterplus.vercel.app`)
+- [ ] Button URL base matches production (`app.simplerosterplus.com`)
 - [ ] Env SID updated + redeploy
 - [ ] WhatsApp alerts enabled in Settings
 - [ ] Staff opted in with valid numbers
