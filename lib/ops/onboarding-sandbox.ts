@@ -1,14 +1,22 @@
 import { prisma } from "@/lib/prisma";
-import { ensureDefaultShiftTemplates } from "@/lib/seed-default-shifts";
+import {
+  ONBOARDING_SANDBOX_ADMIN_EMAIL,
+  ONBOARDING_SANDBOX_LOCATION_NAME,
+  ONBOARDING_SANDBOX_ORG_NAME,
+  ONBOARDING_SANDBOX_TIMEZONE,
+} from "@/lib/ops/onboarding-sandbox-constants";
 import {
   generateTempPassword,
   provisionOrganization,
 } from "@/lib/ops/provision-org";
+import { resetTenantToPostProvision } from "@/lib/ops/reset-tenant-data";
 
-export const ONBOARDING_SANDBOX_ORG_NAME = "Onboarding Sandbox";
-export const ONBOARDING_SANDBOX_ADMIN_EMAIL = "onboarding-sandbox@ops.local";
-export const ONBOARDING_SANDBOX_TIMEZONE = "UTC";
-export const ONBOARDING_SANDBOX_LOCATION_NAME = "Main";
+export {
+  ONBOARDING_SANDBOX_ORG_NAME,
+  ONBOARDING_SANDBOX_ADMIN_EMAIL,
+  ONBOARDING_SANDBOX_TIMEZONE,
+  ONBOARDING_SANDBOX_LOCATION_NAME,
+} from "@/lib/ops/onboarding-sandbox-constants";
 
 export type OnboardingSandboxOrg = {
   id: string;
@@ -64,63 +72,12 @@ export async function resetOnboardingSandbox(organizationId: string): Promise<vo
     throw new Error("Organization is not an onboarding sandbox");
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.rosterNotificationLog.deleteMany({ where: { organizationId } });
-    await tx.rosterWeek.deleteMany({ where: { organizationId } });
-    await tx.attendanceLog.deleteMany({ where: { organizationId } });
-    await tx.attendanceDeviceClock.deleteMany({ where: { organizationId } });
-    await tx.payPeriod.deleteMany({ where: { organizationId } });
-    await tx.device.deleteMany({ where: { organizationId } });
-    await tx.publicHoliday.deleteMany({ where: { organizationId } });
-    await tx.schedulingRule.deleteMany({ where: { organizationId } });
-    await tx.staff.deleteMany({ where: { organizationId } });
-    await tx.staffRole.deleteMany({ where: { organizationId } });
-    await tx.department.deleteMany({ where: { organizationId } });
-    await tx.shiftTemplate.deleteMany({ where: { organizationId } });
-    await tx.appSetting.deleteMany({ where: { organizationId } });
-
-    await tx.location.deleteMany({
-      where: { organizationId, isDefault: false },
-    });
-
-    const defaultLocation = await tx.location.findFirst({
-      where: { organizationId, isDefault: true },
-      orderBy: { sortOrder: "asc" },
-      select: { id: true },
-    });
-
-    if (defaultLocation) {
-      await tx.location.update({
-        where: { id: defaultLocation.id },
-        data: {
-          name: ONBOARDING_SANDBOX_LOCATION_NAME,
-          timeZone: null,
-          sortOrder: 0,
-          isDefault: true,
-        },
-      });
-    } else {
-      await tx.location.create({
-        data: {
-          organizationId,
-          name: ONBOARDING_SANDBOX_LOCATION_NAME,
-          isDefault: true,
-          sortOrder: 0,
-        },
-      });
-    }
-
-    await tx.organization.update({
-      where: { id: organizationId },
-      data: {
-        name: ONBOARDING_SANDBOX_ORG_NAME,
-        timeZone: ONBOARDING_SANDBOX_TIMEZONE,
-        isDemo: false,
-        demoExpiresAt: null,
-        suspendedAt: null,
-      },
-    });
-
-    await ensureDefaultShiftTemplates(organizationId, tx);
+  await resetTenantToPostProvision(organizationId, {
+    organizationName: ONBOARDING_SANDBOX_ORG_NAME,
+    timeZone: ONBOARDING_SANDBOX_TIMEZONE,
+    locationName: ONBOARDING_SANDBOX_LOCATION_NAME,
+    organizationExtra: {
+      isDemo: false,
+    },
   });
 }

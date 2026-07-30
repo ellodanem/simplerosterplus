@@ -61,6 +61,7 @@ const progress = {
   organization: {
     isDemo: false,
     isOnboardingSandbox: false,
+    isRecordingSandbox: false,
     suspendedAt: null,
   },
 };

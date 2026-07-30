@@ -134,6 +134,7 @@ function progressScope(range: OnboardingDateRange): Prisma.OnboardingProgressWhe
             organization: {
               isDemo: false,
               isOnboardingSandbox: false,
+              isRecordingSandbox: false,
             },
           },
         ],

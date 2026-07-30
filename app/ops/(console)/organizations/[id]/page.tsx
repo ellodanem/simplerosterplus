@@ -49,6 +49,7 @@ export default async function OrganizationDetailPage({
             )}
             {org.isDemo ? <Pill tone="neutral">Demo</Pill> : null}
             {org.isOnboardingSandbox ? <Pill tone="ok">Onboarding sandbox</Pill> : null}
+            {org.isRecordingSandbox ? <Pill tone="ok">Recording</Pill> : null}
           </div>
           <p className="mt-1 font-mono text-xs text-zinc-500">{org.id}</p>
         </div>
@@ -57,6 +58,7 @@ export default async function OrganizationDetailPage({
           suspended={org.suspendedAt !== null}
           isDemo={org.isDemo}
           isOnboardingSandbox={org.isOnboardingSandbox}
+          isRecordingSandbox={org.isRecordingSandbox}
           role={operator.role}
           stripeConfigured={stripeConfigured()}
           stripeLinked={org.stripeCustomerId !== null}

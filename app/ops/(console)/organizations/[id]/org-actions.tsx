@@ -30,6 +30,7 @@ export function OrgActions({
   suspended,
   isDemo,
   isOnboardingSandbox,
+  isRecordingSandbox,
   role,
   stripeConfigured,
   stripeLinked,
@@ -38,6 +39,7 @@ export function OrgActions({
   suspended: boolean;
   isDemo: boolean;
   isOnboardingSandbox: boolean;
+  isRecordingSandbox: boolean;
   role: string;
   stripeConfigured: boolean;
   stripeLinked: boolean;
@@ -96,6 +98,49 @@ export function OrgActions({
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {isOnboardingSandbox ? <SimulateOnboardingButton role={role} compact /> : null}
+
+        {canSupport && isRecordingSandbox ? (
+          <button
+            type="button"
+            onClick={() =>
+              open({
+                key: "reset-recording",
+                label: "Reset for recording",
+                description:
+                  "Wipes this org back to empty setup (pre-wizard). Sign in with the dedicated Clerk account afterward and run setup → publish. Does not open an ops session.",
+                endpoint: `${base}/reset-recording`,
+                body: {},
+                withReason: true,
+              })
+            }
+            className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-900 hover:bg-sky-100"
+          >
+            Reset for recording
+          </button>
+        ) : null}
+
+        {canSupport && !isDemo && !isOnboardingSandbox ? (
+          <button
+            type="button"
+            onClick={() =>
+              open({
+                key: isRecordingSandbox ? "recording-off" : "recording-on",
+                label: isRecordingSandbox
+                  ? "Stop using for recording"
+                  : "Use for recording",
+                description: isRecordingSandbox
+                  ? "Clears the recording-sandbox flag. Does not delete data."
+                  : "Marks this org as the reusable marketing recording sandbox (setup → publish take loops). Excluded from onboarding funnel metrics.",
+                endpoint: `${base}/recording-sandbox`,
+                body: { enabled: !isRecordingSandbox },
+                withReason: true,
+              })
+            }
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            {isRecordingSandbox ? "Stop recording use" : "Use for recording"}
+          </button>
+        ) : null}
 
         {canSupport ? (
           <button

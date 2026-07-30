@@ -127,6 +127,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
         createdAt: { gte: signupsSince },
         isDemo: false,
         isOnboardingSandbox: false,
+        isRecordingSandbox: false,
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -252,6 +253,7 @@ export type OrgListRow = {
   subscriptionStatus: string | null;
   isDemo: boolean;
   isOnboardingSandbox: boolean;
+  isRecordingSandbox: boolean;
   suspendedAt: Date | null;
   trialEndsAt: Date | null;
   createdAt: Date;
@@ -280,6 +282,7 @@ export async function listOrganizationsForOps(search?: string): Promise<OrgListR
       subscriptionStatus: true,
       isDemo: true,
       isOnboardingSandbox: true,
+      isRecordingSandbox: true,
       suspendedAt: true,
       trialEndsAt: true,
       createdAt: true,
@@ -347,6 +350,7 @@ export async function getOrganizationDetail(id: string) {
       isDemo: true,
       demoExpiresAt: true,
       isOnboardingSandbox: true,
+      isRecordingSandbox: true,
       deviceTrialStartedAt: true,
       deviceTrialExpiresAt: true,
       deviceTrialExtensionUsed: true,

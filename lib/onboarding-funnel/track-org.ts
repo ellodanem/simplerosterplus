@@ -39,9 +39,9 @@ async function trackOrgMilestoneAsync(args: {
 }): Promise<void> {
   const org = await prisma.organization.findUnique({
     where: { id: args.organizationId },
-    select: { name: true, isDemo: true, isOnboardingSandbox: true },
+    select: { name: true, isDemo: true, isOnboardingSandbox: true, isRecordingSandbox: true },
   });
-  if (!org || org.isDemo || org.isOnboardingSandbox) return;
+  if (!org || org.isDemo || org.isOnboardingSandbox || org.isRecordingSandbox) return;
 
   const userId = args.userId ?? (await ownerUserIdForOrg(args.organizationId));
   let contactEmail: string | null = null;
@@ -89,9 +89,9 @@ export function trackOrgOnboardingError(args: {
   void (async () => {
     const org = await prisma.organization.findUnique({
       where: { id: args.organizationId },
-      select: { isDemo: true, isOnboardingSandbox: true },
+      select: { isDemo: true, isOnboardingSandbox: true, isRecordingSandbox: true },
     });
-    if (!org || org.isDemo || org.isOnboardingSandbox) return;
+    if (!org || org.isDemo || org.isOnboardingSandbox || org.isRecordingSandbox) return;
     trackOnboardingError({
       category: args.category,
       source: args.source,

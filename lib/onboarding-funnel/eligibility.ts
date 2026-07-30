@@ -15,6 +15,7 @@ export type FollowUpEligibilityInput = {
   /** Org flags */
   isDemo?: boolean;
   isOnboardingSandbox?: boolean;
+  isRecordingSandbox?: boolean;
   suspendedAt?: Date | null;
   /** Internal / test account heuristics */
   isInternalTest?: boolean;
@@ -49,7 +50,7 @@ export function evaluateFollowUpEligibility(
   if (input.needsSupport || input.knownSystemError) {
     return { eligible: false, reason: "needs_support" };
   }
-  if (input.isDemo || input.isOnboardingSandbox) {
+  if (input.isDemo || input.isOnboardingSandbox || input.isRecordingSandbox) {
     return { eligible: false, reason: "demo_or_sandbox" };
   }
   if (input.suspendedAt) return { eligible: false, reason: "suspended" };

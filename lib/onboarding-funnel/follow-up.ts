@@ -53,6 +53,7 @@ type FollowUpContext = {
   organization: {
     isDemo: boolean;
     isOnboardingSandbox: boolean;
+    isRecordingSandbox: boolean;
     suspendedAt: Date | null;
   } | null;
 };
@@ -110,6 +111,7 @@ async function loadContext(progressId: string): Promise<FollowUpContext> {
         select: {
           isDemo: true,
           isOnboardingSandbox: true,
+          isRecordingSandbox: true,
           suspendedAt: true,
         },
       },
@@ -133,6 +135,7 @@ function eligibilityFor(context: FollowUpContext) {
     contactEmail: p.contactEmail,
     isDemo: context.organization?.isDemo,
     isOnboardingSandbox: context.organization?.isOnboardingSandbox,
+    isRecordingSandbox: context.organization?.isRecordingSandbox,
     suspendedAt: context.organization?.suspendedAt,
     isInternalTest: isInternalTestEmail(p.contactEmail),
     resumedRecently:

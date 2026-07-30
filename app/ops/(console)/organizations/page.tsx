@@ -83,6 +83,7 @@ export default async function OrganizationsPage({
                         {o.locations} location{o.locations === 1 ? "" : "s"}
                         {o.isDemo ? " · demo" : ""}
                         {o.isOnboardingSandbox ? " · onboarding sandbox" : ""}
+                        {o.isRecordingSandbox ? " · recording" : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-600">{planLabel(o.plan)}</td>

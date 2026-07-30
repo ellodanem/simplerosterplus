@@ -48,6 +48,9 @@ model Organization {
   demoExpiresAt        DateTime?
   /// Internal ops org used to replay `/setup` without creating a real customer.
   isOnboardingSandbox  Boolean  @default(false)
+  /// Dedicated org for marketing/screen-recording take loops (setup → publish).
+  /// Reset via ops or `npm run recording:reset`; full app writes via normal Clerk login.
+  isRecordingSandbox   Boolean  @default(false)
   /// When the free-tier device sync trial started (first terminal contact). See PRICING.md.
   deviceTrialStartedAt DateTime?
   /// When live device ingest ends for free orgs without a paid plan.
