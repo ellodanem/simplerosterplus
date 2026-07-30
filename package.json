@@ -24,7 +24,9 @@
     "prod:secret-scan": "tsx scripts/secret-hygiene-scan.ts",
     "prod:remove-demo-creds": "tsx scripts/remove-demo-credentials.ts",
     "stripe:seed-products": "tsx scripts/stripe-seed-products.ts",
-    "seo:check": "node scripts/seo-check.mjs",
+    "footer:generate": "node scripts/seo/footer-generator.mjs",
+    "footer:check": "node scripts/seo/footer-generator.mjs --check",
+    "seo:check": "npm run footer:check && node scripts/seo-check.mjs",
     "seo:verify": "node scripts/seo-verify.mjs"
   },
   "prisma": {

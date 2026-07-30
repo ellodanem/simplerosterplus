@@ -47,6 +47,22 @@ node scripts/seo-verify.mjs --url https://www.simplerosterplus.com/employee-leav
 `--page` loads expectations from `scripts/seo/page-configs.mjs`.  
 `--url` runs generic live checks without exact title/H1 expectations.
 
+### Shared marketing footer
+
+The homepage and six commercial pages contain generated footer regions. Edit the
+page-specific mission or shared link contract in `scripts/seo/footer-generator.mjs`,
+then regenerate and verify from the repository root:
+
+```bash
+npm run footer:generate
+npm run footer:check
+```
+
+`footer:check` is non-mutating and exits non-zero when a generated footer differs
+from its authoritative template. Do not hand-edit content between the generated
+footer markers. The standard `npm run seo:check` command runs this drift check
+before page-level SEO validation.
+
 ## Adding a page config
 
 Edit `scripts/seo/page-configs.mjs` and add an entry:
@@ -153,5 +169,6 @@ scripts/seo/shared.mjs         # HTML helpers, CLI args, reporting
 scripts/seo/page-configs.mjs   # Per-page expectations
 scripts/seo/prohibited-claims.mjs
 scripts/seo/lighthouse.mjs
+scripts/seo/footer-generator.mjs # Shared marketing-footer generation and drift check
 docs/seo-verification-runner.md
 ```
