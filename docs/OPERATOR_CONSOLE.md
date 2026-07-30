@@ -158,6 +158,15 @@ billing summary, attendance sparkline.
 - Lifecycle actions (audited, confirm-dialog'd): **suspend / reactivate / delete**, extend
 trial, convert demo → trial, manual plan change (comps/discounts).
 
+> **TODO — build "Delete org" action (not yet shipped).** Today the console only
+> exposes suspend/reactivate/trial/plan; there is no delete. Deleting a seeded/test
+> org currently requires the throwaway `scripts/delete-seeded-orgs.ts` one-off.
+> A durable action should: `superadmin`-gated, type-to-confirm the org name,
+> `prisma.organization.delete` (children cascade via `onDelete: Cascade`), also
+> delete the linked Clerk org when `clerkOrgId` is set (mirror `lib/demo/reclaim.ts`),
+> and write an audit row (`org.delete`). Consider soft-delete + "Recently removed"
+> (like `Device`) before hard delete so accidental deletes are recoverable.
+
 ### 3.2 Billing & payments (Stripe) — *MVP*
 
 - Stripe is the **source of truth for money**; SR+ mirrors minimal state and reacts to
