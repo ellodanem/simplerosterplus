@@ -14,6 +14,9 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { stripeConfigured } from "@/lib/ops/stripe";
 import { BillingActions } from "@/app/components/billing-actions";
+import { InviteAdminSettings } from "@/app/components/invite-admin-settings";
+import { getAuthContext } from "@/lib/auth-context";
+import { getAdminInviteSnapshot } from "@/lib/clerk/invite-admin";
 import { redirectToSetupIfIncomplete } from "@/lib/setup-guard";
 import { getPlanUsage } from "@/lib/plan-limits";
 
@@ -104,6 +107,12 @@ export default async function SettingsPage({
   const whatsappAccess = getWhatsappAccess(org);
 
   const usage = await getPlanUsage(session.orgId);
+  const authCtx = await getAuthContext();
+  const adminInvite = await getAdminInviteSnapshot({
+    organizationId: session.orgId,
+    appUserId: session.sub,
+    orgRole: authCtx?.orgRole ?? null,
+  });
   const tier = resolveBillingTier(org);
   const paid = hasPaidSubscriptionAccess(org) || isCompedPaidPlan(org);
   const monthly =
@@ -213,6 +222,14 @@ export default async function SettingsPage({
           </div>
         </section>
       ) : null}
+
+      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-zinc-900">Admin access</h2>
+        <p className="mt-1 text-sm text-zinc-600">
+          Invite a co-manager to build schedules and review attendance with you.
+        </p>
+        <InviteAdminSettings initial={adminInvite} />
+      </section>
 
       <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">WhatsApp alerts</h2>
