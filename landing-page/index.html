@@ -854,14 +854,14 @@
           <picture>
             <source
               type="image/webp"
-              srcset="images/solution-attendance.webp 1536w, images/solution-attendance@2x.webp 3072w"
-              sizes="(min-width: 900px) 640px, 100vw"
+              srcset="images/solution-attendance-768.webp 768w, images/solution-attendance.webp 1536w, images/solution-attendance@2x.webp 3072w"
+              sizes="(min-width: 900px) 620px, min(760px, calc(100vw - 2rem))"
             >
             <img
               class="hero-shot"
               src="images/solution-attendance.png"
               srcset="images/solution-attendance.png 1536w, images/solution-attendance@2x.png 3072w"
-              sizes="(min-width: 900px) 640px, 100vw"
+              sizes="(min-width: 900px) 620px, min(760px, calc(100vw - 2rem))"
               width="1536" height="1024"
               alt="Simple Roster Plus attendance week view showing on-time, late, and absent status beside planned shifts."
               decoding="async" fetchpriority="high"
@@ -977,8 +977,18 @@
           </div>
           <div class="feature-media">
             <picture>
-              <source type="image/webp" srcset="images/solution-attendance.webp">
-              <img src="images/solution-attendance.png" width="1280" height="800" alt="Simple Roster Plus attendance week view with on-time, late, and absent status beside planned shifts." loading="lazy">
+              <source
+                type="image/webp"
+                srcset="images/solution-attendance-768.webp 768w, images/solution-attendance.webp 1536w, images/solution-attendance@2x.webp 3072w"
+                sizes="(min-width: 860px) 530px, min(768px, calc(100vw - 2rem))"
+              >
+              <img
+                src="images/solution-attendance.png"
+                width="1536"
+                height="1024"
+                alt="Simple Roster Plus attendance week view with on-time, late, and absent status beside planned shifts."
+                loading="lazy"
+              >
             </picture>
           </div>
         </div>
