@@ -1,0 +1,52 @@
+# Static SEO validation for marketing pages and SEO tooling.
+# Intentionally excludes production seo:verify, Lighthouse, and network checks.
+
+name: SEO static
+
+on:
+  pull_request:
+    paths:
+      - "landing-page/**"
+      - "scripts/seo/**"
+      - "scripts/seo-check.mjs"
+      - "package.json"
+      - "docs/seo-verification-runner.md"
+      - ".github/workflows/seo-static.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "landing-page/**"
+      - "scripts/seo/**"
+      - "scripts/seo-check.mjs"
+      - "package.json"
+      - "docs/seo-verification-runner.md"
+      - ".github/workflows/seo-static.yml"
+
+concurrency:
+  group: seo-static-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seo-static:
+    name: seo:check:all
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Pure Node scripts — no npm install, Playwright, or network.
+      - name: Site-wide SEO selftest
+        run: npm run seo:selftest:site-wide
+
+      - name: Static SEO check (all configured pages)
+        run: npm run seo:check:all

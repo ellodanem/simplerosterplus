@@ -60,15 +60,39 @@ Shared phrases across titles (for example “Employee Scheduling Software”) ar
 - Large PNG “primary vs `<picture>` fallback vs OG” size warnings (deferred — cannot stay low-noise without fragile heuristics; orphan files under `landing-page/images/` are also out of scope)
 - Broken external-link crawling
 - AI copy review or search-volume APIs
-- CI / GitHub Actions (Phase 4F)
+- Production `seo:verify`, live URLs, or deployment health (kept out of required PR CI)
 
-Lighthouse remains outside static verification because it needs a browser, network (or served HTML), and non-deterministic scoring. Use `seo:verify` for production Lighthouse.
+Lighthouse remains outside static verification because it needs a browser, network (or served HTML), and non-deterministic scoring. Use `seo:verify` locally or after deploy when you need production confirmation — never as a required PR gate.
 
 Regression coverage for the site-wide helpers (in-memory fixtures only):
 
 ```bash
 npm run seo:selftest:site-wide
 ```
+
+### GitHub Actions (Phase 4F)
+
+Workflow: `.github/workflows/seo-static.yml`
+
+Runs on pull requests and pushes to `main` when marketing/SEO paths change:
+
+- `landing-page/**`
+- `scripts/seo/**`
+- `scripts/seo-check.mjs`
+- `package.json`
+- `docs/seo-verification-runner.md`
+- `.github/workflows/seo-static.yml`
+
+CI steps (no `npm install`, no network):
+
+1. `npm run seo:selftest:site-wide`
+2. `npm run seo:check:all`
+
+Expected homepage and SMB risky-phrase WARNs do **not** fail the job. FAILs exit non-zero.
+
+**Not in CI:** `seo:verify`, Lighthouse, Playwright, Vercel deploy checks, or production URL fetches.
+
+Phase 4 technical SEO hardening ends here. Remaining image/font/OG polish is opportunistic, not a blocker for Phase 5 (Search Console-led growth).
 
 ### Production validation
 
@@ -199,8 +223,9 @@ Always skim WARN excerpts before treating a page as clean.
 ## File map
 
 ```text
+.github/workflows/seo-static.yml  # Phase 4F path-filtered static CI
 scripts/seo-check.mjs          # npm run seo:check / seo:check:all
-scripts/seo-verify.mjs         # npm run seo:verify
+scripts/seo-verify.mjs         # npm run seo:verify (local/production only)
 scripts/seo/shared.mjs         # HTML helpers, CLI args, reporting
 scripts/seo/page-configs.mjs   # Per-page expectations
 scripts/seo/site-wide.mjs      # Cross-page + sitemap consistency helpers
