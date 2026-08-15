@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Simple Roster Plus",
   description: "Staff roster and attendance — configurable timezone per organization.",
+  // Default noindex for app host; child routes may override to opt in.
+  robots: {
+    index: false,
+    follow: false,
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
