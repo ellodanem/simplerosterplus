@@ -25,14 +25,50 @@ npx playwright install chromium
 
 ```bash
 npm run seo:check
+npm run seo:check:all
 npm run seo:check -- homepage
 npm run seo:check -- employee-leave-and-availability
 node scripts/seo-check.mjs --page employee-leave-and-availability
+npm run seo:selftest:site-wide
 ```
 
 Validates local HTML, assets, sitemap, robots, schema, CTAs, and page config expectations. No network required for the page itself (reads `landing-page/` files).
 
+**`seo:check:all`** runs the footer drift check, then the same static runner with every configured page (identical to `seo:check` with no page key). Prefer it when you want an explicit all-site static pass.
+
 **npm note:** npm may treat `--page` / `--url` as npm config flags and strip them. Prefer a positional page key after `--`, or call `node scripts/...` directly with flags.
+
+### Site-wide static assertions (Phase 4E)
+
+Every `seo:check` / `seo:check:all` invocation runs inexpensive **site-wide** checks once before per-page checks. Helpers live in `scripts/seo/site-wide.mjs` (no network).
+
+| Check | Behavior |
+|-------|----------|
+| Config uniqueness | FAIL if two configs share the same page key, production `file` path, `url`, or `canonical` |
+| Cross-page `<title>` uniqueness | FAIL on exact normalized title duplicates across configured indexable pages (trim, collapse whitespace, case-insensitive) |
+| Cross-page meta description uniqueness | FAIL on exact normalized description duplicates (same normalization) |
+| Sitemap ↔ page-config consistency | FAIL if a configured indexable URL is missing, duplicated, or if a sitemap marketing URL has no page config; enforce HTTPS `www.simplerosterplus.com`, extensionless paths, and no trailing-slash variants (homepage `/` allowed). `/privacy` and `/terms` stay excluded (intentional `noindex`) |
+
+Shared phrases across titles (for example “Employee Scheduling Software”) are **not** failed unless the full normalized string matches.
+
+**Intentionally not checked in static verification**
+
+- Near-duplicate / semantic title or description similarity
+- Title or meta-description length hard gates
+- Keyword density or word-count scores
+- Lighthouse, Core Web Vitals, or accessibility hard gates
+- Large PNG “primary vs `<picture>` fallback vs OG” size warnings (deferred — cannot stay low-noise without fragile heuristics; orphan files under `landing-page/images/` are also out of scope)
+- Broken external-link crawling
+- AI copy review or search-volume APIs
+- CI / GitHub Actions (Phase 4F)
+
+Lighthouse remains outside static verification because it needs a browser, network (or served HTML), and non-deterministic scoring. Use `seo:verify` for production Lighthouse.
+
+Regression coverage for the site-wide helpers (in-memory fixtures only):
+
+```bash
+npm run seo:selftest:site-wide
+```
 
 ### Production validation
 
@@ -163,10 +199,12 @@ Always skim WARN excerpts before treating a page as clean.
 ## File map
 
 ```text
-scripts/seo-check.mjs          # npm run seo:check
+scripts/seo-check.mjs          # npm run seo:check / seo:check:all
 scripts/seo-verify.mjs         # npm run seo:verify
 scripts/seo/shared.mjs         # HTML helpers, CLI args, reporting
 scripts/seo/page-configs.mjs   # Per-page expectations
+scripts/seo/site-wide.mjs      # Cross-page + sitemap consistency helpers
+scripts/seo/site-wide-selftest.mjs  # npm run seo:selftest:site-wide
 scripts/seo/prohibited-claims.mjs
 scripts/seo/lighthouse.mjs
 scripts/seo/footer-generator.mjs # Shared marketing-footer generation and drift check

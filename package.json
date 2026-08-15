@@ -27,6 +27,8 @@
     "footer:generate": "node scripts/seo/footer-generator.mjs",
     "footer:check": "node scripts/seo/footer-generator.mjs --check",
     "seo:check": "npm run footer:check && node scripts/seo-check.mjs",
+    "seo:check:all": "npm run footer:check && node scripts/seo-check.mjs",
+    "seo:selftest:site-wide": "node scripts/seo/site-wide-selftest.mjs",
     "seo:verify": "node scripts/seo-verify.mjs"
   },
   "prisma": {

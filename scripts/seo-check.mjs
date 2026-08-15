@@ -39,16 +39,20 @@ import {
   validateCanonicalShape,
   CANONICAL_ORIGIN,
 } from "./seo/shared.mjs";
+import { runSiteWideChecks } from "./seo/site-wide.mjs";
 
 function printHelp() {
   console.log(`SEO static check
 
 Usage:
   npm run seo:check
+  npm run seo:check:all
   npm run seo:check -- employee-leave-and-availability
   node scripts/seo-check.mjs --page employee-leave-and-availability
 
 Validates local landing-page files before deployment.
+Site-wide config/sitemap/metadata uniqueness checks run once per invocation.
+seo:check:all runs the same site-wide checks then every configured page.
 Note: when using npm run, pass the page key as a positional argument.
 npm may strip --page / --url flags as config options.
 `);
@@ -88,6 +92,26 @@ async function main() {
   }
 
   let exitCode = 0;
+
+  // Inexpensive site-wide assertions once per invocation (all configured pages).
+  const siteWide = runSiteWideChecks(listPageConfigs());
+  printReport(
+    "SEO Site-Wide Static Check",
+    {
+      Scope: "all configured indexable marketing pages",
+      Pages: String(listPageConfigs().length),
+    },
+    siteWide,
+    {
+      sections: [
+        { name: "CONFIG UNIQUENESS", labels: ["Site-wide config", "Duplicate page key", "Duplicate production path", "Duplicate canonical URL", "Duplicate configured canonical", "Configured page URL"] },
+        { name: "METADATA UNIQUENESS", labels: ["Cross-page title", "Cross-page meta-description", "Duplicate metadata title", "Duplicate meta description", "Read indexable page"] },
+        { name: "SITEMAP CONSISTENCY", labels: ["Sitemap ", "Configured page missing", "Configured page appears", "Sitemap URL"] },
+      ],
+    },
+  );
+  if (siteWide.failCount > 0) exitCode = 1;
+
   for (const page of pages) {
     const reporter = createReporter();
     runStaticPageCheck(page, reporter);
