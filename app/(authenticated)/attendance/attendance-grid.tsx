@@ -47,6 +47,8 @@ type AttendanceWeekViewState = Pick<
   | "punches"
   | "overrides"
   | "graceMinutes"
+  | "lateAfterMinutes"
+  | "absentAfterMinutes"
   | "irregularCount"
   | "irregularByStaff"
   | "filedYmds"
@@ -71,6 +73,8 @@ export function AttendanceGrid({
   punches,
   overrides,
   graceMinutes,
+  lateAfterMinutes,
+  absentAfterMinutes,
   irregularCount,
   irregularByStaff,
   filedYmds,
@@ -94,6 +98,8 @@ export function AttendanceGrid({
   punches: SerializedPunch[];
   overrides: SerializedOverride[];
   graceMinutes: number;
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
   irregularCount: number;
   irregularByStaff: Record<string, number>;
   filedYmds: string[];
@@ -117,6 +123,8 @@ export function AttendanceGrid({
     punches,
     overrides,
     graceMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
     irregularCount,
     irregularByStaff,
     filedYmds,
@@ -142,6 +150,8 @@ export function AttendanceGrid({
       punches: body.punches ?? punches,
       overrides: body.overrides ?? overrides,
       graceMinutes: body.graceMinutes ?? graceMinutes,
+      lateAfterMinutes: body.lateAfterMinutes ?? lateAfterMinutes,
+      absentAfterMinutes: body.absentAfterMinutes ?? absentAfterMinutes,
       irregularCount: body.irregularCount ?? irregularCount,
       irregularByStaff: body.irregularByStaff ?? irregularByStaff,
       filedYmds: body.filedYmds ?? filedYmds,
@@ -157,6 +167,8 @@ export function AttendanceGrid({
     punches,
     overrides,
     graceMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
     irregularCount,
     irregularByStaff,
     filedYmds,
@@ -170,7 +182,8 @@ export function AttendanceGrid({
   const currentCells = weekData.cells;
   const currentPunches = weekData.punches;
   const currentOverrides = weekData.overrides;
-  const currentGraceMinutes = weekData.graceMinutes;
+  const currentLateAfterMinutes = weekData.lateAfterMinutes;
+  const currentAbsentAfterMinutes = weekData.absentAfterMinutes;
   const currentIrregularCount = weekData.irregularCount;
   const currentIrregularByStaff = weekData.irregularByStaff;
   const currentFiledYmds = weekData.filedYmds;
@@ -593,8 +606,9 @@ export function AttendanceGrid({
         </div>
 
         <p className="mt-3 text-xs text-zinc-500">
-          Grace window: <span className="font-semibold">{currentGraceMinutes} min</span> after
-          shift start before a punch counts as late; absent only after that window with no
+          Late after{" "}
+          <span className="font-semibold">{currentLateAfterMinutes} min</span>, absent after{" "}
+          <span className="font-semibold">{currentAbsentAfterMinutes} min</span> with no
           in-punch. OT uses worked hours for the week. Click an open cell to add a punch or
           override the day. Filed days (🔒) are read-only after Extract Pay Period is saved.
         </p>

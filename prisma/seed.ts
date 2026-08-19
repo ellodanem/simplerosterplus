@@ -213,8 +213,7 @@ async function main() {
     });
   }
 
-  // Attendance: grace window between scheduled shift start and "late" classification. Lives
-  // in AppSetting so the value is editable in Studio without a code change.
+  // Attendance: late/absent thresholds after scheduled shift start.
   await prisma.appSetting.upsert({
     where: {
       organizationId_key: { organizationId: org.id, key: "attendance_grace_minutes" },
@@ -222,7 +221,29 @@ async function main() {
     create: {
       organizationId: org.id,
       key: "attendance_grace_minutes",
-      value: "10",
+      value: "15",
+    },
+    update: {},
+  });
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId: org.id, key: "attendance_late_after_minutes" },
+    },
+    create: {
+      organizationId: org.id,
+      key: "attendance_late_after_minutes",
+      value: "15",
+    },
+    update: {},
+  });
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId: org.id, key: "attendance_absent_after_minutes" },
+    },
+    create: {
+      organizationId: org.id,
+      key: "attendance_absent_after_minutes",
+      value: "60",
     },
     update: {},
   });

@@ -20,7 +20,7 @@ import {
   type PresenceStatus,
   type Punch,
 } from "./attendance-policy";
-import { getGraceMinutes, type AttendanceStaff, type SerializedPunch } from "./attendance-week";
+import { getAttendanceThresholds, type AttendanceStaff, type SerializedPunch } from "./attendance-week";
 
 export const MAX_ATTENDANCE_LOG_ROWS = 1500;
 
@@ -46,6 +46,8 @@ export type LogKpis = {
 
 export type AttendanceLogData = {
   graceMinutes: number;
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
   staff: AttendanceStaff[];
   /** Most recent first. */
   rows: LogRow[];
@@ -82,7 +84,7 @@ export async function getAttendanceLogData(args: {
     rowLimit = MAX_ATTENDANCE_LOG_ROWS,
   } = args;
 
-  const [staffRows, graceMinutes, punchRows] = await Promise.all([
+  const [staffRows, thresholds, punchRows] = await Promise.all([
     prisma.staff.findMany({
       where: { organizationId, locationId },
       orderBy: [{ sortOrder: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -96,7 +98,7 @@ export async function getAttendanceLogData(args: {
         archivedAt: true,
       },
     }),
-    getGraceMinutes(organizationId),
+    getAttendanceThresholds(organizationId),
     prisma.attendanceLog.findMany({
       where: {
         organizationId,
@@ -119,6 +121,8 @@ export async function getAttendanceLogData(args: {
       },
     }),
   ]);
+  const { lateAfterMinutes, absentAfterMinutes } = thresholds;
+  const graceMinutes = lateAfterMinutes;
   const hasMoreRows = punchRows.length > rowLimit;
   const punches = hasMoreRows ? punchRows.slice(0, rowLimit) : punchRows;
 
@@ -311,7 +315,8 @@ export async function getAttendanceLogData(args: {
         punchExempt: staff.punchExempt,
         override: overrideByDayKey.get(key) ?? null,
         punches: punchesByDayKey.get(key) ?? [],
-        graceMinutes,
+        lateAfterMinutes,
+        absentAfterMinutes,
         nowUtc: new Date(),
       });
       staffByDayKey.set(key, result.status);
@@ -370,6 +375,8 @@ export async function getAttendanceLogData(args: {
 
   return {
     graceMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
     staff: staffForClient,
     rows,
     kpis: {

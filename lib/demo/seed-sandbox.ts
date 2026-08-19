@@ -252,7 +252,21 @@ export async function seedDemoSandbox(organizationId: string, db: Db = prisma): 
     where: {
       organizationId_key: { organizationId, key: "attendance_grace_minutes" },
     },
-    create: { organizationId, key: "attendance_grace_minutes", value: "10" },
+    create: { organizationId, key: "attendance_grace_minutes", value: "15" },
+    update: {},
+  });
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId, key: "attendance_late_after_minutes" },
+    },
+    create: { organizationId, key: "attendance_late_after_minutes", value: "15" },
+    update: {},
+  });
+  await prisma.appSetting.upsert({
+    where: {
+      organizationId_key: { organizationId, key: "attendance_absent_after_minutes" },
+    },
+    create: { organizationId, key: "attendance_absent_after_minutes", value: "60" },
     update: {},
   });
 }

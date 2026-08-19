@@ -25,11 +25,32 @@ import {
   isIrregular,
 } from "./attendance-policy";
 
-/** Settings key in `AppSetting` for the per-org late-tolerance window in minutes. */
+/** @deprecated Legacy single-grace key; read as lateAfter fallback only. */
 export const GRACE_KEY = "attendance_grace_minutes";
-export const GRACE_DEFAULT = 10;
-/** Hard cap so a typo in `AppSetting` can't break the layout (e.g. classify everyone as present). */
-export const GRACE_MAX = 240;
+/** @deprecated Prefer LATE_AFTER_DEFAULT. */
+export const GRACE_DEFAULT = 15;
+/** Hard cap so a typo in `AppSetting` can't break the layout. */
+export const GRACE_MAX = 1440;
+
+/** Minutes after shift start before a punch (or no-show) counts as late. */
+export const LATE_AFTER_KEY = "attendance_late_after_minutes";
+export const LATE_AFTER_DEFAULT = 15;
+
+/** Minutes after shift start before a no-show counts as absent. Must stay > lateAfter. */
+export const ABSENT_AFTER_KEY = "attendance_absent_after_minutes";
+export const ABSENT_AFTER_DEFAULT = 60;
+
+export type AttendanceThresholds = {
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
+};
+
+function parseMinutesSetting(value: string | undefined, fallback: number, max: number): number {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.min(max, Math.round(n));
+}
 
 export type AttendanceStaff = {
   id: string;
@@ -91,7 +112,10 @@ export type AttendanceCell = {
 };
 
 export type AttendanceWeekData = {
+  /** Alias of lateAfterMinutes for older UI props. */
   graceMinutes: number;
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
   staff: AttendanceStaff[];
   days: string[];
   holidays: Record<string, { name: string; stationClosed: boolean }>;
@@ -112,19 +136,46 @@ export type AttendanceWeekData = {
 };
 
 /**
- * Read the org's grace setting once. Defaults to {@link GRACE_DEFAULT} when missing or
- * unparseable; clamps anything > {@link GRACE_MAX} so a bad row can't silently swallow
- * every late punch.
+ * Dual late/absent thresholds. Prefers the new keys; falls back to legacy
+ * `attendance_grace_minutes` for lateAfter when the new key is missing.
  */
-export async function getGraceMinutes(organizationId: string): Promise<number> {
-  const row = await prisma.appSetting.findUnique({
-    where: { organizationId_key: { organizationId, key: GRACE_KEY } },
-    select: { value: true },
+export async function getAttendanceThresholds(
+  organizationId: string,
+): Promise<AttendanceThresholds> {
+  const rows = await prisma.appSetting.findMany({
+    where: {
+      organizationId,
+      key: { in: [LATE_AFTER_KEY, ABSENT_AFTER_KEY, GRACE_KEY] },
+    },
+    select: { key: true, value: true },
   });
-  if (!row) return GRACE_DEFAULT;
-  const n = Number(row.value);
-  if (!Number.isFinite(n) || n < 0) return GRACE_DEFAULT;
-  return Math.min(GRACE_MAX, Math.round(n));
+  const byKey = new Map(rows.map((r) => [r.key, r.value] as const));
+
+  const lateFallback = byKey.has(LATE_AFTER_KEY)
+    ? LATE_AFTER_DEFAULT
+    : parseMinutesSetting(byKey.get(GRACE_KEY), LATE_AFTER_DEFAULT, GRACE_MAX);
+  const lateAfterMinutes = parseMinutesSetting(
+    byKey.get(LATE_AFTER_KEY),
+    lateFallback,
+    GRACE_MAX,
+  );
+
+  let absentAfterMinutes = parseMinutesSetting(
+    byKey.get(ABSENT_AFTER_KEY),
+    Math.max(ABSENT_AFTER_DEFAULT, lateAfterMinutes + 1),
+    GRACE_MAX,
+  );
+  if (absentAfterMinutes <= lateAfterMinutes) {
+    absentAfterMinutes = Math.min(GRACE_MAX, lateAfterMinutes + 1);
+  }
+
+  return { lateAfterMinutes, absentAfterMinutes };
+}
+
+/** Late-after minutes only (setup wizard / legacy callers). */
+export async function getGraceMinutes(organizationId: string): Promise<number> {
+  const t = await getAttendanceThresholds(organizationId);
+  return t.lateAfterMinutes;
 }
 
 export async function getAttendanceWeekData(args: {
@@ -146,7 +197,7 @@ export async function getAttendanceWeekData(args: {
   const punchWindowStart = new Date(weekStartDate.getTime() - 24 * 60 * 60_000);
   const punchWindowEnd = new Date(weekEndDate.getTime() + 2 * 24 * 60 * 60_000);
 
-  const [staffRows, rosterWeek, holidays, punches, overrides, graceMinutes, filedYmds] =
+  const [staffRows, rosterWeek, holidays, punches, overrides, thresholds, filedYmds] =
     await Promise.all([
     prisma.staff.findMany({
       where: { organizationId, locationId },
@@ -215,9 +266,10 @@ export async function getAttendanceWeekData(args: {
         note: true,
       },
     }),
-    getGraceMinutes(organizationId),
+    getAttendanceThresholds(organizationId),
     getFiledYmdsForWeek(locationId, weekStartYmd),
   ]);
+  const { lateAfterMinutes, absentAfterMinutes } = thresholds;
 
   const visibleStaffRows = showArchivedStaff
     ? staffRows
@@ -343,7 +395,8 @@ export async function getAttendanceWeekData(args: {
         punchExempt: s.punchExempt,
         override: overrideByCell.get(key) ?? null,
         punches: punchesByCell.get(key) ?? [],
-        graceMinutes,
+        lateAfterMinutes,
+        absentAfterMinutes,
         nowUtc: new Date(),
       });
       cells[key] = {
@@ -361,7 +414,9 @@ export async function getAttendanceWeekData(args: {
   }
 
   return {
-    graceMinutes,
+    graceMinutes: lateAfterMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
     staff: staffForClient,
     days,
     holidays: holidayMap,

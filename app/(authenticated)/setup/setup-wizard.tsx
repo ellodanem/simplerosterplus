@@ -467,15 +467,16 @@ export function SetupWizard({
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-              <h3 className="text-sm font-semibold text-zinc-900">Grace window</h3>
+              <h3 className="text-sm font-semibold text-zinc-900">Late after</h3>
               <p className="mt-1 text-xs text-zinc-500">
-                Minutes after shift start before a punch is counted as late.
+                Minutes after shift start before a punch (or no-show) counts as late. Absent
+                defaults to 60 minutes.
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <input
                   type="number"
                   min={0}
-                  max={240}
+                  max={1440}
                   step={1}
                   value={graceMinutes}
                   onChange={(e) => setGraceMinutes(e.target.value)}

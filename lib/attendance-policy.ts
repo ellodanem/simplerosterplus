@@ -9,8 +9,11 @@
  * Precedence (high → low): station_closed > on_vacation > on_sick_leave > day_off > manual_* > exempt
  * > (expected ? present|late|absent|scheduled : no_shift).
  *
- * `scheduled` = shift on roster but no in-punch yet, and the absent window has not opened
- * (future day, or today before shift start + grace). `absent` only after that window.
+ * Dual thresholds after shift start:
+ *   - lateAfterMinutes: punch after this → late; no punch past this → late (still expected)
+ *   - absentAfterMinutes: no punch past this → absent (must be > lateAfter)
+ * `scheduled` = shift on roster but no in-punch yet, and still inside the late window
+ * (future day, or today before start + lateAfter).
  */
 
 import { formatYmdInZone, startOfLocalDayUtc } from "./datetime-policy";
@@ -55,8 +58,10 @@ export type ComputePresenceInput = {
   punchExempt: boolean;
   override: "present" | "absent" | null;
   punches: Punch[];
-  /** Minutes after the shift start before we flip from `present` → `late`. */
-  graceMinutes: number;
+  /** Minutes after shift start before a punch is late / a no-show becomes late. */
+  lateAfterMinutes: number;
+  /** Minutes after shift start before a no-show becomes absent. Must be > lateAfter. */
+  absentAfterMinutes: number;
   /** Evaluation instant (typically server "now") in UTC. */
   nowUtc: Date;
 };
@@ -68,8 +73,8 @@ export type PresenceResult = {
   /** Latest `out` punch on this day, or null. */
   lastOutAt: Date | null;
   /**
-   * Whole minutes between the expected start (+ grace) and the first in-punch, when both
-   * exist and the punch is after start+grace. Null otherwise (including for early/on-time
+   * Whole minutes between the expected start (+ lateAfter) and the first in-punch, when both
+   * exist and the punch is after start+lateAfter. Null otherwise (including for early/on-time
    * arrivals — they're just `present`, not negatively late).
    */
   minutesLate: number | null;
@@ -82,7 +87,7 @@ const HHMM_RE = /^(\d{2}):(\d{2})$/;
  * instant. Wraps `startOfLocalDayUtc` and adds the minutes-of-day; DST-safe because the
  * underlying helper uses a probe scan against `Intl.DateTimeFormat`.
  */
-function localTimeToUtc(ymd: string, hhmm: string, timeZone: string): Date | null {
+export function localTimeToUtc(ymd: string, hhmm: string, timeZone: string): Date | null {
   const m = HHMM_RE.exec(hhmm);
   if (!m) return null;
   const hours = Number(m[1]);
@@ -93,14 +98,25 @@ function localTimeToUtc(ymd: string, hhmm: string, timeZone: string): Date | nul
   return new Date(dayStart.getTime() + (hours * 60 + minutes) * 60_000);
 }
 
-/** No in-punch yet: scheduled until shift start + grace, then absent (past days are always absent). */
+/** Clamp absent so it stays strictly greater than late when both are provided. */
+export function normalizeAbsentAfter(lateAfterMinutes: number, absentAfterMinutes: number): number {
+  const late = Math.max(0, lateAfterMinutes);
+  const absent = Math.max(0, absentAfterMinutes);
+  return absent > late ? absent : late + 1;
+}
+
+/**
+ * No in-punch yet: scheduled until start+lateAfter, late until start+absentAfter, then absent.
+ * Past calendar days with no punch always reach absent.
+ */
 function statusWithoutInPunch(input: {
   dateYmd: string;
   timeZone: string;
   expected: ExpectedShift;
-  graceMinutes: number;
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
   nowUtc: Date;
-}): "scheduled" | "absent" {
+}): "scheduled" | "late" | "absent" {
   const todayYmd = formatYmdInZone(input.nowUtc, input.timeZone);
   if (input.dateYmd > todayYmd) {
     return "scheduled";
@@ -112,10 +128,15 @@ function statusWithoutInPunch(input: {
   if (!startUtc) {
     return "scheduled";
   }
-  const graceMs = Math.max(0, input.graceMinutes) * 60_000;
-  const absentAfterMs = startUtc.getTime() + graceMs;
-  if (input.nowUtc.getTime() < absentAfterMs) {
+  const lateMs = Math.max(0, input.lateAfterMinutes) * 60_000;
+  const absentMs =
+    normalizeAbsentAfter(input.lateAfterMinutes, input.absentAfterMinutes) * 60_000;
+  const now = input.nowUtc.getTime();
+  if (now < startUtc.getTime() + lateMs) {
     return "scheduled";
+  }
+  if (now < startUtc.getTime() + absentMs) {
+    return "late";
   }
   return "absent";
 }
@@ -159,7 +180,8 @@ export function computePresence(input: ComputePresenceInput): PresenceResult {
       dateYmd: input.dateYmd,
       timeZone: input.timeZone,
       expected: input.expected,
-      graceMinutes: input.graceMinutes,
+      lateAfterMinutes: input.lateAfterMinutes,
+      absentAfterMinutes: input.absentAfterMinutes,
       nowUtc: input.nowUtc,
     });
     return { status, firstInAt, lastOutAt, minutesLate: null };
@@ -169,8 +191,8 @@ export function computePresence(input: ComputePresenceInput): PresenceResult {
   if (!startUtc) {
     return { status: "present", firstInAt, lastOutAt, minutesLate: null };
   }
-  const graceMs = Math.max(0, input.graceMinutes) * 60_000;
-  const lateThresholdMs = startUtc.getTime() + graceMs;
+  const lateMs = Math.max(0, input.lateAfterMinutes) * 60_000;
+  const lateThresholdMs = startUtc.getTime() + lateMs;
 
   if (firstInAt.getTime() <= lateThresholdMs) {
     return { status: "present", firstInAt, lastOutAt, minutesLate: null };

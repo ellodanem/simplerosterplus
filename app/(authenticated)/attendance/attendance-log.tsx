@@ -25,7 +25,14 @@ import { useAttendanceFilters } from "./attendance-filter-context";
 type FilterKey = "all" | "late" | "corrected" | "manual" | "device" | "in" | "out";
 type LogViewState = Pick<
   AttendanceLogData,
-  "graceMinutes" | "staff" | "rows" | "kpis" | "hasMoreRows" | "rowLimit"
+  | "graceMinutes"
+  | "lateAfterMinutes"
+  | "absentAfterMinutes"
+  | "staff"
+  | "rows"
+  | "kpis"
+  | "hasMoreRows"
+  | "rowLimit"
 >;
 
 export function AttendanceLog({
@@ -36,6 +43,8 @@ export function AttendanceLog({
   expandedWindow,
   windowDays,
   graceMinutes,
+  lateAfterMinutes,
+  absentAfterMinutes,
   staff,
   rows,
   kpis,
@@ -50,6 +59,8 @@ export function AttendanceLog({
   expandedWindow: boolean;
   windowDays: number;
   graceMinutes: number;
+  lateAfterMinutes: number;
+  absentAfterMinutes: number;
   staff: AttendanceStaff[];
   rows: LogRow[];
   kpis: LogKpis;
@@ -68,6 +79,8 @@ export function AttendanceLog({
   const [notice, setNotice] = useState<string | null>(null);
   const [logData, setLogData] = useState<LogViewState>({
     graceMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
     staff,
     rows,
     kpis,
@@ -84,13 +97,26 @@ export function AttendanceLog({
     if (!res.ok) throw new Error(body.error || "Could not refresh attendance log");
     setLogData({
       graceMinutes: body.graceMinutes ?? graceMinutes,
+      lateAfterMinutes: body.lateAfterMinutes ?? lateAfterMinutes,
+      absentAfterMinutes: body.absentAfterMinutes ?? absentAfterMinutes,
       staff: body.staff ?? staff,
       rows: body.rows ?? rows,
       kpis: body.kpis ?? kpis,
       hasMoreRows: body.hasMoreRows ?? hasMoreRows,
       rowLimit: body.rowLimit ?? rowLimit,
     });
-  }, [expandedWindow, graceMinutes, staff, rows, kpis, hasMoreRows, rowLimit, locationId]);
+  }, [
+    expandedWindow,
+    graceMinutes,
+    lateAfterMinutes,
+    absentAfterMinutes,
+    staff,
+    rows,
+    kpis,
+    hasMoreRows,
+    rowLimit,
+    locationId,
+  ]);
 
   const staffById = useMemo(() => {
     const m = new Map<string, AttendanceStaff>();
@@ -258,8 +284,11 @@ export function AttendanceLog({
           </div>
 
           <p className="mt-3 text-xs text-zinc-500">
-            Grace window: <span className="font-semibold">{logData.graceMinutes} min</span> after the
-            scheduled start.{" "}
+            Late after{" "}
+            <span className="font-semibold">{logData.lateAfterMinutes} min</span>
+            , absent after{" "}
+            <span className="font-semibold">{logData.absentAfterMinutes} min</span>
+            .{" "}
             <button
               type="button"
               onClick={() => setShowGraceModal(true)}
@@ -327,13 +356,19 @@ export function AttendanceLog({
 
       {showGraceModal ? (
         <GraceSettingsModal
-          initialMinutes={logData.graceMinutes}
+          initialLateAfterMinutes={logData.lateAfterMinutes}
+          initialAbsentAfterMinutes={logData.absentAfterMinutes}
           onClose={() => setShowGraceModal(false)}
           onError={setError}
-          onSaved={(msg, nextGraceMinutes) => {
+          onSaved={(msg, nextLate, nextAbsent) => {
             setShowGraceModal(false);
             setNotice(msg);
-            setLogData((curr) => ({ ...curr, graceMinutes: nextGraceMinutes }));
+            setLogData((curr) => ({
+              ...curr,
+              graceMinutes: nextLate,
+              lateAfterMinutes: nextLate,
+              absentAfterMinutes: nextAbsent,
+            }));
           }}
         />
       ) : null}

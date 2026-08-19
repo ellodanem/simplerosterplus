@@ -94,6 +94,12 @@ export default async function AttendancePage({
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href={`/attendance/late-absent?location=${encodeURIComponent(location.id)}`}
+            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
+          >
+            Late &amp; Absent
+          </Link>
+          <Link
             href={`/attendance/report?location=${encodeURIComponent(location.id)}`}
             className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
           >
@@ -237,6 +243,8 @@ async function LogTab({
       expandedWindow={expandedLogWindow}
       windowDays={logWindowDays}
       graceMinutes={data.graceMinutes}
+      lateAfterMinutes={data.lateAfterMinutes}
+      absentAfterMinutes={data.absentAfterMinutes}
       staff={data.staff}
       rows={data.rows}
       kpis={data.kpis}
@@ -307,6 +315,8 @@ async function WeekTab({
       punches={data.punches}
       overrides={data.overrides}
       graceMinutes={data.graceMinutes}
+      lateAfterMinutes={data.lateAfterMinutes}
+      absentAfterMinutes={data.absentAfterMinutes}
       irregularCount={data.irregularCount}
       irregularByStaff={data.irregularByStaff}
       filedYmds={data.filedYmds}
