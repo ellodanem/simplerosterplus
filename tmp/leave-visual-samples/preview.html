@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leave page visual samples — Hero + Mid</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f8f7;
+      --surface: #fff;
+      --text: #0f172a;
+      --text-muted: #5b6b73;
+      --brand: #047857;
+      --brand-dark: #065f46;
+      --border: #e4ebe8;
+      --font: "Plus Jakarta Sans", system-ui, sans-serif;
+      --max: 1140px;
+      --radius-lg: 26px;
+      --shadow-lg: 0 30px 75px rgba(4, 120, 87, 0.16);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: #e8eeeb;
+    }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    .intro {
+      margin-bottom: 2rem;
+      padding: 1.25rem 1.4rem;
+      border-radius: 16px;
+      background: #0c1512;
+      color: #d5ded9;
+    }
+    .intro h1 { margin: 0 0 0.4rem; color: #fff; font-size: 1.35rem; }
+    .intro p { margin: 0; font-size: 0.95rem; line-height: 1.5; }
+    .label {
+      display: inline-flex;
+      margin-bottom: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: var(--brand-dark);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .sample {
+      margin-bottom: 2.5rem;
+      padding: 1.5rem;
+      border-radius: 22px;
+      background: var(--surface);
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    }
+    .sample h2 { margin: 0 0 0.35rem; font-size: 1.15rem; }
+    .sample .note { margin: 0 0 1.25rem; color: var(--text-muted); font-size: 0.9rem; }
+
+    /* Hero mock */
+    .hero-mock {
+      position: relative;
+      overflow: hidden;
+      padding: 2rem 1.5rem;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(246,248,247,0.2), rgba(246,248,247,0.95)),
+        repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(15,23,42,0.03) 24px),
+        repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(15,23,42,0.03) 24px),
+        var(--bg);
+    }
+    .hero-grid {
+      display: grid;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    @media (min-width: 900px) {
+      .hero-grid { grid-template-columns: 0.92fr 1.08fr; }
+    }
+    .eyebrow {
+      display: inline-flex;
+      margin-bottom: 0.75rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid #a7f3d0;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: var(--brand-dark);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .hero-copy h3 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+    .hero-copy h3 span { color: var(--brand); }
+    .hero-copy p { margin: 0 0 1.1rem; color: var(--text-muted); line-height: 1.55; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-bottom: 1rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.7rem 1.2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      text-decoration: none;
+    }
+    .btn-primary { color: #fff; background: var(--brand); }
+    .btn-secondary { color: var(--brand-dark); border: 1px solid var(--border); background: #fff; }
+    .meta { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.35rem; color: var(--text-muted); font-size: 0.86rem; }
+    .meta li::before { content: "✓ "; color: var(--brand); font-weight: 800; }
+
+    .hero-visual { position: relative; }
+    .hero-frame {
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      background: #0f172a;
+      transform: rotate(1.2deg);
+    }
+    .hero-frame img { display: block; width: 100%; height: auto; }
+    .chip {
+      position: absolute;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 20px rgba(15,23,42,0.1);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+    .chip .dot.amber { background: #d97706; }
+    .chip-top { top: 0.4rem; right: 0.2rem; }
+    .chip-bottom { bottom: 0.6rem; left: 0.2rem; }
+
+    /* Mid feature mock */
+    .feature-mock {
+      display: grid;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 18px;
+      background: #f8faf9;
+      border: 1px solid var(--border);
+    }
+    @media (min-width: 900px) {
+      .feature-mock { grid-template-columns: 0.9fr 1.1fr; align-items: center; }
+    }
+    .feature-copy h3 { margin: 0 0 0.6rem; font-size: 1.45rem; line-height: 1.2; }
+    .feature-copy p { margin: 0 0 0.9rem; color: var(--text-muted); line-height: 1.55; }
+    .checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.45rem; }
+    .checks li { display: flex; gap: 0.5rem; font-size: 0.92rem; }
+    .checks .c { color: var(--brand); font-weight: 800; }
+    .shot-frame {
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #fff;
+      box-shadow: 0 12px 32px rgba(15,23,42,0.08);
+    }
+    .shot-frame img { display: block; width: 100%; height: auto; }
+    .caption {
+      margin-top: 0.65rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .pair {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 800px) {
+      .pair { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="intro">
+      <h1>Leave page visual samples</h1>
+      <p>Preview only — not live on the marketing site. Proposed pairing: roster grid in the hero, cleaned New request UI mid-page.</p>
+    </div>
+
+    <section class="sample">
+      <span class="label">Sample A · Hero</span>
+      <h2>Roster with leave visible</h2>
+      <p class="note">Keeps the page promise in one glance. Float chips still make sense here.</p>
+      <div class="hero-mock">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="eyebrow">Employee leave management software</span>
+            <h3>Manage <span>Leave and Availability</span> Before You Build the Roster</h3>
+            <p>Record vacation, days off, and sick leave, review conflicts before approval, and keep approved time off visible while assigning the weekly roster.</p>
+            <div class="cta-row">
+              <span class="btn btn-primary">Start Free</span>
+              <span class="btn btn-secondary">Explore demo</span>
+            </div>
+            <ul class="meta">
+              <li>Manager-managed leave</li>
+              <li>Soft shift preferences</li>
+              <li>Free for up to 10 staff</li>
+            </ul>
+          </div>
+          <div class="hero-visual">
+            <span class="chip chip-top"><span class="dot"></span>Leave stays visible</span>
+            <div class="hero-frame">
+              <img src="leave-page-sample-hero-roster.png" alt="Sample hero: weekly roster with vacation leave visible">
+            </div>
+            <span class="chip chip-bottom"><span class="dot amber"></span>Preferences stay soft</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Generated cleanup sample from your roster reference. Live page currently uses <code>app-roster-week</code>.</p>
+    </section>
+
+    <section class="sample">
+      <span class="label">Sample B · Mid-page (Record section)</span>
+      <h2>New request UI next to leave-types copy</h2>
+      <p class="note">More specific to leave recording. Replaces the illustrative HTML “Leave records” panel.</p>
+      <div class="feature-mock">
+        <div class="feature-copy">
+          <span class="eyebrow">Record vacation, days off, and sick leave</span>
+          <h3>Manager-Managed Leave Records for Shift Teams</h3>
+          <p>Managers record time off for staff in the Requests workflow—vacation date ranges, single days off, and sick-leave date ranges—with optional reasons and approve or deny decisions.</p>
+          <ul class="checks">
+            <li><span class="c">✓</span><span>Vacation ranges with start and end dates.</span></li>
+            <li><span class="c">✓</span><span>Single days off for one-off time away.</span></li>
+            <li><span class="c">✓</span><span>Sick leave ranges for short absences.</span></li>
+            <li><span class="c">✓</span><span>Optional notes and who decided, when.</span></li>
+          </ul>
+        </div>
+        <div>
+          <div class="shot-frame">
+            <img src="leave-page-sample-mid-request.png" alt="Sample mid-page: New request modal for vacation">
+          </div>
+          <p class="caption">Generated cleanup of your New request screenshot (email removed; form filled).</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sample">
+      <span class="label">Bonus · Real screenshot crop</span>
+      <h2>Same mid-page slot, closer to the live UI</h2>
+      <p class="note">Quick crop of your actual capture. Still needs a proper fill (dates/reason) and a cleaner chrome pass if we ship this.</p>
+      <div class="pair">
+        <div>
+          <div class="shot-frame">
+            <img src="mid-request-cleaned-crop.png" alt="Cropped real New request modal">
+          </div>
+          <p class="caption">Real product UI crop (email strip covered).</p>
+        </div>
+        <div>
+          <div class="shot-frame">
+            <img src="../../landing-page/images/app-roster-week.png" alt="Current live hero roster asset">
+          </div>
+          <p class="caption">Current live hero asset (<code>app-roster-week.png</code>).</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
