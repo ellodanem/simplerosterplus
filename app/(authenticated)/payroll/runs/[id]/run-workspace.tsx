@@ -918,7 +918,6 @@ function DetailCard({
         <section>
           <h4 className="text-xs font-medium uppercase tracking-wide text-zinc-500">Net</h4>
           <p className="mt-2 text-2xl font-semibold tabular-nums text-emerald-800">{formatMoney(line.net)}</p>
-          <p className="mt-2 text-sm text-zinc-600">Employer N.I.C. {formatMoney(line.employerNic)} is not taken from this net.</p>
           <p className="mt-2 text-sm text-zinc-600">{payDestination(line)}</p>
         </section>
       </div>
