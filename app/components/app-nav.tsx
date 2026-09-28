@@ -17,6 +17,12 @@ const NAV_ITEMS = [
     match: (path: string) => path === "/attendance" || path.startsWith("/attendance/"),
   },
   {
+    href: "/payroll",
+    label: "Payroll",
+    match: (path: string) => path === "/payroll" || path.startsWith("/payroll/"),
+    payroll: true,
+  },
+  {
     href: "/staff",
     label: "Staff",
     match: (path: string) => path === "/staff" || path.startsWith("/staff/"),
@@ -33,7 +39,7 @@ const NAV_ITEMS = [
   },
 ] as const;
 
-export function AppNav() {
+export function AppNav({ showPayroll = false }: { showPayroll?: boolean }) {
   const pathname = usePathname();
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
 
@@ -69,7 +75,7 @@ export function AppNav() {
 
   return (
     <nav className="flex items-center gap-1 text-sm" aria-label="Main">
-      {NAV_ITEMS.map(({ href, label, match }) => {
+      {NAV_ITEMS.filter((item) => !("payroll" in item) || showPayroll).map(({ href, label, match }) => {
         const active = match(pathname);
         return (
           <Link

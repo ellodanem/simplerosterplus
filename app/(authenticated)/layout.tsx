@@ -28,17 +28,27 @@ export default async function AuthenticatedLayout({
   const onboardingSimulate = isOnboardingSimulateSession(session);
   const operatorSession = readOnly || onboardingSimulate;
 
-  const org = await prisma.organization.findUnique({
-    where: { id: session.orgId },
-    select: {
-      isDemo: true,
-      demoExpiresAt: true,
-      subscriptionStatus: true,
-      plan: true,
-      stripeSubscriptionId: true,
-      suspendedAt: true,
-    },
-  });
+  const [org, appUser] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: session.orgId },
+      select: {
+        isDemo: true,
+        demoExpiresAt: true,
+        subscriptionStatus: true,
+        plan: true,
+        stripeSubscriptionId: true,
+        suspendedAt: true,
+        payrollConfig: { select: { enabled: true } },
+      },
+    }),
+    prisma.appUser.findFirst({
+      where: { id: session.sub, organizationId: session.orgId },
+      select: { role: true },
+    }),
+  ]);
+  const showPayroll = Boolean(
+    org?.payrollConfig?.enabled && (appUser?.role === "owner" || appUser?.role === "admin"),
+  );
 
   const planUsage = org && !org.isDemo ? await getPlanUsage(session.orgId) : null;
   const paymentAttention = org
@@ -84,7 +94,7 @@ export default async function AuthenticatedLayout({
             >
               <BrandLogo height={28} priority />
             </Link>
-            <AppNav />
+            <AppNav showPayroll={showPayroll} />
           </div>
           <div className="flex items-center gap-3 text-sm text-zinc-600">
             <span className="truncate max-w-[200px]" title={session.email}>

@@ -12,6 +12,8 @@ import {
   subscriptionStatusTone,
 } from "@/lib/ops/billing";
 import { StatCard, Card, Pill, Sparkline, formatDate, formatDateTime } from "../../ops-ui";
+import { prisma } from "@/lib/prisma";
+import { PayrollSwitch } from "./payroll-switch";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,10 @@ export default async function OrganizationDetailPage({
   if (!detail) notFound();
 
   const { org, counts, ownerEmail, recentAudit, punchSeries, mrrUsd } = detail;
+  const payroll = await prisma.payrollConfig.findUnique({
+    where: { organizationId: org.id },
+    select: { enabled: true, countryCode: true },
+  });
 
   return (
     <div>
@@ -182,6 +188,17 @@ export default async function OrganizationDetailPage({
               canEdit={operator.role === "billing" || operator.role === "superadmin"}
             />
           </div>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card title="Payroll module">
+          <PayrollSwitch
+            orgId={org.id}
+            enabled={payroll?.enabled ?? false}
+            countryCode={payroll?.countryCode ?? "LC"}
+            canEdit={operator.role !== "readonly"}
+          />
         </Card>
       </div>
 
