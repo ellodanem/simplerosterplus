@@ -23,6 +23,11 @@ export const DEFAULT_COLUMN_LAYOUT: ColumnLayout = {
   custom: [],
 };
 
+function parseCustomKind(value: unknown): CustomColumnKind | null {
+  if (value === "hour" || value === "money" || value === "deduction") return value;
+  return null;
+}
+
 export function parseColumnLayout(raw: unknown): ColumnLayout {
   if (!raw || typeof raw !== "object") return { ...DEFAULT_COLUMN_LAYOUT, custom: [] };
   const record = raw as { hiddenBuiltIn?: unknown; custom?: unknown };
@@ -35,7 +40,7 @@ export function parseColumnLayout(raw: unknown): ColumnLayout {
     ? record.custom.flatMap((item) => {
         if (!item || typeof item !== "object") return [];
         const row = item as { id?: unknown; label?: unknown; kind?: unknown };
-        const kind = row.kind === "hour" || row.kind === "money" || row.kind === "deduction" ? row.kind : null;
+        const kind = parseCustomKind(row.kind);
         const id = typeof row.id === "string" ? row.id : "";
         const label = typeof row.label === "string" ? row.label.trim() : "";
         if (!kind || !id || !label) return [];
