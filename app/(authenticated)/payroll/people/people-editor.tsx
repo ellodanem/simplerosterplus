@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isListedBank, OTHER_BANK, SAINT_LUCIA_BANKS } from "@/lib/payroll/bank-picker";
 import type { StaffPayDto } from "@/lib/payroll/dto";
 import { formatMoney } from "@/lib/payroll/format";
 import { FREQUENCY_LABEL } from "@/lib/payroll/frequency";
@@ -18,9 +19,12 @@ export function PeopleEditor({ people, readOnly }: { people: StaffPayDto[]; read
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loan, setLoan] = useState({ principal: "", termCount: "10", termUnit: "months", startDate: "" });
+  const [otherOpen, setOtherOpen] = useState(false);
+  const otherBankRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setForm(people.find((person) => person.staffId === staffId) ?? null);
+    setOtherOpen(false);
   }, [people, staffId]);
 
   function choose(id: string) {
@@ -150,24 +154,87 @@ export function PeopleEditor({ people, readOnly }: { people: StaffPayDto[]; read
           </label>
           <label className="text-sm font-medium text-zinc-800">
             Hourly rate
-            <input className={field} inputMode="decimal" value={form.hourlyRate} disabled={readOnly} onChange={(event) => setForm({ ...form, hourlyRate: Number(event.target.value) })} />
+            <MoneyField
+              key={`${form.staffId}-hourly`}
+              value={form.hourlyRate}
+              disabled={readOnly}
+              onChange={(hourlyRate) => setForm({ ...form, hourlyRate })}
+            />
           </label>
           <label className="text-sm font-medium text-zinc-800">
             Salary for one cycle
-            <input className={field} inputMode="decimal" value={form.salaryAmount} disabled={readOnly} onChange={(event) => setForm({ ...form, salaryAmount: Number(event.target.value) })} />
+            <MoneyField
+              key={`${form.staffId}-salary`}
+              value={form.salaryAmount}
+              disabled={readOnly}
+              onChange={(salaryAmount) => setForm({ ...form, salaryAmount })}
+            />
           </label>
           <label className="text-sm font-medium text-zinc-800">
             Medical each run
-            <input className={field} inputMode="decimal" value={form.medicalAmount} disabled={readOnly} onChange={(event) => setForm({ ...form, medicalAmount: Number(event.target.value) })} />
+            <MoneyField
+              key={`${form.staffId}-medical`}
+              value={form.medicalAmount}
+              disabled={readOnly}
+              onChange={(medicalAmount) => setForm({ ...form, medicalAmount })}
+            />
           </label>
           <label className="text-sm font-medium text-zinc-800">
             Open-ended staff loan
-            <input className={field} inputMode="decimal" value={form.openLoanAmount} disabled={readOnly} onChange={(event) => setForm({ ...form, openLoanAmount: Number(event.target.value) })} />
+            <MoneyField
+              key={`${form.staffId}-loan`}
+              value={form.openLoanAmount}
+              disabled={readOnly}
+              onChange={(openLoanAmount) => setForm({ ...form, openLoanAmount })}
+            />
           </label>
-          <label className="text-sm font-medium text-zinc-800">
-            Bank
-            <input className={field} value={form.bankName} disabled={readOnly} onChange={(event) => setForm({ ...form, bankName: event.target.value })} />
-          </label>
+          <div className="text-sm font-medium text-zinc-800">
+            <label htmlFor={`pay-bank-${form.staffId}`}>Bank</label>
+            <select
+              id={`pay-bank-${form.staffId}`}
+              className={field}
+              value={bankSelectValue(form.bankName, otherOpen)}
+              disabled={readOnly}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === OTHER_BANK) {
+                  setOtherOpen(true);
+                  if (isListedBank(form.bankName)) setForm({ ...form, bankName: "" });
+                  requestAnimationFrame(() => otherBankRef.current?.focus());
+                  return;
+                }
+                setOtherOpen(false);
+                setForm({ ...form, bankName: value });
+              }}
+            >
+              <option value="">No bank yet</option>
+              {SAINT_LUCIA_BANKS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.banks.map((bank) => (
+                    <option key={bank} value={bank}>
+                      {bank}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={OTHER_BANK}>Other…</option>
+            </select>
+            {showOtherBank(form.bankName, otherOpen) ? (
+              <>
+                <label htmlFor={`pay-bank-other-${form.staffId}`} className="mt-3 block">
+                  Other bank name
+                </label>
+                <input
+                  ref={otherBankRef}
+                  id={`pay-bank-other-${form.staffId}`}
+                  className={field}
+                  value={form.bankName}
+                  disabled={readOnly}
+                  onChange={(event) => setForm({ ...form, bankName: event.target.value })}
+                />
+              </>
+            ) : null}
+          </div>
           <label className="text-sm font-medium text-zinc-800">
             Account
             <input className={field} value={form.bankAccount} disabled={readOnly} onChange={(event) => setForm({ ...form, bankAccount: event.target.value })} />
@@ -216,4 +283,41 @@ export function PeopleEditor({ people, readOnly }: { people: StaffPayDto[]; read
       )}
     </div>
   );
+}
+
+function MoneyField({ value, disabled, onChange }: { value: number; disabled: boolean; onChange: (value: number) => void }) {
+  const [text, setText] = useState<string | null>(null);
+  const shown = text ?? String(value);
+  return (
+    <input
+      className={field}
+      inputMode="decimal"
+      disabled={disabled}
+      value={shown}
+      onFocus={() => setText(String(value))}
+      onBlur={() => setText(null)}
+      onChange={(event) => {
+        const next = event.target.value;
+        if (next !== "" && !/^\d*\.?\d*$/.test(next)) return;
+        setText(next);
+        if (next === "" || next === ".") {
+          onChange(0);
+          return;
+        }
+        const parsed = Number(next);
+        if (Number.isFinite(parsed)) onChange(parsed);
+      }}
+    />
+  );
+}
+
+function showOtherBank(name: string, otherOpen: boolean): boolean {
+  if (isListedBank(name)) return false;
+  return otherOpen || name.trim() !== "";
+}
+
+function bankSelectValue(name: string, otherOpen: boolean): string {
+  if (isListedBank(name)) return name;
+  if (showOtherBank(name, otherOpen)) return OTHER_BANK;
+  return "";
 }
