@@ -119,6 +119,9 @@ export function SettingsForm({ initial, readOnly }: { initial: PayrollSettingsDt
       </label>
       <fieldset>
         <legend className="text-sm font-medium text-zinc-800">Columns</legend>
+        <p className="mt-1 text-sm text-zinc-600">
+          Basic, overtime, vacation, and extra show on the hours grid. Show all on a pay run adds sick, and any of those you leave unchecked. Medical, P.A.Y.E., and shortage are checked before you approve.
+        </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {BUILT_IN.map((column) => (
             <label key={column.id} className="flex min-h-11 items-center gap-2 text-sm">
