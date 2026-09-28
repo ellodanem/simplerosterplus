@@ -190,13 +190,12 @@ export function PeopleEditor({ people, readOnly }: { people: StaffPayDto[]; read
           </label>
           <div className="text-sm font-medium text-zinc-800">
             <label htmlFor={`pay-bank-${form.staffId}`}>Bank</label>
-            <select
+            <BankPicker
+              key={form.staffId}
               id={`pay-bank-${form.staffId}`}
-              className={field}
               value={bankSelectValue(form.bankName, otherOpen)}
               disabled={readOnly}
-              onChange={(event) => {
-                const value = event.target.value;
+              onChange={(value) => {
                 if (value === OTHER_BANK) {
                   setOtherOpen(true);
                   if (isListedBank(form.bankName)) setForm({ ...form, bankName: "" });
@@ -206,19 +205,7 @@ export function PeopleEditor({ people, readOnly }: { people: StaffPayDto[]; read
                 setOtherOpen(false);
                 setForm({ ...form, bankName: value });
               }}
-            >
-              <option value="">No bank yet</option>
-              {SAINT_LUCIA_BANKS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.banks.map((bank) => (
-                    <option key={bank} value={bank}>
-                      {bank}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-              <option value={OTHER_BANK}>Other…</option>
-            </select>
+            />
             {showOtherBank(form.bankName, otherOpen) ? (
               <>
                 <label htmlFor={`pay-bank-other-${form.staffId}`} className="mt-3 block">
@@ -308,6 +295,180 @@ function MoneyField({ value, disabled, onChange }: { value: number; disabled: bo
         if (Number.isFinite(parsed)) onChange(parsed);
       }}
     />
+  );
+}
+
+function BankPicker({
+  id,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const label = value === OTHER_BANK ? "Other…" : value || "No bank yet";
+
+  useEffect(() => {
+    if (!open) return;
+    optionRefs.current[value]?.focus();
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [open, value]);
+
+  function choose(next: string) {
+    onChange(next);
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function move(current: string, delta: number) {
+    const index = BANK_CHOICES.findIndex((choice) => choice.value === current);
+    const next = BANK_CHOICES[Math.min(BANK_CHOICES.length - 1, Math.max(0, index + delta))];
+    optionRefs.current[next.value]?.focus();
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        ref={triggerRef}
+        id={id}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`${field} flex items-center justify-between gap-2 bg-white text-left font-normal text-zinc-900 disabled:bg-zinc-50`}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        <span className="truncate">{label}</span>
+        <span aria-hidden="true" className="text-xs text-zinc-500">
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <div
+          role="listbox"
+          aria-labelledby={id}
+          className="absolute z-20 mt-1 max-h-80 w-full overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg"
+          onKeyDown={(event) => {
+            const current = (event.target as HTMLElement).dataset.value;
+            if (current == null) return;
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              move(current, 1);
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              move(current, -1);
+            } else if (event.key === "Home") {
+              event.preventDefault();
+              optionRefs.current[BANK_CHOICES[0].value]?.focus();
+            } else if (event.key === "End") {
+              event.preventDefault();
+              optionRefs.current[BANK_CHOICES[BANK_CHOICES.length - 1].value]?.focus();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+              triggerRef.current?.focus();
+            }
+          }}
+        >
+          <BankOption
+            optionRef={(node) => {
+              optionRefs.current[""] = node;
+            }}
+            value=""
+            selected={value === ""}
+            onChoose={choose}
+          >
+            No bank yet
+          </BankOption>
+          {SAINT_LUCIA_BANKS.map((group) => (
+            <div key={group.label} role="group" aria-label={group.label}>
+              <div className="px-3 pb-1 pt-3 text-sm font-bold text-zinc-900">{group.label}</div>
+              {group.banks.map((bank) => (
+                <BankOption
+                  key={bank}
+                  optionRef={(node) => {
+                    optionRefs.current[bank] = node;
+                  }}
+                  value={bank}
+                  selected={value === bank}
+                  inset
+                  onChoose={choose}
+                >
+                  {bank}
+                </BankOption>
+              ))}
+            </div>
+          ))}
+          <div className="mt-1 border-t border-zinc-100 pt-1">
+            <BankOption
+              optionRef={(node) => {
+                optionRefs.current[OTHER_BANK] = node;
+              }}
+              value={OTHER_BANK}
+              selected={value === OTHER_BANK}
+              onChoose={choose}
+            >
+              Other…
+            </BankOption>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const BANK_CHOICES: { value: string }[] = [
+  { value: "" },
+  ...SAINT_LUCIA_BANKS.flatMap((group) => group.banks.map((bank) => ({ value: bank }))),
+  { value: OTHER_BANK },
+];
+
+function BankOption({
+  value,
+  selected,
+  inset,
+  onChoose,
+  optionRef,
+  children,
+}: {
+  value: string;
+  selected: boolean;
+  inset?: boolean;
+  onChoose: (value: string) => void;
+  optionRef: (node: HTMLButtonElement | null) => void;
+  children: string;
+}) {
+  return (
+    <button
+      ref={optionRef}
+      type="button"
+      role="option"
+      data-value={value}
+      aria-selected={selected}
+      className={`flex min-h-11 w-full items-center pr-3 text-left text-sm font-normal ${inset ? "pl-6" : "pl-3"} ${
+        selected ? "bg-emerald-50 font-medium text-emerald-900" : "text-zinc-800 hover:bg-zinc-50"
+      }`}
+      onClick={() => onChoose(value)}
+    >
+      {children}
+    </button>
   );
 }
 
